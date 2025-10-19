@@ -1,0 +1,627 @@
+import "animate.bs"
+
+namespace tests
+    @suite
+    class TestSuite extends rooibos.BaseTestSuite
+        protected override function beforeEach()
+            if (m.canvas = invalid)
+                m.canvas = m.top.createChild("Group")
+                m.canvas.id = "canvas"
+            end if
+
+            m.r1 = m.canvas.createChild("Rectangle")
+            m.r1.id = "r1"
+
+            m.r2 = m.canvas.createChild("Rectangle")
+            m.r2.id = "r2"
+        end function
+
+        protected override function afterEach()
+            m.resetCanvas()
+        end function
+
+        private function resetCanvas()
+            if (m.canvas <> invalid)
+                m.canvas.removeChildrenIndex(m.canvas.getChildCount(), 0)
+            end if
+        end function
+
+        @describe("identifies targets")
+
+        @it("by string id")
+        function _()
+            targets = _animate.getNodeTargets("r1 r2")
+            m.assertArrayCount(targets, 2)
+            m.assertSubType(targets[0], "Rectangle")
+        end function
+
+        @it("directly by node")
+        function _()
+            targets = _animate.getNodeTargets(m.r1)
+            m.assertArrayCount(targets, 1)
+            m.assertSubType(targets[0], "Rectangle")
+        end function
+
+        @it("by list of strings")
+        function _()
+            targets = _animate.getNodeTargets(["r1", "r2"])
+            m.assertArrayCount(targets, 2)
+        end function
+
+        @it("by list of nodes")
+        function _()
+            targets = _animate.getNodeTargets([m.r1, m.r2])
+            m.assertArrayCount(targets, 2)
+        end function
+
+        @it("by mixed list")
+        function _()
+            targets = _animate.getNodeTargets(["r1", m.r2])
+            m.assertArrayCount(targets, 2)
+        end function
+
+        @describe("generates animation objects")
+
+        @it("can use `targets` or `target` as key")
+        function _()
+            result = _animate.create({
+                targets: "r1 r2",
+                x: 20
+            })
+            m.assertEqual(result.subtype, _animate.utils.nodes.ParallelAnimation)
+            m.assertArrayCount(result.children, 2)
+
+            result = _animate.create({
+                target: "r1 r2",
+                x: 20
+            })
+            m.assertEqual(result.subtype, _animate.utils.nodes.ParallelAnimation)
+            m.assertArrayCount(result.children, 2)
+        end function
+
+        @it("assigns ids to nodes without")
+        function _()
+            r = m.canvas.createChild("Rectangle")
+            _animate.create({ targets: r })
+            m.assertTrue(r.id.startsWith("__animate"))
+        end function
+
+        @it("considers animation and interpolator params")
+        function _()
+            result = _animate.create({
+                targets: m.r1,
+                duration: 33,
+                fraction: 0.2,
+                x: 20
+            })
+
+            m.assertEqual(result.subType, _animate.utils.nodes.Animation)
+            m.assertEqual(result.duration, 33)
+            m.assertArrayCount(result.children, 1)
+            m.assertEqual(result.children[0].fraction, 0.2)
+        end function
+
+        @it("generates parallel animation for multiple targets")
+        function _()
+            result = _animate.create({
+                targets: [m.r1, m.r2],
+                x: 20
+            })
+
+            m.assertEqual(result.subtype, _animate.utils.nodes.ParallelAnimation)
+            m.assertArrayCount(result.children, 2)
+
+            r1Animation = result.children[0]
+            m.assertEqual(r1Animation.subtype, _animate.utils.nodes.Animation)
+            m.assertArrayCount(r1Animation.children, 1)
+
+            r1Interp = r1Animation.children[0]
+
+            m.assertEqual(r1Interp, {
+                subtype: _animate.utils.nodes.Vector2DFieldInterpolator,
+                fieldToInterp: "r1.translation",
+                key: [0.0, 1.0]
+                keyValue: [[0.0, 0.0], [20.0, 0.0]]
+            })
+
+            r2Animation = result.children[1]
+            m.assertEqual(r2Animation.subtype, _animate.utils.nodes.Animation)
+            m.assertArrayCount(r2Animation.children, 1)
+
+            r2Interp = r2Animation.children[0]
+
+            m.assertEqual(r2Interp, {
+                subtype: _animate.utils.nodes.Vector2DFieldInterpolator,
+                fieldToInterp: "r2.translation",
+                key: [0.0, 1.0]
+                keyValue: [[0.0, 0.0], [20.0, 0.0]]
+            })
+        end function
+
+        @it("ignores properties that can't be interpolated")
+        function _()
+            label = m.canvas.createChild("Label")
+            label.text = "initial"
+            result = _animate.create({
+                targets: label,
+                ' vector 2d field interp
+                x: 20,
+                ' color field interp
+                color: "#FF0000",
+                ' float field interp
+                opacity: 0.5,
+                ' no interp
+                text: "final"
+            })
+
+            m.assertEqual(result.subtype, _animate.utils.nodes.Animation)
+            m.assertArrayCount(result.children, 3)
+            m.assertEqual(result.children[0].subtype, _animate.utils.nodes.ColorFieldInterpolator)
+            m.assertEqual(result.children[1].subtype, _animate.utils.nodes.FloatFieldInterpolator)
+            m.assertEqual(result.children[2].subtype, _animate.utils.nodes.Vector2DFieldInterpolator)
+        end function
+
+        @describe("special interpolator keys")
+
+        @it("x: moves element from current x to value")
+        function _()
+            m.r1.translation = [44, 33]
+            result = _animate.create({
+                target: m.r1,
+                x: 20
+            })
+
+            m.assertEqual(result.children[0].keyValue, [[44.0, 33.0], [20.0, 33.0]])
+        end function
+
+        @it("y: moves element from current y to value")
+        function _()
+            m.r1.translation = [90, 24]
+            result = _animate.create({
+                target: m.r1,
+                y: 87
+            })
+
+            m.assertEqual(result.children[0].keyValue, [[90.0, 24.0], [90.0, 87.0]])
+        end function
+
+        @it("translateX: moves element from current x to (current x + value)")
+        function _()
+            m.r1.translation = [44, 33]
+            result = _animate.create({
+                target: m.r1,
+                translateX: 20
+            })
+
+            m.assertEqual(result.children[0].keyValue, [[44.0, 33.0], [64.0, 33.0]])
+        end function
+
+        @it("translateY: moves element from current y to (current y + value)")
+        function _()
+            m.r1.translation = [90, 24]
+            result = _animate.create({
+                target: m.r1,
+                translateY: 87
+            })
+
+            m.assertEqual(result.children[0].keyValue, [[90.0, 24.0], [90.0, 111.0]])
+        end function
+
+        @describe("special interpolator values")
+
+        @it("rotation in degrees is transformed to radians")
+        function _()
+            result = _animate.create({
+                target: m.r1,
+                rotation: "90deg"
+            })
+
+            ' man comparing floats is hard
+            ' but trust me, 1.570796 is 90deg in rad
+            expectedAsInt = 1570796
+            m.assertEqual(cInt(result.children[0].keyValue[1] * 1000000), expectedAsInt)
+        end function
+
+        @it("single value for scale is expanded to array")
+        function _()
+            result = _animate.create({
+                target: m.r1,
+                scale: 2
+            })
+
+            m.assertEqual(result.children[0].keyValue, [[1.0, 1.0], [2.0, 2.0]])
+        end function
+
+        @it("scale accepts single value float")
+        function _()
+            result = _animate.create({
+                target: m.r1,
+                scale: 2.5
+            })
+
+            m.assertEqual(result.children[0].keyValue, [[1.0, 1.0], [2.5, 2.5]])
+        end function
+
+        @describe("object properties")
+
+        @it("specific parameters per property")
+        function _()
+            result = _animate.create({
+                targets: m.r1,
+                translateX: {
+                    value: 450,
+                    duration: 0.8,
+                    easeFunction: "linear"
+                },
+                rotation: {
+                    value: "-360deg",
+                    duration: 1.8
+                },
+                scale: {
+                    value: 2,
+                    duration: 1.6,
+                    ' all the other animations will inherit delay = 0.25
+                    ' except this one
+                    delay: 0.8,
+                    easeFunction: "inOutQuartic"
+                },
+                color: "#FAFA33",
+                delay: 0.25
+            })
+
+            m.assertEqual(result.subtype, _animate.utils.nodes.ParallelAnimation)
+            m.assertArrayCount(result.children, 4)
+
+            ' Roku automatically transforms AAs to have
+            ' their keys alphabetically ordered.
+            ' So we can expect to have the result children
+            ' in order: color, rotation, scale, translation
+
+            colorAnim = result.children[0]
+            rotationAnim = result.children[1]
+            scaleAnim = result.children[2]
+            translationAnim = result.children[3]
+
+            ' confirm that interpolators have correct values
+
+            m.assertEqual(colorAnim.children[0].subtype, _animate.utils.nodes.ColorFieldInterpolator)
+            m.assertEqual(colorAnim.children[0].fieldToInterp, "r1.color")
+
+            m.assertEqual(rotationAnim.children[0].subtype, _animate.utils.nodes.FloatFieldInterpolator)
+            m.assertEqual(rotationAnim.children[0].fieldToInterp, "r1.rotation")
+
+            m.assertEqual(scaleAnim.children[0].subtype, _animate.utils.nodes.Vector2DFieldInterpolator)
+            m.assertEqual(scaleAnim.children[0].fieldToInterp, "r1.scale")
+
+            m.assertEqual(translationAnim.children[0].subtype, _animate.utils.nodes.Vector2DFieldInterpolator)
+            m.assertEqual(translationAnim.children[0].fieldToInterp, "r1.translation")
+
+            ' confirm that animations are inheriting root
+            ' level values but conserving their specific values
+
+            m.assertEqual(translationAnim.duration, 0.8)
+            m.assertEqual(translationAnim.delay, 0.25)
+
+            m.assertEqual(rotationAnim.duration, 1.8)
+            m.assertEqual(rotationAnim.delay, 0.25)
+
+            m.assertEqual(scaleAnim.duration, 1.6)
+            m.assertEqual(scaleAnim.delay, 0.8)
+
+            m.assertEqual(colorAnim.duration, 1)
+            m.assertEqual(colorAnim.delay, 0.25)
+        end function
+
+        @describe("autoplay")
+
+        @it("default (false)")
+        function _()
+            result = _animate.create({
+                target: m.r1,
+                x: 20
+            })
+            m.assertEqual(result.control, "none")
+        end function
+
+        @it("true")
+        function _()
+            result = _animate.create({
+                target: m.r1,
+                autoplay: true,
+                x: 20
+            })
+            m.assertEqual(result.control, "start")
+        end function
+
+        @it("only true in recursive mode")
+        function _()
+            result = _animate.create({
+                target: m.r1,
+                autoplay: true,
+                x: {
+                    value: 20,
+                    delay: 0.8
+                },
+                scale: {
+                    value: 2,
+                    delay: 1.5
+                }
+            })
+
+            m.assertEqual(result.control, "start")
+            m.assertInvalid(result.children[0].control)
+            m.assertInvalid(result.children[1].control)
+        end function
+
+        @describe("direction and keys")
+
+        @it("normal")
+        function _()
+            result = _animate.create({
+                target: m.r1,
+                translateX: 250,
+                direction: "normal"
+            })
+
+            m.assertEqual(result.children[0].keyValue, [[0.0, 0.0], [250.0, 0.0]])
+            m.assertEqual(result.children[0].key, [0.0, 1.0])
+        end function
+
+        @it("reverse")
+        function _()
+            result = _animate.create({
+                target: m.r1,
+                translateX: 250,
+                direction: "reverse"
+            })
+
+            m.assertEqual(result.children[0].keyValue, [[250.0, 0.0], [0.0, 0.0]])
+            m.assertEqual(result.children[0].key, [0.0, 1.0])
+        end function
+
+        @it("alternate: creates a sequential animation with the 2nd one reversed")
+        function _()
+            result = _animate.create({
+                target: m.r1,
+                translateX: 250,
+                direction: "alternate",
+                duration: 2,
+                delay: 3,
+                repeat: true
+            })
+
+            m.assertEqual(result.subtype, _animate.utils.nodes.SequentialAnimation)
+            m.assertArrayCount(result.children, 2)
+            m.assertTrue(result.repeat)
+            m.assertInvalid(result.duration)
+            m.assertInvalid(result.delay)
+
+            animation1 = result.children[0]
+            m.assertEqual(animation1.duration, 2)
+            m.assertEqual(animation1.delay, 3)
+            m.assertFalse(animation1.repeat)
+            m.assertEqual(animation1.children[0].keyValue, [[0.0, 0.0], [250.0, 0.0]])
+
+            animation2 = result.children[1]
+            m.assertEqual(animation2.duration, 2)
+            m.assertEqual(animation2.delay, 3)
+            m.assertFalse(animation2.repeat)
+            m.assertEqual(animation2.children[0].keyValue, [[250.0, 0.0], [0.0, 0.0]])
+        end function
+
+        @describe("function based parameters")
+
+        @it("target parameters")
+        function _()
+            result = _animate.create({
+                target: "r1 r2"
+                translateX: function(t, i, l)
+                    return (i + 1) * 100
+                end function
+            })
+
+            m.assertEqual(result.children[0].children[0].keyValue, [[0.0, 0.0], [100.0, 0.0]])
+            m.assertEqual(result.children[1].children[0].keyValue, [[0.0, 0.0], [200.0, 0.0]])
+        end function
+
+        @it("animation and interpolator parameters")
+        function _()
+            r3 = m.canvas.createChild("Rectangle")
+            r3.id = "r3"
+
+            integerFunc = function(t, i, l)
+                return (i + 1)
+            end function
+
+            boolFunc = function(t, i, l)
+                return i mod 2 = 0
+            end function
+
+            keyFunc = function(t, i, l)
+                key = []
+                _step = 1 / (i + 2)
+                for p = 0 to (i + 2)
+                    key.push(i * _step)
+                end for
+                return key
+            end function
+
+            floatFunc = function(t, i, l)
+                return (i + 1) / 100
+            end function
+
+            result = _animate.create({
+                target: "r1 r2 r3",
+                x: 200,
+                ' animation params
+                repeat: boolFunc,
+                delay: integerFunc,
+                duration: integerFunc,
+                easeInPercent: floatFunc,
+                easeOutPercent: floatFunc,
+                optional: boolFunc,
+                ' interpolator params
+                fraction: floatFunc,
+                reverse: boolFunc
+            })
+
+            for i = 0 to 2
+                ? `checking for i = ${i}`
+                animation = result.children[i]
+                m.assertEqual(animation.repeat, boolFunc(0, i, 0))
+                m.assertEqual(animation.delay, integerFunc(0, i, 0))
+                m.assertEqual(animation.duration, integerFunc(0, i, 0))
+                m.assertEqual(animation.easeInPercent, floatFunc(0, i, 0))
+                m.assertEqual(animation.easeOutPercent, floatFunc(0, i, 0))
+                m.assertEqual(animation.optional, boolFunc(0, i, 0))
+
+                interp = animation.children[0]
+                m.assertEqual(interp.fraction, floatFunc(0, i, 0))
+                m.assertEqual(interp.reverse, boolFunc(0, i, 0))
+            end for
+        end function
+
+        @describe("timeline")
+
+        @it("parallel timeline")
+        function _()
+            tl = animate.timeline({
+                targets: m.r1,
+                ' This one should be ignored
+                translateX: 20,
+                delay: 0.8,
+                repeat: true
+            })
+            
+            m.assertEqual(tl.nodeObject.subtype, _animate.utils.nodes.ParallelAnimation)
+            m.assertArrayCount(tl.nodeObject.children, 0)
+            m.assertEqual(tl.nodeObject.delay, 0.8)
+            m.assertTrue(tl.nodeObject.repeat)
+
+            tl2 = tl.add({
+                ' target and delay should be inherited
+                ' repeat should not be inherited
+                scale: 0.2
+            })
+
+            m.assertArrayCount(tl2.nodeObject.children, 1)
+            m.assertEqual(tl2.nodeObject.children[0].subtype, _animate.utils.nodes.Animation)
+            m.assertEqual(tl2.nodeObject.children[0].children[0].fieldToInterp, "r1.scale")
+            m.assertEqual(tl2.nodeObject.children[0].delay, 0.8)
+            m.assertInvalid(tl2.nodeObject.children[0].repeat)
+
+            tl3 = tl.add({ targets: "r2", x: 20, delay: 2 })
+
+            m.assertArrayCount(tl3.nodeObject.children, 2)
+            m.assertEqual(tl3.nodeObject.children[1].subtype, _animate.utils.nodes.Animation)
+            m.assertEqual(tl3.nodeObject.children[1].children[0].fieldToInterp, "r2.translation")
+            m.assertEqual(tl3.nodeObject.children[1].delay, 2)
+            m.assertInvalid(tl3.nodeObject.children[1].repeat)
+        end function
+
+        @it("sequential timeline")
+        function _()
+            tl = animate.timeline({ target: m.r1, sequential: true, delay: 0.8 })
+            m.assertEqual(tl.nodeObject.subtype, _animate.utils.nodes.SequentialAnimation)
+        end function
+
+        @it("can change from targets to target in add() and vice versa")
+        function _()
+            r3 = m.canvas.createChild("Rectangle")
+            r3.id = "r3"
+
+            tl = animate.timeline({ targets: "r1", sequential: true, delay: 0.8 })
+            tl.add({ target: "r2", x: 20, delay: 2 })
+            m.assertEqual(tl.nodeObject.children[0].children[0].fieldToInterp, "r2.translation")
+            tl.add({ targets: "r3", x: 30 })
+            m.assertEqual(tl.nodeObject.children[1].children[0].fieldToInterp, "r3.translation")
+
+            tl2 = animate.timeline({ target: "r2", sequential: true, delay: 0.8 })
+            tl2.add({ targets: "r1", scale: 2, delay: 2 })
+            m.assertEqual(tl2.nodeObject.children[0].children[0].fieldToInterp, "r1.scale")
+            tl2.add({ target: "r3", x: 30 })
+            m.assertEqual(tl2.nodeObject.children[1].children[0].fieldToInterp, "r3.translation")
+        end function
+
+        @describe("custom interpolator functions")
+
+        @it("can use custom interpolator functions")
+        function _()
+            result = _animate.create({
+                target: "r1",
+                width: 200,
+                easeFunction: function(t)
+                    return t ' linear ease
+                end function
+            })
+
+            ' For a duration of 1s, 60 frames should have been generated
+            m.assertArrayCount(result.children[0].keyValue, 60)
+            m.assertArrayCount(result.children[0].key, 60)
+            m.assertEqual(result.children[0].keyValue[0], 0.0)
+            m.assertEqual(result.children[0].keyValue[59], 200.0)
+            m.assertEqual(result.children[0].key[0], 0.0)
+            m.assertEqual(result.children[0].key[59], 1.0)
+        end function
+
+        @it("considers 2d array values")
+        function _()
+            m.r1.translation = [23, 45]
+            result = _animate.create({
+                target: "r1",
+                translateX: 200,
+                easeFunction: function(t)
+                    return t ' linear ease
+                end function
+            })
+
+            ' For a duration of 1s, 60 frames should have been generated
+            m.assertArrayCount(result.children[0].keyValue, 60)
+            m.assertArrayCount(result.children[0].key, 60)
+            m.assertEqual(result.children[0].keyValue[0], [23.0, 45.0])
+            m.assertEqual(result.children[0].keyValue[59], [223.0, 45.0])
+            m.assertEqual(result.children[0].key[0], 0.0)
+            m.assertEqual(result.children[0].key[59], 1.0)
+        end function
+
+        @it("does not crash with penner functions")
+        function _()
+            funcs = [
+                animate.penner.easeInSine,
+                animate.penner.easeOutSine,
+                animate.penner.easeInOutSine,
+                animate.penner.easeOutInSine,
+                animate.penner.easeInCirc,
+                animate.penner.easeOutCirc,
+                animate.penner.easeInOutCirc,
+                animate.penner.easeOutInCirc,
+                animate.penner.easeInBack,
+                animate.penner.easeOutBack,
+                animate.penner.easeInOutBack,
+                animate.penner.easeOutInBack,
+                animate.penner.easeInElastic,
+                animate.penner.easeOutElastic,
+                animate.penner.easeInOutElastic,
+                animate.penner.easeOutInElastic,
+                animate.penner.easeInBounce,
+                animate.penner.easeOutBounce,
+                animate.penner.easeInOutBounce,
+                animate.penner.easeOutInBounce
+            ]
+
+            for each f in funcs
+                ? `Checking ${f}`
+                result = _animate.create({
+                    target: "r1",
+                    width: 200,
+                    easeFunction: f
+                })
+
+                m.assertArrayCount(result.children[0].keyValue, 60)
+                m.assertArrayCount(result.children[0].key, 60)
+                m.assertEqual(result.children[0].key[0], 0.0)
+                m.assertEqual(result.children[0].key[59], 1.0)
+            end for
+        end function
+    end class
+end namespace

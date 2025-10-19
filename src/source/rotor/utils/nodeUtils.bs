@@ -1,0 +1,113 @@
+namespace Rotor.Utils
+
+    ' --------------------------------
+    ' | Implement create node and set fields on demand
+
+    function createNode(nodeType as string, fields = {} as object) as object
+        node = CreateObject("roSGNode", nodeType)
+        setCustomFields(node, fields, true, true)
+        return node
+    end function
+
+    function createContentNode(fields = {} as object, nodeType = "ContentNode" as string) as object
+        contentNode = CreateObject("roSGNode", nodeType)
+        if nodeType = "ContentNode"
+            contentNode.addFields(fields)
+        else
+            contentNode.setFields(fields)
+        end if
+        return contentNode
+    end function
+
+    ' --------------------------------
+    ' | Implement add/replace interface
+
+    sub setCustomFields(node as object, fields as object, overwrite = true as boolean, alwaysNotify = true as boolean)
+        for each attr in fields.Items()
+            key = attr.key
+            value = attr.value
+
+
+            if node.hasField(key) = false
+
+                ' Only addFiled can set `alwaysNotify` feature to true in runtime, so we need it;
+                ' Type conversion and formatting are mandatory to make it possible.
+                typeStr = convertIntrinsicType(type(value))
+                node.addField(key, typeStr, alwaysNotify)
+
+            end if
+
+            if overwrite = true
+                node.setField(key, value)
+            end if
+
+        end for
+    end sub
+
+
+    function callbackScoped(callback as dynamic, scope as object, payload1 = invalid as dynamic, payload2 = invalid as dynamic) as dynamic
+
+        if callback = invalid or scope = invalid then return invalid
+
+        ' check if callback valid, otherwise return
+        if not (Rotor.Utils.isFunction(callback) or (Rotor.Utils.isString(callback) and callback <> "")) then return invalid
+
+        ' check possible arguments
+        isValidPayload1 = Rotor.Utils.isValid(payload1)
+        isValidPayload2 = Rotor.Utils.isValid(payload2)
+
+        if Rotor.Utils.isString(callback)
+            if true = isValidPayload2
+                return scope[callback](payload1, payload2)
+            else if true = isValidPayload1
+                return scope[callback](payload1)
+            else
+                return scope[callback]()
+            end if
+        else if Rotor.Utils.isFunction(callback)
+            scope.rotor_tmp_callback_scoped = callback
+            if true = isValidPayload2
+                return scope.rotor_tmp_callback_scoped(payload1, payload2)
+            else if true = isValidPayload1
+                return scope.rotor_tmp_callback_scoped(payload1)
+            else
+                return scope.rotor_tmp_callback_scoped()
+            end if
+            scope.rotor_tmp_callback_scoped = invalid
+        end if
+        return invalid
+    end function
+
+    ' --------------------------------
+    ' | Implement setup / remove font for a given node
+
+    sub setFontAttribute(node as object, params as object)
+        font = createNode("Font", {
+            uri: params.uri,
+            size: params.size
+        })
+        node.font = font
+    end sub
+
+    sub removeFontAttribute(node as object)
+        node.font = invalid
+    end sub
+
+    function convertIntrinsicType(typeKey as string) as string
+        typeKey = LCase(typeKey)
+        types = {
+            roint: "integer",
+            roassocarray: "assocarray",
+            rosgnode: "node"
+        }
+        converted = types.lookUp(typeKey)
+        if converted <> invalid
+            return converted
+        else if Left(typeKey, 2) = "ro"
+            return Right(typeKey, Len(typeKey) - 2)
+        end if
+        return typeKey
+
+    end function
+
+end namespace

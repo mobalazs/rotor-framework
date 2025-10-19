@@ -1,0 +1,35 @@
+namespace Rotor
+
+    class BaseStack
+        stack = {}
+
+        sub set(id as string, newItem as object)
+            if m.has(id) = true
+                m.remove(id)
+            end if
+            m.stack[id] = newItem
+        end sub
+
+        function get(id as string) as object
+            return m.stack.LookupCI(id)
+        end function
+
+        function getAll() as object
+            return m.stack
+        end function
+
+        sub remove(id as string)
+            m.stack.delete(id)
+        end sub
+
+        sub clear()
+            m.stack.Clear()
+        end sub
+
+        function has(id as string) as boolean
+            return m.stack.doesExist(id)
+        end function
+
+    end class
+
+end namespace

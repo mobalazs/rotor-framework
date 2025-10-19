@@ -1,0 +1,20 @@
+# Project specific paths
+out
+stage
+dist
+node_modules
+.roku-deploy-staging
+.env
+./dist/tests.xml
+
+# IDE specific
+
+.vscode/*
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/sample.settings.json
+
+# OS specific paths
+__MACOSX
+.DS_Store
+

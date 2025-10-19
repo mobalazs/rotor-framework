@@ -1,0 +1,183 @@
+' constants
+import "engine/constants.bs"
+
+' engine
+import "engine/providers/dispatcherProvider.bs"
+import "engine/providers/dispatcherFacade.bs"
+
+' base classes
+import "base/dispatcher.bs"
+import "base/dispatcherExternal.bs"
+import "base/baseReducer.bs"
+import "base/baseModel.bs"
+import "base/baseStack.bs"
+
+' utils
+import "utils/generalUtils.bs"
+import "utils/nodeUtils.bs"
+import "utils/arrayUtils.bs"
+
+namespace Rotor
+
+    '''''''''
+    ' ▗▄▄▖  ▗▄▖▗▄▄▄▖▗▄▖ ▗▄▄▖     ▗▄▄▄▖▗▄▄▖  ▗▄▖ ▗▖  ▗▖▗▄▄▄▖▗▖ ▗▖ ▗▄▖ ▗▄▄▖ ▗▖ ▗▖
+    ' ▐▌ ▐▌▐▌ ▐▌ █ ▐▌ ▐▌▐▌ ▐▌    ▐▌   ▐▌ ▐▌▐▌ ▐▌▐▛▚▞▜▌▐▌   ▐▌ ▐▌▐▌ ▐▌▐▌ ▐▌▐▌▗▞▘
+    ' ▐▛▀▚▖▐▌ ▐▌ █ ▐▌ ▐▌▐▛▀▚▖    ▐▛▀▀▘▐▛▀▚▖▐▛▀▜▌▐▌  ▐▌▐▛▀▀▘▐▌ ▐▌▐▌ ▐▌▐▛▀▚▖▐▛▚▖
+    ' ▐▌ ▐▌▝▚▄▞▘ █ ▝▚▄▞▘▐▌ ▐▌    ▐▌   ▐▌ ▐▌▐▌ ▐▌▐▌  ▐▌▐▙▄▄▖▐▙█▟▌▝▚▄▞▘▐▌ ▐▌▐▌ ▐▌
+    ' Rotor Framework™               © 2025 Balázs Molnár. All rights reserved.
+    '''''''''
+    class FrameworkTask
+
+        name = "Rotor Framework"
+        version = "0.2.2"
+
+        config = {
+            tasks: invalid, ' optional
+            debug: {
+            }
+        }
+
+        threadType = Rotor.Const.ThreadType.TASK
+
+        keepAlive = true
+
+        ' helper vars
+        taskNode as object
+        dispatcherProvider as object
+        port as object
+
+        sub new(config = {} as object)
+
+            Rotor.Utils.deepExtendAA(m.config, config)
+
+            globalScope = GetGlobalAA()
+            globalScope.rotor_framework_helper = { ' this give to dispatcher instance the possibility to self-register
+                threadType: m.threadType,
+                frameworkInstance: m
+            }
+            m.taskNode = globalScope.top
+
+            m.dispatcherProvider = new Rotor.DispatcherProvider(m.threadType)
+
+            m.taskNode.addField("rotorSync", "assocarray", true)
+            m.port = CreateObject("roMessagePort")
+            m.taskNode.observeFieldScoped("rotorSync", m.port)
+
+        end sub
+
+        public function getDispatcher(dispatcherId as string) as object
+            return m.dispatcherProvider.getFacade(dispatcherId, GetGlobalAA())
+        end function
+
+        sub sync()
+            m.notifySyncStatus(Rotor.Const.ThreadSyncType.TASK_SYNCING)
+
+            keepAlive = true
+
+            while true and keepAlive = true
+                msg = wait(0, m.port)
+                if msg <> invalid
+                    msgType = type(msg)
+                    if msgType = "roSGNodeEvent"
+                        fieldId = msg.getField()
+
+                        if fieldId = "rotorSync"
+
+                            sync = msg.getData() ' @type:AA
+
+                            if sync.type = Rotor.Const.ThreadSyncType.DISPATCH
+
+
+                                dispatcherId = sync.payload.dispatcherId
+                                intent = sync.payload.intent
+                                dispatcherInstance = m.dispatcherProvider.stack.LookupCI(dispatcherId)
+
+                                ' taskIntent = Rotor.Utils.deepCopy(intent)
+                                dispatcherInstance.dispatch(intent)
+
+                            else if sync.type = Rotor.Const.ThreadSyncType.REGISTER_EXTERNAL_DISPATCHER
+
+                                for each item in sync.externalDispatcherList
+                                    m.dispatcherProvider.registerExternalDispatchers(item.dispatcherId, item.externalTaskNode)
+                                end for
+
+                                m.notifySyncStatus(Rotor.Const.ThreadSyncType.TASK_SYNCED)
+
+                            else if sync.type = Rotor.Const.ThreadSyncType.DESTROY
+
+                                keepAlive = false
+
+                            end if
+                        else
+
+                            data = msg.getData()
+                            extraInfo = msg.GetInfo() ' Info AA passed during observeFieldScoped
+
+                            if extraInfo?.asyncReducerCallbackId <> invalid and m.dispatcherProvider.get(extraInfo?.asyncReducerCallbackId) <> invalid
+                                ' Catch by dispatcherId
+                                m.dispatcherProvider.get(extraInfo?.asyncReducerCallbackId).asyncReducerCallback(msg)
+                            else
+                                dispatcherId = fieldId
+                                dispatcherInstance = m.dispatcherProvider.get(dispatcherId)
+                                dispatcherInstance.notifyListeners(data)
+                            end if
+
+                        end if
+                    end if
+                end if
+            end while
+            m.destroy()
+        end sub
+
+        sub notifySyncStatus(status as string)
+
+            payload = {
+                type: status,
+                taskNode: m.taskNode
+            }
+
+            if status = Rotor.Const.ThreadSyncType.TASK_SYNCING
+                payload.append({
+                    dispatcherIds: m.dispatcherProvider.stack.Keys(),
+                    tasks: m.config.tasks
+                })
+            end if
+
+            m.taskNode.rootNode.setField("rotorSync", payload)
+
+        end sub
+
+        sub addObserver(fieldId as string, node)
+            node.observeFieldScoped(fieldId, m.port)
+        end sub
+
+        sub removeObserver(fieldId as string, node)
+            node.unobserveFieldScoped(fieldId)
+        end sub
+
+        ' DESTROY
+        public sub destroy()
+            m.dispatcherProvider.destroy()
+
+            globalScope = GetGlobalAA()
+            globalScope.rotor_framework_helper = {
+                frameworkInstance: invalid
+            }
+
+            m.taskNode.rootNode = invalid
+            m.taskNode = invalid
+        end sub
+
+    end class
+
+    function getState(dispatcherId as string) as object
+        frameworkInstance = GetGlobalAA().rotor_framework_helper.frameworkInstance
+        dispatcherInstance = frameworkInstance.dispatcherProvider.get(dispatcherId)
+        return dispatcherInstance.getState(dispatcherId)
+    end function
+
+end namespace
+
+
+
+

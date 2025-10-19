@@ -1,0 +1,22 @@
+namespace Rotor
+
+    class BasePlugin
+
+        sub new(key = "" as string, params = invalid as object)
+            if key = "" then key = Rotor.Utils.getUUIDHex(8)
+            m.params = params
+            m.key = key
+        end sub
+
+        isEnabled = true
+
+        key as string ' property identifier
+        hooks = {} ' widget lifecycle hooks
+        scope as object ' plugin scope (plugin functions is available from `m`scope in plugin definitions)
+        params as object ' plugin params
+
+        widgetMethods as object ' methods will be available on widgets (only for FEATURE_PLUGIN type)
+
+    end class
+
+end namespace

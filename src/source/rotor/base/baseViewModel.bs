@@ -1,0 +1,34 @@
+
+class ViewModel extends Rotor.Widget
+    isViewModel = true
+
+    viewModelState = {} ' shared across viewModel's widgets
+    props = {} ' shared across viewModel's widgets
+
+    sub setProps(newProps as object)
+        m.props.append(newProps)
+        m.onUpdateView()
+    end sub
+
+    sub onCreateView()
+    end sub
+
+    sub onTemplateCreated(template as object)
+    end sub
+
+    sub onMountView()
+    end sub
+
+    sub onUpdateView()
+    end sub
+
+    sub onDestroyView()
+    end sub
+
+    ' default template
+    function template() as object
+        return {}
+    end function
+
+
+end class

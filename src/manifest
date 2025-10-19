@@ -1,0 +1,8 @@
+title=rotor framework
+major_version=0
+minor_version=2
+build_version=2
+ui_resolutions=FHD
+supports_input_launch=1
+splash_min_time=0
+bs_const=debug=true;unittest=false

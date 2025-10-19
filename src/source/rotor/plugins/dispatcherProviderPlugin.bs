@@ -1,0 +1,57 @@
+import "../base/basePlugin.bs"
+
+'**
+' A Brighterscript class for handling font style attribute in a widget.
+'
+' @extends BasePlugin class
+'/
+namespace Rotor
+    class DispatcherProviderPlugin extends BasePlugin
+        BasePlugin
+        ' Constructor
+        sub new(key = "dispatcher" as string)
+            super(key)
+        end sub
+
+        hooks = {
+            beforeMount: sub(scope as object, widget as object)
+                scope.setDispatcherOnContext(widget, scope.key)
+            end sub,
+
+            beforeUpdate: sub(scope as object, widget as object, newValue, oldValue = [])
+                ' In this plugin, we would like to extend old config on update if it is assocArray
+                oldArrayOfDispatcherIds = Rotor.Utils.ensureArray(oldValue ?? [])
+                newArrayOfDispatcherIds = Rotor.Utils.ensureArray(newValue)
+                widget[scope.key] = Rotor.Utils.extendArrayOfStrings(oldArrayOfDispatcherIds, newArrayOfDispatcherIds)
+                scope.setDispatcherOnContext(widget, scope.key)
+            end sub,
+
+            beforeDestroy: sub(scope as object, widget as object)
+                dispatcherFacades = widget.viewModelState[scope.key]
+                if dispatcherFacades.Count() > 0
+                    for each dispatcherFacadeKey in dispatcherFacades
+                        dispatcherFacadeInstance = dispatcherFacades[dispatcherFacadeKey]
+                        dispatcherFacadeInstance.destroy()
+                        widget.viewModelState[scope.key][dispatcherFacadeKey] = invalid
+                    end for
+                end if
+            end sub
+
+        }
+
+        sub setDispatcherOnContext(widget, scopeKey)
+            viewModelState = widget.viewModelState
+            config = widget[scopeKey]
+            for each dispatcherId in Rotor.Utils.ensureArray(config)
+                if viewModelState[m.key] = invalid then viewModelState[m.key] = {}
+                if not viewModelState[m.key].DoesExist(dispatcherId)
+                    globalScope = GetGlobalAA()
+                    frameworkInstance = globalScope.rotor_framework_helper.frameworkInstance
+                    viewModelState[m.key][dispatcherId] = frameworkInstance.dispatcherProvider.getFacade(dispatcherId, widget)
+                end if
+            end for
+        end sub
+
+    end class
+
+end namespace

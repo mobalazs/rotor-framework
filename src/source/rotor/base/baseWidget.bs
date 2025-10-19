@@ -1,0 +1,65 @@
+namespace Rotor
+
+    class Widget
+
+        ' Public properties
+
+        id as string
+        children as object
+
+        ' Commonly injected at runtime by the builder
+        node as object
+        parent as object
+        plugins as object
+
+        viewModelState as object ' shared across viewModel's widgets
+        props as object ' shared across viewModel's widgets
+        nodeType as string ' roSgNode type
+        zIndex as integer
+
+        onMountWidget as Function ' widget's lifecycle callback
+        onUpdateWidget as Function ' widget's lifecycle callback
+        onDestroyWidget as Function ' widget's lifecycle callback
+
+        ' Public methods
+
+        getWidget as Function ' decorated by widget
+        findWidgets as Function ' decorated by widget
+        getChildrenWidgets as Function ' decorated by widget
+        getSubtreeClone as Function ' decorated by widget
+        render as Function ' decorated by widget
+        refresh as Function ' decorated by widget
+        getDispatcher as Function ' decorated by widget
+        createDispatcher as Function ' decorated by widget
+        animator as Function ' decorated by widget
+
+        ' Helper methods provided/injected by the framework/builder
+        getParentViewModel as Function
+        getViewModel as Function
+        getRootWidget as Function
+        getFrameworkInstance as Function
+        erase as Function
+        getSiblingWidget as Function
+
+        ' Focus plugin methods (populated via rotorFramework/plugins/focusPlugin.bs)
+        optional enableFocusNavigation as function
+        optional isFocusNavigationEnabled as function
+        optional setFocus as function
+        optional getFocusedWidget as function
+        optional proceedLongPress as function
+        optional isLongPressActive as function
+
+        ' Rotor engine properties
+
+        private HID as string ' used by rotor engine
+        private vmHID as string ' used by rotor engine
+        private isRootChild as boolean ' used by rotor engine
+        private childrenHIDhash as object ' used by rotor engine
+        private parentHID as string ' used by rotor engine
+
+    end class
+
+    ' (1) builder.WidgetTreeBase.add
+    ' (2) builder.processor.createWidget
+
+end namespace

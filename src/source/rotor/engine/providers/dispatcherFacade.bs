@@ -1,0 +1,42 @@
+
+namespace Rotor
+
+    class DispatcherFacade
+
+        dispatcherId as string
+        listenerId as string
+        listenerScope as object
+        dispatcherInstance as object
+
+        sub new(dispatcherInstance as dynamic, dispatcherId as string, listenerId = "" as string, listenerScope = invalid as object)
+            m.dispatcherId = dispatcherId
+            m.listenerScope = listenerScope
+            m.listenerId = listenerId
+            m.dispatcherInstance = dispatcherInstance
+        end sub
+
+        sub dispatch(intent)
+            m.dispatcherInstance.dispatch(intent)
+        end sub
+
+        sub addListener(listenerConfig as dynamic)
+            m.dispatcherInstance.addListener(listenerConfig, m.listenerId, m.listenerScope)
+        end sub
+
+        sub removeAllListenersByListenerId()
+            m.dispatcherInstance.removeAllListenersByListenerId(m.listenerId)
+        end sub
+
+        function getState(mapStateToProps = invalid as Dynamic) as object
+            return m.dispatcherInstance.getState(mapStateToProps, m.listenerScope)
+        end function
+
+        sub destroy()
+            m.removeAllListenersByListenerId()
+            m.listenerScope = invalid
+            m.dispatcherInstance = invalid
+        end sub
+
+    end class
+
+end namespace

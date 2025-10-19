@@ -1,0 +1,450 @@
+namespace Rotor
+
+    '******************************************************************
+    '** @class ObserverPlugin
+    '** @brief Rotor Framework plugin for observing field changes on roSGNodes.
+    '** Manages observer registration, callback routing, and cleanup through widget lifecycle hooks.
+    '** @namespace Rotor
+    '** @extends BasePlugin
+    '******************************************************************
+    class ObserverPlugin extends BasePlugin
+
+        observerStack as object
+        helperInterfaceId as object
+
+        '''''''''
+        ' new: Constructor for ObserverPlugin.
+        '
+        ' @param {string} key The key to identify this plugin instance (default: "observer").
+        '''''''''
+        sub new(key = "observer")
+            super(key)
+        end sub
+
+        ' Plugin lifecycle hooks
+        hooks = {
+            '''''''''
+            ' beforeMount: Attaches observers defined in the widget's config when the widget is mounted.
+            '
+            ' @param {object} scope The plugin instance (m).
+            ' @param {object} widget The widget being mounted.
+            '''''''''
+            beforeMount: sub(scope as object, widget as object)
+                config = widget[scope.key]
+                scope.attach(widget.node, config, widget)
+            end sub,
+
+            '''''''''
+            ' beforeUpdate: Detaches old observers and attaches new ones when the widget's observer config changes.
+            '
+            ' @param {object} scope The plugin instance (m).
+            ' @param {object} widget The widget being updated.
+            ' @param {object} newValue The new observer configuration.
+            ' @param {object} oldValue The previous observer configuration (default: {}).
+            '''''''''
+            beforeUpdate: sub(scope as object, widget as object, newValue, oldValue = {})
+                if oldValue <> invalid
+                    scope.detach(widget.node)
+                end if
+                widget[scope.key] = newValue
+
+                scope.attach(widget.node, newValue, widget)
+            end sub,
+
+            '''''''''
+            ' beforeDestroy: Detaches all observers associated with the widget before it's destroyed.
+            '
+            ' @param {object} scope The plugin instance (m).
+            ' @param {object} widget The widget being destroyed.
+            '''''''''
+            beforeDestroy: sub(scope as object, widget as object)
+                scope.detach(widget.node)
+            end sub
+        }
+
+        '''''''''
+        ' init: Initializes the plugin instance state.
+        ' Creates the observer stack and defines the helper interface ID.
+        '''''''''
+        sub init()
+            m.observerStack = new Rotor.ObserverPluginHelper.ObserverStack()
+            m.helperInterfaceId = Rotor.ObserverPluginHelper.OBSERVER_HELPER_INTERFACE + "-" + m.key
+        end sub
+
+        '''''''''
+        ' attach: Sets up the necessary helper interface on the node and registers observers based on the configuration.
+        '
+        ' @param {object} node The roSGNode to attach observers to.
+        ' @param {object} config The observer configuration (single object or array of objects).
+        ' @param {object} listenerScope The scope (widget instance) where callbacks should be executed.
+        '''''''''
+        sub attach(node as object, config as object, listenerScope as object)
+
+            ' Prepare node - Add helper interface to the node
+            attachmentId = invalid ' Initialize attachmentId outside the block
+            if node.hasField(m.helperInterfaceId)
+
+                pluginHelperValue = node.getField(m.helperInterfaceId)
+                attachmentId = pluginHelperValue.attachmentId
+
+            else
+
+                attachmentId = Rotor.Utils.getUUIDHex()
+
+                if node <> invalid
+                    pluginHelperFields = Rotor.Utils.wrapObject(m.helperInterfaceId, {
+                        pluginKey: m.key,
+                        attachmentId: attachmentId
+                    })
+                    Rotor.Utils.setCustomFields(node, pluginHelperFields, true, false)
+                end if
+
+            end if
+
+            ' Register observers one by one
+            if config <> invalid and config.Count() > 0 and attachmentId <> invalid ' Check attachmentId too
+                observerConfigs = Rotor.Utils.ensureArray(config) ' Handle single or multiple configs
+                for each observerConfig in observerConfigs
+                    m.registerObserver(observerConfig, node, attachmentId, m.helperInterfaceId, listenerScope)
+                end for
+            end if
+
+        end sub
+
+        '''''''''
+        ' registerObserver: Creates an Observer instance, stores it, and sets up the native observeFieldScoped call.
+        '
+        ' @param {object} observerConfig Configuration for the specific observer.
+        ' @param {object} node The roSGNode being observed.
+        ' @param {string} attachmentId Unique ID linking observers to this specific node attachment.
+        ' @param {string} helperInterfaceId The ID of the helper interface field on the node.
+        ' @param {object} listenerScope The scope for the callback execution.
+        '''''''''
+        sub registerObserver(observerConfig as object, node as object, attachmentId as string, helperInterfaceId as string, listenerScope as object)
+
+            newObserver = new Rotor.ObserverPluginHelper.Observer(observerConfig, node, attachmentId, listenerScope, m.key)
+            m.observerStack.set(newObserver.id, newObserver)
+
+            fieldId = observerConfig.fieldId
+            infoFields = newObserver.getInfoFields()
+            node.observeFieldScoped(fieldId, "Rotor_ObserverPluginHelper_observerNativeCallback", infoFields)
+
+        end sub
+
+        '''''''''
+        ' detach: Removes all observers associated with a specific node attachment.
+        ' Unobserves fields and removes observer instances from the stack.
+        ' @param {dynamic} node The roSGNode from which to detach observers.
+        '''''''''
+        sub detach(node as dynamic)
+
+            pluginHelperValue = node.getField(m.helperInterfaceId)
+            if pluginHelperValue = invalid then return ' nothing to detach
+
+            attachmentId = pluginHelperValue.attachmentId
+
+            if attachmentId = invalid then return ' Cannot detach without ID
+
+            observers = m.observerStack.findObserverByAttachmentId(attachmentId)
+            for each observer in observers
+                if observer.node <> invalid
+                    observer.node.unobserveFieldScoped(observer.fieldId)
+                end if
+                m.observerStack.remove(observer.id) ' This calls observer.destroy() via override
+            end for
+
+        end sub
+
+        '''''''''
+        ' observerCallbackRouter: Internal router called by the native callback (observerNativeCallback).
+        ' Finds the correct Observer instances and triggers their notification logic.
+        ' @param {dynamic} value The new value of the observed field.
+        ' @param {object} extraInfo Additional info passed via observeFieldScoped (excluding helper).
+        ' @param {string} fieldId The ID of the field that changed.
+        ' @param {string} attachmentId The unique ID of the node attachment.
+        ' @param {string} pluginKey The key of this plugin instance.
+        '''''''''
+        sub observerCallbackRouter(value as dynamic, extraInfo as object, fieldId as string, attachmentId as string, pluginKey as string)
+
+            interestedObservers = m.observerStack.findObserversByAttachmentAndField(attachmentId, fieldId)
+
+            for each observer in interestedObservers
+
+                payload = Rotor.Utils.wrapObject(fieldId, value)
+                payload.append(extraInfo)
+
+                parsedPayload = observer.parsePayload(payload)
+
+                observer.notify(parsedPayload)
+
+                ' Remove observer if 'once' or 'until' condition met
+                if observer.once = true or (Rotor.Utils.isFunction(observer.until) and true = observer.until(parsedPayload))
+                    ' Need to unobserve *before* removing from stack to prevent potential race conditions or memory issues
+                     if observer.node <> invalid
+                         observer.node.unobserveFieldScoped(observer.fieldId)
+                     end if
+                    m.observerStack.remove(observer.id)
+                end if
+
+            end for
+
+        end sub
+
+        '''''''''
+        ' destroy: Cleans up all observers managed by this plugin instance.
+        ' Called when the framework instance is destroyed.
+        '''''''''
+        sub destroy()
+            if m.observerStack = invalid then return
+
+            ' Collect observer ids first to avoid mutating while iterating
+            ids = []
+            all = m.observerStack.getAll()
+            for each id in all
+                observer = all[id]
+                if observer <> invalid and observer.node <> invalid
+                    observer.node.unobserveFieldScoped(observer.fieldId)
+                end if
+                ids.push(id)
+            end for
+
+            ' Remove observers (ObserverStack.remove handles observer.destroy())
+            for each id in ids
+                m.observerStack.remove(id)
+            end for
+
+            ' Clear internal stack map
+            m.observerStack.clear()
+        end sub
+
+    end class
+
+    '==================================================================
+    '== Observer Plugin Helper Namespace and Classes
+    '==================================================================
+    namespace ObserverPluginHelper
+
+        const OBSERVER_HELPER_INTERFACE = "rotorObserverPluginKeysHelper" ' Prefix for helper field on nodes
+
+        '''''''''
+        ' observerNativeCallback: The global function registered with node.observeFieldScoped.
+        ' Extracts necessary info and routes the callback to the correct ObserverPlugin instance.
+        ' @param {object} msg The event object from the observed node (roSGNodeEvent).
+        '''''''''
+        sub observerNativeCallback(msg as object)
+            extraInfo = msg.GetInfo()   ' Info AA passed during observeFieldScoped
+            fieldId = msg.getField()    ' Name of the field that changed
+            value = msg.getData()       ' New value of the field
+
+            ' Extract pluginKey and attachmentId from the special helper field within extraInfo
+            pluginKey = ""
+            attachmentId = ""
+            for each key in extraInfo
+                if Left(key, Len(OBSERVER_HELPER_INTERFACE)) = OBSERVER_HELPER_INTERFACE
+                    helperValue = extraInfo[key] ' Store reference before deleting key
+                    if helperValue <> invalid ' Check if helper value exists
+                       pluginKey = helperValue.pluginKey
+                       attachmentId = helperValue.attachmentId
+                    end if
+                    extraInfo.delete(key) ' Remove helper info from extraInfo before passing on
+                    exit for ' Assume only one helper field per observer call
+                end if
+            end for
+
+            ' Route to the correct plugin instance if IDs were found
+            if attachmentId <> "" and pluginKey <> ""
+                globalScope = GetGlobalAA()
+                frameworkInstance = globalScope.rotor_framework_helper.frameworkInstance
+                plugin = invalid ' Initialize plugin as invalid
+                ' Handle special case for Rotor Animator observers
+                if extraInfo?.isRotorAnimatorNode = true ' Original code used safe navigation
+                    plugin = frameworkInstance.animatorProvider.animatorObservber
+                else
+                    plugin = frameworkInstance.plugins[pluginKey] ' Get standard plugin instance
+                end if
+                ' Call the router method on the identified plugin instance if it exists
+                if plugin <> invalid
+                    plugin.observerCallbackRouter(value, extraInfo, fieldId, attachmentId, pluginKey)
+                end if
+            end if
+
+        end sub
+
+        '******************************************************************
+        '** @class ObserverStack
+        '** @brief Manages a collection of Observer instances, providing lookup methods.
+        '** @namespace Rotor.ObserverPluginHelper
+        '** @extends Rotor.BaseStack
+        '******************************************************************
+        class ObserverStack extends Rotor.BaseStack
+
+            '''''''''
+            ' remove: Removes an observer from the stack and calls its destroy method.
+            ' @override
+            ' @param {string} id The unique ID of the Observer instance to remove.
+            '''''''''
+            override sub remove(id as string)
+                item = m.get(id)
+                if item <> invalid
+                    item.destroy() ' Call observer's cleanup
+                end if
+                super.remove(id) ' Call base class remove
+            end sub
+
+            '''''''''
+            ' findObserversByAttachmentAndField: Finds all observers matching specific attachment and field IDs.
+            '
+            ' @param {string} attachmentId The node attachment ID to match.
+            ' @param {string} fieldId The field ID to match.
+            ' @return {object} An roArray containing matching Observer instances.
+            '''''''''
+            function findObserversByAttachmentAndField(attachmentId as string, fieldId as string) as object
+                observers = []
+                for each id in m.stack
+                    observer = m.stack[id]
+                    ' Check if both attachmentId and fieldId match
+                    if observer.fieldId = fieldId and observer.attachmentId = attachmentId
+                        observers.push(observer)
+                    end if
+                end for
+                return observers
+            end function
+
+            '''''''''
+            ' findObserverByAttachmentId: Finds all observers matching a specific attachment ID.
+            '
+            ' @param {string} attachmentId The node attachment ID to match.
+            ' @return {object} An roArray containing matching Observer instances.
+            '''''''''
+            function findObserverByAttachmentId(attachmentId as string) as object
+                observers = []
+                for each id in m.stack
+                    observer = m.stack[id]
+                    ' Check if attachmentId matches
+                    if observer.attachmentId = attachmentId
+                        observers.push(observer)
+                    end if
+                end for
+                return observers
+            end function
+
+        end class
+
+        '******************************************************************
+        '** @class Observer
+        '** @brief Represents a single observer configuration for a specific node field.
+        '** Holds callback, configuration, and references needed for the observation.
+        '** @namespace Rotor.ObserverPluginHelper
+        '******************************************************************
+        class Observer
+
+            ' --- Member Variables ---
+            id as string
+            node as object
+            pluginKey as string
+            listenerScope as object
+            attachmentId as string
+            fieldId as string
+            infoFields as object
+            value as dynamic
+            once as boolean
+            until as function
+            callback as function ' Added based on usage
+            parsePayload as function ' Added based on usage
+            alwaysNotify as boolean ' Added based on usage
+
+
+            '''''''''
+            ' new: Constructor for the Observer instance.
+            '
+            ' @param {object} config The configuration object for this observer.
+            ' @param {object} node The roSGNode to observe.
+            ' @param {string} attachmentId The unique ID for the node attachment.
+            ' @param {object} listenerScope The scope for callback execution.
+            ' @param {string} pluginKey The key of the managing ObserverPlugin.
+            '''''''''
+            sub new(config as object, node as object, attachmentId as string, listenerScope as object, pluginKey as string)
+
+                m.id = (config.id ?? "ID") + "-" + Rotor.Utils.getUUIDHex() ' Original ID generation
+
+                m.node = node
+
+                m.pluginKey = pluginKey
+                m.listenerScope = listenerScope ?? {} ' Original default
+                m.attachmentId = attachmentId
+
+                m.fieldId = config?.fieldId ?? ""       ' Original safe access
+                m.infoFields = config?.infoFields ?? [] ' Original safe access
+                m.value = config?.value                 ' Original safe access
+                m.alwaysNotify = config?.alwaysNotify ?? true ' Original safe access
+                m.once = config?.once ?? false          ' Original safe access
+                m.until = config?.until                 ' Original safe access
+
+                ' Set required callback or throw error (Original logic)
+                m.callback = config?.callback ?? sub() throw "Callback has not configured for observer" ' Original safe access
+                end Sub ' Original casing
+                ' Set optional payload parser or use identity function (Original logic)
+                m.parsePayload = config?.parsePayload ?? function(payload) ' Original safe access
+                    return payload
+                end function
+
+                ' Set up the field on the node if initial value provided
+                m.setupField(m.fieldId, m.value, m.alwaysNotify)
+
+            end sub
+
+            '''''''''
+            ' setupField: Adds or updates the observed field on the target node if an initial value is provided.
+            '
+            ' @param {string} fieldId The name of the field.
+            ' @param {dynamic} value The initial value to set (if not invalid).
+            ' @param {boolean} alwaysNotify The value for the 'alwaysNotify' flag.
+            '''''''''
+            sub setupField(fieldId as string, value as dynamic, alwaysNotify as boolean)
+                fields = {}
+                fields[m.fieldId] = value
+                ' Use utility to set field (Original logic)
+                Rotor.Utils.setCustomFields(m.node, fields, m.value <> invalid, alwaysNotify)
+            end sub
+
+            '''''''''
+            ' getInfoFields: Constructs the array of field names needed for the observeFieldScoped call.
+            ' Includes user-defined infoFields and the helper interface ID.
+            ' @return {object} An roArray of field names.
+            '''''''''
+            function getInfoFields() as object
+                helperInterfaceId = Rotor.ObserverPluginHelper.OBSERVER_HELPER_INTERFACE + "-" + m.pluginKey
+                infoFields = [] ' Start new array
+                infoFields.append(m.infoFields) ' Append user-defined fields
+                infoFields.push(helperInterfaceId) ' Add the helper field ID itself
+                return infoFields
+            end function
+
+            '''''''''
+            ' notify: Executes the configured observer callback function within the correct scope.
+            '
+            ' @param {dynamic} payload The data payload (potentially parsed) to pass to the callback.
+            '''''''''
+            sub notify(payload as dynamic)
+                Rotor.Utils.callbackScoped(m.callback, m.listenerScope, payload) ' Execute callback
+            end sub
+
+            '''''''''
+            ' destroy: Cleans up references held by the Observer instance.
+            '
+            '''''''''
+            sub destroy()
+                ' Clear references (Original logic)
+                m.node = invalid
+                ' m.callback = invalid
+                m.listenerScope = invalid
+                 ' Added missing clear based on likely intent, but stick to original code if strict:
+                 ' m.parsePayload = invalid
+                 ' m.until = invalid
+            end sub
+
+        end class
+
+    end namespace ' ObserverPluginHelper
+
+end namespace ' Rotor

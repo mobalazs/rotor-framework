@@ -1,0 +1,73 @@
+
+' namespace Reducers
+
+class Reducer
+
+    model as object
+    middlewares = []
+    middlewareFnScoped as dynamic
+
+    getDispatcher as function
+    dispatch as function
+    ownerDispatcher as object
+    ownerDispatcherId as string
+    port as object
+
+    sub new()
+
+        frameworkInstance = GetGlobalAA().rotor_framework_helper.frameworkInstance
+        m.port = frameworkInstance.port ' Add port to reducer
+
+        m.getDispatcher = function(dispatcherId as string) as object
+            return GetGlobalAA().rotor_framework_helper.frameworkInstance.dispatcherProvider.getFacade(dispatcherId, m)
+        end function
+
+        m.dispatch = sub(intent as object)
+            m.ownerDispatcher.dispatch(intent)
+        end sub
+
+    end sub
+
+    public function reducer(state as object, intent as Intent)
+        return state
+    end function
+
+    public function applyMiddlewares() as object
+        return []
+    end function
+
+    function reduce(state as object, intent as Intent) as object
+        if intent?.payload <> invalid and intent.payload.Count() > 1 and intent.payload = invalid then throw "[WARNING] Intent payload is invalid."
+
+        ' Resolve middlewares
+        middlewares = m.applyMiddlewares()
+        mwIndex = 0
+        mwCount = middlewares.Count()
+        while intent <> invalid and mwIndex < mwCount
+            middlewareFnScoped = middlewares[mwIndex]
+            m.middlewareFnScoped = middlewareFnScoped
+            intent = m.middlewareFnScoped(intent, state)
+            mwIndex++
+        end while
+        m.middlewareFnScoped = invalid ' invalidate scoped fn
+        if intent = invalid then return invalid
+
+        ' Resolve Reducer
+        newState = m.reducer(state, intent)
+
+        return newState
+
+    end function
+
+    sub asyncReducerCallback(msg)
+        ' data = msg.getData()
+    end sub
+
+    sub destroy()
+        m.ownerDispatcher = invalid
+        m.port = invalid
+    end sub
+
+end class
+
+' end namespace

@@ -1,0 +1,34 @@
+{
+    "rules": {
+        "inline-if-style": "then",
+        "block-if-style": "no-then",
+        "condition-style": "off",
+        "named-function-style": "auto",
+        "anon-function-style": "auto",
+        "aa-comma-style": "no-dangling",
+        "no-print": "off",
+        "no-todo": "off",
+        "todo-pattern": "TODO|todo|FIXME",
+        "no-stop": "warn",
+        "eol-last": "always",
+        "type-annotations": "off",
+        "color-format": "off",
+        "color-case": "off",
+        "color-alpha": "off",
+        "color-alpha-defaults": "off",
+        "color-cert": "off",
+        "assign-all-paths": "error",
+        "unsafe-path-loop": "error",
+        "unsafe-iterators": "error",
+        "unreachable-code": "info",
+        "case-sensitivity": "warn",
+        "unused-variable": "warn",
+        "consistent-return": "error"
+    },
+    "globals": ["e"],
+    "ignores": [
+        "src/assets/**/*",
+        "**/*.spec.bs",
+        "src/source/rotor/libs/animate/**/*.*"
+    ]
+}

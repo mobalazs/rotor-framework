@@ -1,0 +1,189 @@
+import "processor.bs"
+import "postProcessor.bs"
+import "nodePool.bs"
+import "tree.bs"
+import "../../base/baseWidget.bs"
+import "widget_create.bs"
+import "widget_update.bs"
+import "widget_remove.bs"
+import "pluginAdapter.bs"
+
+namespace Rotor.ViewBuilder
+
+    class Builder
+
+        widgetTree = new Rotor.ViewBuilder.WidgetTree()
+
+        pluginAdapter = new Rotor.ViewBuilder.pluginAdapter()
+
+        processor = new Rotor.ViewBuilder.Processor()
+        postProcessor = new Rotor.ViewBuilder.PostProcessor()
+        postProcessBuffer = new Rotor.ViewBuilder.postProcessBuffer()
+
+        nodePool = new Rotor.ViewBuilder.NodePool()
+
+        frameworkInstance as Rotor.Framework
+
+        isRenderProcessing = false
+        renderQueue = []
+        callbackQueue = []
+
+        sub init(frameworkInstance as object)
+            m.frameworkInstance = frameworkInstance
+            m.nodePool.init(frameworkInstance)
+            m.widgetTree.init()
+            m.pluginAdapter.init(frameworkInstance)
+            m.processor.init(frameworkInstance)
+            m.postProcessor.init(frameworkInstance)
+            m.postProcessBuffer.init(frameworkInstance)
+        end sub
+
+        sub destroy()
+            ' remove all widgets
+            rootKeys = m.widgetTree.tree.children.Keys()
+            m.erase(rootKeys, true)
+            ' destroy builder engine
+            m.pluginAdapter.destroy()
+            m.processor.destroy()
+            m.postProcessor.destroy()
+            m.postProcessBuffer.destroy()
+            m.widgetTree.destroy()
+            m.nodePool.destroy()
+            ' remove references
+            m.frameworkInstance = invalid
+        end sub
+
+        timer = CreateObject("roTimespan")
+
+        sub renderQueueFlush()
+            m.frameworkInstance.enableRendering = true
+            if m.renderQueue.Count() > 0
+                nextQueuedConfig = m.renderQueue.shift()
+                m.renderProcessor(nextQueuedConfig.payload, nextQueuedConfig.params, true)
+            end if
+        end sub
+
+        sub render(payloads as dynamic, params = {} as object)
+            ' for each payload in Rotor.Utils.ensureArray(payloads)
+            ' m.renderProcessor(payload, params)
+            m.renderProcessor(payloads, params)
+            ' end for
+        end sub
+
+        sub renderProcessor(payload as dynamic, params = {} as object, isNextProcess = false as boolean)
+            ' call custom callback
+            if Rotor.Utils.isValid(params.callback)
+                m.callbackQueue.push({
+                    callback: params.callback,
+                    callbackScope: params.callbackScope
+                })
+                params.delete("callback")
+                params.delete("callbackScope")
+            end if
+
+            ' print "[DEBUG][MEASUREMENT] Process took: " + m.timer.TotalMilliseconds().ToStr() + " ms"
+
+            if (m.isRenderProcessing = true and isNextProcess = false) or m.frameworkInstance.enableRendering = false
+                m.renderQueue.push({
+                    payload: payload,
+                    params: params
+                })
+                return
+            end if
+            m.isRenderProcessing = true
+
+            m.timer.Mark()
+            m.processor.run(m.postProcessBuffer, "0", payload, params)
+            ' print "[VIEW_BUILDER MEASUREMENT] (1) PROCESSES took: " + m.timer.TotalMilliseconds().ToStr() + " ms"
+            m.timer.Mark()
+            m.postProcessor.run(m.postProcessBuffer)
+            ' print "[VIEW_BUILDER MEASUREMENT] (2) PostProcess took: " + m.timer.TotalMilliseconds().ToStr() + " ms"
+            m.postProcessBuffer.clearLifeCycleBuffers()
+
+            if m.renderQueue.Count() > 0
+                nextQueuedConfig = m.renderQueue.shift()
+                m.renderProcessor(nextQueuedConfig.payload, nextQueuedConfig.params, true)
+            else
+
+                m.isRenderProcessing = false
+
+                while m.callbackQueue.Count() > 0
+                    callbackObj = m.callbackQueue.shift()
+                    Rotor.Utils.callbackScoped(callbackObj.callback, callbackObj.callbackScope)
+                    callbackObj.callbackScope = invalid
+                end while
+
+            end if
+
+            ' #if debug
+            '     unParentedRootCount = GetGlobalAA().top.getRoots().Count()
+            '     ' print " [CUSTOM DEBUG] builder/builder.bs [104] :: unParentedRootCount : "; unParentedRootCount
+            '     if unParentedRootCount > 100
+            '         ' unParented = GetGlobalAA().top.getRootsMeta()
+            '         ' throw { message: `[WARNING] UnParented roots count = ${unParentedRootCount}` }
+            '     end if
+            ' #end if
+
+        end sub
+
+        sub erase (payload as dynamic, shouldSkipNodePool = false as boolean, HID = "0" as string)
+
+            ' normalize shortcuts
+
+            identifiersToErase = []
+            if Rotor.Utils.isString(payload)
+                identifiersToErase.push(payload)
+            else if Rotor.Utils.isArray(payload)
+                for each item in payload
+                    if Rotor.Utils.isString(item)
+                        identifiersToErase.push(item)
+                    else if Rotor.Utils.isAssociativeArray(item)
+                        identifiersToErase.push(item?.id)
+                    end if
+                end for
+            else if Rotor.Utils.isAssociativeArray(payload)
+                for each key in payload
+                    if key = "id"
+                        identifiersToErase.push(key)
+                    else
+                        identifiersToErase.push(payload[key])
+                    end if
+                end for
+            end if
+
+            widgetsToRemove = []
+
+            for each id in identifiersToErase
+                result = m.widgetTree.find(id, HID)
+                if result <> invalid
+                    widgetsToRemove.append(result)
+                end if
+            end for
+
+            if widgetsToRemove.Count() > 0
+
+                renderObject = []
+
+                for each widget in widgetsToRemove
+
+                    if m.widgetTree.hasByHID(widget.HID)
+                        renderObject.push({
+                            HID: widget.HID,
+                            parentHID: widget.parentHID,
+                            id: widget.id,
+                            markedToRemove: true,
+                            shouldSkipNodePool: shouldSkipNodePool
+                        })
+                    end if
+
+                end for
+                ' renderObject.Clear()
+                m.render(renderObject)
+
+            end if
+
+        end sub
+
+    end class
+
+end namespace

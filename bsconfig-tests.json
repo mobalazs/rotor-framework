@@ -1,0 +1,36 @@
+{
+	"extends": "bsconfig.json",
+	"description": "The TDD mode in Rooibos is a feature that allows you to run your tests in a Test-Driven Development (TDD) style.",
+	"files": [
+		"source/**/*",
+		"components/**/*",
+		"manifest",
+		"assets/**/*",
+		"**/BaseTest*.spec.bs",
+		"**/CustomTestUtilsYouNeed.spec.bs",
+		"**/File1YouAreRunning*.spec.bs",
+		"**/File2YouAreRunning*.spec.bs"
+	],
+
+	"bs_const": {
+		"debug": true,
+		"unittest": true
+	},
+
+	"createPackage": false,
+	"emitDefinitions": true,
+	"sourceMap": true,
+
+	"require": ["ts-node/register"],
+	"plugins": ["@rokucommunity/bslint", "rooibos-roku"],
+
+	"rooibos": {
+		"isRecordingCodeCoverage": false,
+		"printTestTimes": true,
+		"testsFilePattern": null,
+		"tags": ["!integration", "!deprecated", "!fixme"],
+		"showOnlyFailures": true,
+		"catchCrashes": true,
+		"lineWidth": 70
+	}
+}

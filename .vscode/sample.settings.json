@@ -1,0 +1,28 @@
+{
+  "terminal.integrated.defaultProfile.windows": "Bash",
+  "files.eol": "\n",
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "brightscript.debug.enableDebugProtocol": true,
+  "cSpell.ignorePaths": [
+    ".github",
+    ".vscode/**",
+    "package.json",
+    "package-lock.json",
+    "bsconfig.json",
+    "bslint.json",
+    "node_modules/**",
+    "dist",
+    "build"
+  ],
+  "cSpell.words": [
+    "brighterscript"
+  ],
+  "cSpell.flagWords": [
+    "hte", "heigt"
+  ],
+  "brightscript.bsdk": "embedded",
+  "brightscript.debug.stopDebuggerOnAppExit": false,
+  "json.indent": "4",
+  "json.format.keepLines": true
+}

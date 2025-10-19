@@ -1,0 +1,88 @@
+' ' Import necessary utility libraries.
+' import "../base/basePlugin.bs"
+
+' '**
+' ' A Brighterscript class for handling assets in a widget with a given key.
+' '
+' ' This plugin's constructor is different form others, because you need to set the asset specific key value.
+' '
+' ' @extends BasePlugin class
+' '/
+
+' namespace Rotor
+
+'     class DynamicAssetPlugin extends BasePlugin
+
+'         ' Constructor for the DynamicAssetPlugin class.
+'         sub new(key as string, params = invalid as object)
+'             super(key)
+'             m.source = params?.assets ?? {}
+'         end sub
+
+'         ' Hooks for handling asset addition before widget mounting and updating.
+'         hooks = {
+'             beforeMount: sub(scope as object, widget as object)
+'                 widget[scope.key] = Rotor.Utils.ensureArray(widget[scope.key])
+'                 ' get config
+'                 keyPathConfig = widget[scope.key]
+'                 ' do the job
+'                 scope.addAssetToWidgetContext(widget, keyPathConfig)
+'             end sub,
+
+'             beforeUpdate: sub(scope as object, widget as object, newValue, oldValue)
+
+'                 ' In this plugin, we would like to extend old config on update if it is array
+'                 if oldValue <> invalid
+'                     oldValueArr = Rotor.Utils.ensureArray(oldValue)
+'                     newValueArr = Rotor.Utils.ensureArray(newValue)
+'                     widget[scope.key] = Rotor.Utils.extendArrayOfStrings(oldValueArr, newValueArr)
+'                 else
+'                     widget[scope.key] = newValue
+'                 end if
+'                 scope.addAssetToWidgetContext(widget, widget[scope.key])
+'             end sub,
+
+'             beforeDestroy: sub(scope as object, widget as object)
+'                 widget.viewModelState[scope.key].Clear()
+'                 widget[scope.key] = invalid
+'             end sub
+'         }
+
+'         cache = {}
+
+'         sub setAssets(assets as object)
+'             m.source = assets
+'             m.clearCache()
+'         end sub
+
+'         sub clearCache()
+'             m.cache.Clear()
+'         end sub
+
+'         ' Function to add assets to widget data based on the key.
+'         sub addAssetToWidgetContext(widget as object, keyPathConfig)
+'             newFilteredAssets = m.getAssetByKeyPath(keyPathConfig)
+
+'             ' Plugin working on viewModelState, so it should be extended instead of replace.
+'             ' Rotor.Utils.deepExtendAA(widget.viewModelState[m.key], newFilteredAssets)
+'             widget.viewModelState[m.key] = newFilteredAssets
+'         end sub
+
+'         ' Function to retrieve assets based on the key path array.
+'         function getAssetByKeyPath(keyPathArr as dynamic) as object
+'             keysPaths = Rotor.Utils.ensureArray(keyPathArr)
+'             assets = {}
+'             for each keyPath in keysPaths
+'                 if m.cache.DoesExist(keyPath)
+'                     newAsset = m.cache[keyPath]
+'                 else
+'                     newAsset = Rotor.Utils.getCloneByKeyPath(m.source, keyPath)
+'                 end if
+'                 Rotor.Utils.deepExtendAA(assets, newAsset)
+'             end for
+'             return assets
+'         end function
+
+'     end class
+
+' end namespace

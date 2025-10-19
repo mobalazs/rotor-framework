@@ -1,0 +1,64 @@
+namespace Rotor.ViewBuilder
+
+    function removeWidget(postProcessBuffer as object, widget as object, config as object) as object
+        HID = widget.HID
+
+        widget.markedToRemove = config.markedToRemove
+
+        ' plugin :: beforeDestroy
+        pluginKeyList = m.frameworkInstance.builder.pluginAdapter.pluginKeyList
+        pluginKeyList.ResetIndex()
+        pluginKey = pluginKeyList.GetIndex()
+        while pluginKey <> invalid
+
+            if widget.doesExist(pluginKey)
+                LifeCycleHookType = Rotor.Const.LifeCycleHookType.BEFORE_DESTROY
+                if m.frameworkInstance.builder.pluginAdapter.pluginHooks[LifeCycleHookType].DoesExist(pluginKey)
+                    postProcessBuffer.add({
+                        isPlugin: true,
+                        isView: widget?.isView ?? false,
+                        widget: widget,
+                        hookType: LifeCycleHookType,
+                        pluginKey: pluginKey
+                    })
+                end if
+            end if
+
+            pluginKey = pluginKeyList.GetIndex()
+        end while
+
+        postProcessBuffer.add({
+            hookType: Rotor.Const.LifeCycleHookType.DELETE_WIDGET,
+            widget: widget
+        })
+
+        isBranchOfRemove = m.frameworkInstance.builder.widgetTree.isBranchOfRemove(widget)
+        if isBranchOfRemove
+            postProcessBuffer.add({
+                hookType: Rotor.Const.LifeCycleHookType.REMOVE_CHILD,
+                shouldSkipNodePool: config.shouldSkipNodePool,
+                widget: widget
+
+            })
+        end if
+
+        childrenToRemove = []
+        for each id in widget.children
+            if not widget.children[id].doesExist("markedToRemove")
+                childrenToRemove.push({
+                    markedToRemove: true,
+                    id: id,
+                    HID: widget.children[id].HID,
+                    parentHID: widget.children[id].parentHID
+                })
+            end if
+        end for
+
+        return {
+            children: childrenToRemove,
+            HID: HID
+        }
+
+    end function
+
+end namespace

@@ -1,0 +1,35 @@
+{
+	"name": "rotor-framework",
+	"version": "0.2.2",
+	"description": "A Roku toolkit library providing a ViewBuilder, full UI lifecycle with focus handling and many core features, plus MVI-based state management.",
+	"author": "Balázs Molnár",
+	"license": "MIT",
+	"scripts": {
+		"build": "bsc  --project bsconfig.json --createPackage=false",
+		"build-tests": "bsc --project bsconfig-tests.json --createPackage=false",
+		"lint": "npx bslint --project bsconfig.json  --lintConfig bslint.json",
+		"linter": "bsc --create-package --copy-to-staging false"
+	},
+	"ropm": {
+		"rootDir": "src",
+		"packageRootDir": "dist"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/mobalazs/magic-whitelabel.git"
+	},
+	"keywords": [
+		"brightscript",
+		"roto",
+		"framework"
+	],
+	"bugs": {
+		"url": "https://github.com/mobalazs/magic-whitelabel/issues"
+	},
+	"homepage": "https://github.com/mobalazs/magic-whitelabel#readme",
+	"devDependencies": {
+		"@rokucommunity/bslint": "1.0.0-alpha.48",
+		"brighterscript": "1.0.0-alpha.48",
+		"rooibos-roku": "^5.10.0"
+	}
+}

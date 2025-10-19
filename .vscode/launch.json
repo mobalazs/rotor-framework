@@ -1,0 +1,74 @@
+{
+    "version": "0.2.2",
+    "configurations": [
+        {
+            "name": "Run Debug",
+
+            "type": "brightscript",
+            "request": "launch",
+            "suppressMultipleSessionWarning": true,
+
+            "bsConst": {
+                "debug": true,
+                "unittest": false
+            },
+            "preLaunchTask": "build",
+
+            "envFile": "${workspaceFolder}/.env",
+            "host": "${env:ROKU_DEV_TARGET}",
+            "password": "${env:ROKU_DEV_PASS}",
+
+            "consoleOutput": "normal",
+            "rootDir": "${workspaceFolder}/dist",
+            "files": [
+                "source/**/*",
+                "components/**/*",
+                "assets/**/*",
+                "manifest"
+            ],
+            "retainStagingFolder": true,
+            "enableDebuggerAutoRecovery": false,
+            "stopDebuggerOnAppExit": false,
+            "stopOnEntry": false,
+            "rendezvousTracking": true,
+            "enableDebugProtocol": true,
+            "injectRdbOnDeviceComponent": true,
+            "restart": true
+
+        },
+        {
+            "name": "Run Tests",
+
+            "type": "brightscript",
+            "request": "launch",
+            "suppressMultipleSessionWarning": true,
+
+            "bsConst": {
+                "debug": true,
+                "unittest": true
+            },
+            "preLaunchTask": "build-tests",
+
+            "envFile": "${workspaceFolder}/.env",
+            "host": "${env:ROKU_DEV_TARGET}",
+            "password": "${env:ROKU_DEV_PASS}",
+
+            "consoleOutput": "normal",
+            "rootDir": "${workspaceFolder}/dist",
+            "files": [
+                "source/**/*",
+                "components/**/*",
+                "assets/**/*",
+                "manifest"
+            ],
+            "retainStagingFolder": true,
+            "enableDebuggerAutoRecovery": false,
+            "stopDebuggerOnAppExit": false,
+            "stopOnEntry": false,
+            "rendezvousTracking": true,
+            "enableDebugProtocol": true,
+            "injectRdbOnDeviceComponent": true
+
+        }
+    ]
+}

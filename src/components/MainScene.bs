@@ -1,0 +1,69 @@
+import "pkg:/source/rotor/RotorFramework.bs"
+
+namespace UI
+    const helloWorldText = "Hello World!"
+    enum SafeArea
+        x = 90
+        y = 60
+    end enum
+    enum HelloWorld
+        PaddingX = 32
+        RectHeight = 110
+    end enum
+end namespace
+
+sub init()
+    ' Create Rotor Framework instance
+    m.appFramework = new Rotor.Framework()
+
+    ' Render Hello World
+    helloWorldSample()
+end sub
+
+sub helloWorldSample()
+
+    autoSizeObserver = sub(payload as object) typecast m as Rotor.Widget
+        labelNode = m.node
+        rectNode = m.parent.node
+
+        textBounds = labelNode.localBoundingRect()
+        textWidth = textBounds.width
+
+        rectNode.width = textWidth + (UI.HelloWorld.PaddingX * 2)
+        labelNode.width = textWidth
+    end sub
+
+    m.appFramework.render({
+        id: "helloWorldSample",
+        nodeType: "Group", ' optional (defaults to "Group")
+        fields: {
+            translation: [UI.SafeArea.x, UI.SafeArea.y]
+        },
+        children: [{
+            id: "helloRect", ' optional (if `id` is missing, it will be auto-generated)
+            nodeType: "Rectangle",
+            fields: {
+                width: 0,
+                height: UI.HelloWorld.RectHeight,
+                color: "0x202020FF"
+            },
+            children: {
+                id: "helloLabel", ' optional
+                nodeType: "Label",
+                fields: {
+                    enableRenderTracking: true,
+                    text: UI.helloWorldText,
+                    horizAlign: "center",
+                    vertAlign: "center",
+                    translation: [UI.HelloWorld.PaddingX, 0],
+                    width: 0,
+                    height: UI.HelloWorld.RectHeight
+                },
+                observer: [{
+                    fieldId: "renderTracking",
+                    callback: autoSizeObserver
+                }]
+            }
+        }]
+    })
+end sub

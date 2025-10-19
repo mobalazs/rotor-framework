@@ -1,0 +1,116 @@
+namespace Rotor.ViewBuilder
+
+    class Processor
+
+        createWidget = Rotor.ViewBuilder.CreateWidget
+        updateWidget = Rotor.ViewBuilder.UpdateWidget
+        removeWidget = Rotor.ViewBuilder.RemoveWidget
+
+        frameworkInstance as Rotor.Framework
+
+        function childProcessor(postProcessBuffer as object, config as object, parentHID = "0" as string, createFlow = false, params = {} as object) as object
+
+            if config?.parentHID <> invalid and config?.parentHID <> "0" then parentHID = config.parentHID
+
+            if createFlow = true
+                widgets = invalid
+            else if config.doesExist("HID")
+                widgets = [m.frameworkInstance.builder.widgetTree.getByHID(config.HID)]
+            else
+                widgets = m.frameworkInstance.builder.widgetTree.find(config.id, parentHID)
+            end if
+
+
+            if widgets = invalid
+                result = m.createWidget(postProcessBuffer, config, parentHID)
+                newParentHID = result.HID
+                newChildren = result.children
+
+                ' Run builder processor
+                if newChildren <> invalid and newChildren.Count() > 0
+                    m.run(postProcessBuffer, newParentHID, newChildren, params, true)
+                end if
+            else
+
+                for each widget in widgets
+
+                    if config?.markedToRemove = true
+
+                        result = m.removeWidget(postProcessBuffer, widget, config)
+
+                    else
+
+                        result = m.updateWidget(postProcessBuffer, widget, config)
+
+                    end if
+
+                    newChildren = result.children
+                    newParentHID = result.HID
+
+                    if newChildren <> invalid
+                        m.run(postProcessBuffer, newParentHID, newChildren, params, createFlow)
+                    end if
+
+                end for
+
+            end if
+
+            return postProcessBuffer
+
+        end function
+
+        sub run(postProcessBuffer as object, parentHID as string, children as object, params = {} as object, createFlow = false as boolean)
+            if children.Count() = 0 then return
+
+            parsedConfigArray = Rotor.Utils.ensureArray(children)
+
+            ' check if should removed
+            if params?.allowRemove = true
+                parentWidget = m.frameworkInstance.builder.widgetTree.getByHID(parentHID)
+                ' if parentWidget <> invalid
+                for each existingId in parentWidget.children
+                    if -1 = Rotor.Utils.findInArrayByKey(parsedConfigArray, "id", existingId)
+                        parsedConfigArray.push({
+                            id: existingId,
+                            HID: parentWidget.children[existingId].HID,
+                            parentHID: parentWidget.children[existingId].parentHID,
+                            markedToRemove: true
+                        })
+                    end if
+                end for
+            end if
+
+            if parsedConfigArray <> invalid and parsedConfigArray.Count() > 0
+                for each config in parsedConfigArray
+                    if config <> invalid
+                        m.checkIdAutoId(config)
+                        m.childProcessor(postProcessBuffer, config, parentHID, createFlow, params)
+                    end if
+                end for
+
+            end if
+
+        end sub
+
+        function checkIdAutoId(config as object) as object
+            hasHID = config.DoesExist("HID")
+            if not hasHID and (config.id = invalid or config.id = "")
+                id = "ID-" + Rotor.Utils.getUUID() ' generate readable id if missing (This is not the engie's generated HID, this id is the "readable" id)
+                config.id = id
+            end if
+            return config
+        end function
+
+        sub init(frameworkInstance as Rotor.Framework)
+            m.frameworkInstance = frameworkInstance
+        end sub
+
+        sub destroy()
+            m.frameworkInstance = invalid
+        end sub
+
+
+    end class
+
+end namespace
+

@@ -1,0 +1,63 @@
+namespace tests
+
+    @suite
+    class NodePoolTests extends tests.BaseTestSuite
+
+      private pool
+
+      protected override sub beforeEach()
+        super.beforeEach()
+
+        m.pool = new Rotor.ViewBuilder.NodePool()
+        m.pool.init({})
+      end sub
+
+      '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+      @describe("createNodePool")
+      '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+      @it("creates a node pool with Rectangle nodes")
+      sub _()
+        config = {
+          nodePool: [{
+            nodeType: "Rectangle",
+            amount: 2
+          }]
+        }
+
+        m.pool.createNodePool(config)
+
+        m.assertTrue(m.pool.pools.doesExist("Rectangle"))
+        m.assertEqual(m.pool.pools["Rectangle"].count(), 2)
+        m.assertEqual(m.pool.pools["Rectangle"][0].subtype(), "Rectangle")
+      end sub
+
+      '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+      @describe("acquire & release")
+      '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+      @it("acquires and releases a Label node")
+      sub _()
+        config = {
+          nodePool: [{
+            nodeType: "Label",
+            amount: 1
+          }]
+        }
+
+        m.pool.createNodePool(config)
+
+        node = m.pool.acquireNode("Label")
+        m.assertNotInvalid(node)
+        m.assertEqual(node.subtype(), "Label")
+
+        m.pool.releaseNodeBranch(node)
+
+        info = m.pool.getNodePoolInfo()
+        m.assertEqual(info.totalAcquiredNodes, 1)
+        m.assertEqual(info.totalReleasedNodes, 1)
+        m.assertEqual(info.poolFulness["Label"], 1)
+      end sub
+
+    end class
+  end namespace

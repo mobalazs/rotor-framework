@@ -1,0 +1,124 @@
+import "../base/basePlugin.bs"
+
+'**
+' A Brighterscript class for handling custom fields in a widget.
+'
+' @extends BasePlugin class
+'/
+namespace Rotor
+    class FieldsPlugin extends BasePlugin
+
+        ' Constructor
+        sub new(key = "fields" as string, params = invalid as object)
+            super(key)
+        end sub
+
+        ' This regex is designed to match a pattern starting with the @ symbol, followed by a sequence of characters that can include any character except space, @, or ,.
+        configRegex = /(\@)([^\s\@\,]*)/i
+
+        ' Hooks to attach custom field handling to widget lifecycle events.
+        hooks = {
+            beforeMount: sub(scope as object, widget as object)
+                ' After a widget is created, set custom fields.
+                value = widget[scope.key]
+                scope.setCustomFields(widget, value)
+            end sub,
+
+            beforeUpdate: sub(scope as object, widget as object, newValue = {}, oldValue = {})
+                ' In this plugin, we would like to extend old config on update
+                Rotor.Utils.deepExtendAA(widget[scope.key], newValue)
+                ' Before a widget updates, set custom fields.
+                scope.setCustomFields(widget, newValue)
+            end sub,
+
+            beforeDestroy: sub(scope as object, widget as object)
+                widget[scope.key].Clear()
+            end sub
+        }
+
+        ' cache = {}
+
+        ' sub clearCache()
+        '     m.cache.Clear()
+        ' end sub
+
+        ' Sets custom fields on a widget's node.
+        sub setCustomFields(widget as object, fields)
+            parsedFields = m.parseFields(widget, fields)
+            ' Get the node associated with the widget.
+            node = widget.node
+            ' Apply custom fields to the node.
+            Rotor.Utils.setCustomFields(node, parsedFields, true)
+        end sub
+
+        ' /**
+        '  * Parses the fields from the provided widget.
+        '  *
+        '  * @param {Object} data - The data from which to parse the fields.
+        '  * @returns {Object} The parsed fields.
+        '  */
+        function parseFields(widget as object, fields as object) as object
+            parsedFields = {}
+            for each fieldId in fields
+
+                value = fields[fieldId]
+
+                if Rotor.Utils.isFunction(value)
+                    ' Resolve expression
+                    parsedFields[fieldId] = Rotor.Utils.callbackScoped(value, widget)
+
+                    value = parsedFields[fieldId]
+
+                end if
+
+                if Rotor.Utils.isString(value)
+
+                    results = m.configRegex.MatchAll(value)
+
+                    if results.Count() > 0
+                        for each result in results
+                            matchKey = result[2]
+                            sourceTypeOperator = result[1]
+                            if sourceTypeOperator = "@"
+                                source = widget.viewModelState
+                            else
+                                source = widget
+                            end if
+
+                            ' Resolve a value from a dot-separated key path, using cache to avoid redundant lookups
+
+                            ' if m.cache.DoesExist(matchKey)
+                            ' assetValue = m.cache[matchKey]
+                            ' else
+                            asset = Rotor.Utils.getValueByKeyPath(source, matchKey)
+                            ' m.cache[matchKey] = asset
+                            ' end if
+
+                            if Rotor.Utils.isString(asset)
+                                replaceRegex = CreateObject("roRegex", sourceTypeOperator + matchKey, "ig")
+                                value = replaceRegex.ReplaceAll(value, asset)
+                            else
+                                value = asset
+                                exit for
+                            end if
+
+                        end for
+                    end if
+
+                    parsedFields[fieldId] = value
+
+                else
+                    parsedFields[fieldId] = value
+                end if
+
+            end for
+
+            return parsedFields
+
+
+        end function
+
+
+    end class
+
+end namespace

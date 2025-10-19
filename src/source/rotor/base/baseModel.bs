@@ -1,0 +1,15 @@
+class Model
+
+    sub new(state = invalid as object)
+        if state <> invalid
+            m.state = state
+        end if
+    end sub
+
+    state as object
+
+    sub destroy()
+        m.state = invalid
+    end sub
+
+end class
