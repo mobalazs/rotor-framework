@@ -16,10 +16,8 @@
     "files": [
         "source/**/*",
         "components/**/*",
-        "!components/debug", // debug components
         "manifest",
         "assets/**/*",
-        "!assets/mockups", // mockup data
         "!**/*.spec.bs" // rooibos unit tests
     ],
 
@@ -28,8 +26,8 @@
     "diagnosticFilters": [
         {
             "src": "**/roku_modules/**/*.*"
-            },{
-            "src": "**/*.spec.bs"
+            // },{
+            // "src": "**/*.spec.bs"
             },{
             "src": "**/debug/rale/**/*.*"
         }

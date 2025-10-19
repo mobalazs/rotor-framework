@@ -65,9 +65,9 @@
             "enableDebuggerAutoRecovery": false,
             "stopDebuggerOnAppExit": false,
             "stopOnEntry": false,
-            "rendezvousTracking": true,
-            "enableDebugProtocol": true,
-            "injectRdbOnDeviceComponent": true
+            "rendezvousTracking": false,
+            "enableDebugProtocol": false,
+            "injectRdbOnDeviceComponent": false
 
         }
     ]
