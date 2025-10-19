@@ -1,35 +1,36 @@
 {
-    "rootDir": "src",
-    "stagingDir": "dist",
+	"rootDir": "src",
+	"stagingDir": "dist",
 
-    "bs_const": {
-        "debug": false,
-        "unittest": false
-    },
+	"bs_const": {
+		"debug": false,
+		"unittest": false
+	},
 
 	"createPackage": false,
 	"emitDefinitions": true,
 	"sourceMap": true,
 
-	"plugins": ["@rokucommunity/bslint"],
+	"plugins": [
+		"@rokucommunity/bslint",
+		"rooibos-roku"
+	],
 
-    "files": [
-        "source/**/*",
-        "components/**/*",
-        "manifest",
-        "assets/**/*",
-        "!**/*.spec.bs" // rooibos unit tests
-    ],
+	"files": [
+		"source/**/*",
+		"components/**/*",
+		"manifest",
+		"assets/**/*"
+	],
 
-    "autoImportComponentScript": true,
+	"autoImportComponentScript": true,
 
-    "diagnosticFilters": [
-        {
-            "src": "**/roku_modules/**/*.*"
-            // },{
-            // "src": "**/*.spec.bs"
-            },{
-            "src": "**/debug/rale/**/*.*"
-        }
-    ]
+	"diagnosticFilters": [
+		{
+			"src": "**/roku_modules/**/*.*"
+		},
+		{
+			"src": "**/source/tests/**/*"
+		}
+	]
 }

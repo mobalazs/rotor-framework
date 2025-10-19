@@ -8,8 +8,7 @@
 		"build": "bsc  --project bsconfig.json --createPackage=false",
 		"build-tests": "bsc --project bsconfig-tests.json --createPackage=false",
 		"lint": "npx bslint --project bsconfig.json  --lintConfig bslint.json",
-		"linter": "bsc --create-package --copy-to-staging false",
-		"postinstall": "npm --prefix node_modules/rooibos-roku install && npm --prefix node_modules/rooibos-roku run build"
+		"linter": "bsc --create-package --copy-to-staging false"
 	},
 	"ropm": {
 		"rootDir": "src",
@@ -31,6 +30,6 @@
 	"devDependencies": {
 		"@rokucommunity/bslint": "1.0.0-alpha.48",
 		"brighterscript": "1.0.0-alpha.48",
-		"rooibos-roku": "https://github.com/rokucommunity/rooibos/archive/refs/tags/v6.0.0-alpha.48.tar.gz"
+		"rooibos-roku": "https://github.com/rokucommunity/rooibos/releases/download/v6.0.0-alpha.48/rooibos-roku-6.0.0-alpha.48.tgz"
 	}
 }

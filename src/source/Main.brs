@@ -2,10 +2,8 @@
 sub main(args)
 
     #if unittest
-        testInit = GetGlobalAA().Lookup("Rooibos_init")
-        if testInit <> invalid
-            testInit("RooibosScene")
-        end if
+        'bs:disable-next-line
+        Rooibos_init("RooibosScene")
         return
     #end if
 

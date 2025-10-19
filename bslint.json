@@ -29,7 +29,7 @@
     "ignores": [
         "src/assets/**/*",
         "src/**/*.spec.bs",
-        "src/source/test/**/*",
-        "src/source/rotor/libs/animate/**/*.*"
+        "src/source/test/**/*.*",
+        "src/source/rotor/libs/**/*.*"
     ]
 }

@@ -335,13 +335,13 @@ namespace Rotor.Utils
     end function
 
     function isDifferent(item1, item2) as boolean
-        if type(item1) <> type(item2) then return true
 
-        if Rotor.Utils.isAssociativeArray(item1) or Rotor.Utils.isArray(item1)
+        if type(item1) = "roSGNode"
+            return not item1.isSameNode(item2)
+
+        else if Rotor.Utils.isAssociativeArray(item1) or Rotor.Utils.isArray(item1)
             return FormatJSON(item1) <> FormatJSON(item2)
 
-        else if type(item1) = "rosgnode"
-            return not item1.isSameNode(item2)
 
         else if Rotor.Utils.isFunction(item1)
             return item1.ToStr() <> item2.ToStr()

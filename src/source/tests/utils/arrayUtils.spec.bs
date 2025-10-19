@@ -1,0 +1,286 @@
+namespace tests
+    @suite("Rotor.Utils array helpers")
+    class ArrayUtilsSuite extends rooibos.BaseTestSuite
+
+        @describe("convertArrayToAAHash")
+
+        @it("maps entries to true by default")
+        function _()
+            result = Rotor.Utils.convertArrayToAAHash(["foo", "bar"])
+            m.assertTrue(result["foo"])
+            m.assertTrue(result["bar"])
+        end function
+
+        @it("respects custom truthy value")
+        function _()
+            result = Rotor.Utils.convertArrayToAAHash(["foo"], false)
+            m.assertFalse(result["foo"])
+        end function
+
+        @describe("deepExtendAA")
+
+        @it("merges nested associative arrays")
+        function _()
+            target = {
+                config: {
+                    enabled: true,
+                    nested: {
+                        value: 1
+                    }
+                },
+                keep: "yes"
+            }
+            source = {
+                config: {
+                    nested: {
+                        value: 2,
+                        extra: 3
+                    }
+                },
+                add: "new"
+            }
+
+            result = Rotor.Utils.deepExtendAA(target, source)
+
+            m.assertEqual(result.config.nested.value, 2)
+            m.assertEqual(result.config.nested.extra, 3)
+            m.assertEqual(result.keep, "yes")
+            m.assertEqual(result.add, "new")
+        end function
+
+        @it("returns source when target is not associative array")
+        function _()
+            result = Rotor.Utils.deepExtendAA([], { flag: true })
+            m.assertEqual(result.flag, true)
+        end function
+
+        @describe("wrapObject")
+        @it("creates associative array with single entry")
+        function _()
+            wrapped = Rotor.Utils.wrapObject("key", 42)
+            m.assertEqual(wrapped["key"], 42)
+        end function
+
+        @describe("deepCopy and cloneExtendAA")
+
+        @it("deepCopy clones nested collections")
+        function _()
+            original = {
+                list: [
+                    1,
+                    {
+                        value: 2
+                    }
+                ]
+            }
+
+            clone = Rotor.Utils.deepCopy(original)
+            clone.list[1]["value"] = 5
+
+            m.assertEqual(original.list[1]["value"], 2)
+            m.assertEqual(clone.list[1]["value"], 5)
+        end function
+
+        @it("cloneExtendAA clones source before extending")
+        function _()
+            source = { flag: false, nested: { value: 1 } }
+            result = Rotor.Utils.cloneExtendAA(source, { nested: { value: 9 }, added: true })
+
+            m.assertEqual(result.nested.value, 9)
+            m.assertEqual(result.added, true)
+            m.assertEqual(source.nested.value, 1)
+            m.assertTrue(source.added = invalid)
+        end function
+
+        @describe("getValueByKeyPath")
+
+        @it("returns nested value by path")
+        function _()
+            value = Rotor.Utils.getValueByKeyPath({ outer: { inner: { item: 7 } } }, "outer.inner.item")
+            m.assertEqual(value, 7)
+        end function
+
+        @it("wraps last key when requested")
+        function _()
+            result = Rotor.Utils.getValueByKeyPath({ outer: { inner: 5 } }, "outer.inner", true)
+            m.assertEqual(result.inner, 5)
+        end function
+
+        @it("returns invalid when path missing")
+        function _()
+            value = Rotor.Utils.getValueByKeyPath({ level: {} }, "level.missing")
+            m.assertEqual(value, invalid)
+        end function
+
+        @describe("getCloneByKeyPath")
+
+        @it("returns clone of the path hierarchy")
+        function _()
+            source = { a: { b: { c: 3 } } }
+            clone = Rotor.Utils.getCloneByKeyPath(source, "a.b")
+            clone.a.b.c = 8
+
+            m.assertEqual(source.a.b.c, 3)
+            m.assertEqual(clone.a.b.c, 8)
+        end function
+
+        @describe("filterArrayUseHandler")
+
+        @it("filters array using handler")
+        function _()
+            data = [1, 3, 5, 2]
+            result = Rotor.Utils.filterArrayUseHandler(data, m.isGreaterThan, 2)
+            m.assertArraysMatch(result, [3, 5])
+        end function
+
+        @describe("find helpers")
+
+        @it("findInArray returns index when found")
+        function _()
+            index = Rotor.Utils.findInArray(["a", "b", "c"], "b")
+            m.assertEqual(index, 1)
+        end function
+
+        @it("findInArray returns -1 when absent")
+        function _()
+            index = Rotor.Utils.findInArray([1, 2, 3], 5)
+            m.assertEqual(index, -1)
+        end function
+
+        @it("findInArrayOfAA finds element by key")
+        function _()
+            items = [{ id: "first" }, { id: "second" }]
+            index = Rotor.Utils.findInArrayOfAA(items, "id", "second")
+            m.assertEqual(index, 1)
+            m.assertEqual(Rotor.Utils.findInArrayOfAA(items, "id", "missing"), -1)
+        end function
+
+        @it("findInAArrayByKey returns matching key name")
+        function _()
+            map = {
+                one: { name: "Alpha" },
+                two: { name: "Beta" }
+            }
+            key = Rotor.Utils.findInAArrayByKey(map, "name", "beta")
+            m.assertEqual(key, "two")
+        end function
+
+        @it("findInArrayByKey searches nested structures")
+        function _()
+            items = [
+                { data: { name: "Alpha" } },
+                { data: { name: "Beta" } }
+            ]
+
+            index = Rotor.Utils.findInArrayByKey(items, "data.name", "beta")
+            m.assertEqual(index, 1)
+        end function
+
+        @describe("checkArrayItemsByHandler")
+
+        @it("selects value based on handler comparison")
+        function _()
+            stats = [
+                { total: 10 },
+                { total: 35 },
+                { total: 25 }
+            ]
+
+            result = Rotor.Utils.checkArrayItemsByHandler(stats, "total", m.isGreaterThan)
+            m.assertEqual(result.total, 35)
+        end function
+
+        @describe("extendArrayOfStrings")
+
+        @it("adds missing strings and keeps existing entries")
+        function _()
+            target = ["alpha"]
+            result = Rotor.Utils.extendArrayOfStrings(target, ["beta", "alpha"])
+            m.assertArraysMatch(result, ["alpha", "beta"])
+        end function
+
+        @describe("isDifferent")
+
+        @it("compares primitive and composite values")
+        function _()
+            m.assertFalse(Rotor.Utils.isDifferent(5, 5))
+            m.assertTrue(Rotor.Utils.isDifferent(5, 7))
+
+            left = [1, { v: 2 }]
+            right = [1, { v: 2 }]
+            m.assertFalse(Rotor.Utils.isDifferent(left, right))
+
+            right[1]["v"] = 3
+            m.assertTrue(Rotor.Utils.isDifferent(left, right))
+        end function
+
+        @it("compares SceneGraph nodes by identity")
+        function _()
+            nodeA = CreateObject("roSGNode", "Group")
+            nodeB = nodeA
+            nodeC = CreateObject("roSGNode", "Group")
+
+            m.assertFalse(Rotor.Utils.isDifferent(nodeA, nodeB))
+            m.assertTrue(Rotor.Utils.isDifferent(nodeA, nodeC))
+        end function
+
+        @describe("ensureArray")
+
+        @it("returns input when already array")
+        function _()
+            data = [1]
+            result = Rotor.Utils.ensureArray(data)
+            result.push(2)
+            m.assertArraysMatch(data, [1, 2])
+        end function
+
+        @it("wraps non-array value")
+        function _()
+            result = Rotor.Utils.ensureArray("item")
+            m.assertArraysMatch(result, ["item"])
+        end function
+
+        @describe("hierarchy id helpers")
+
+        @it("detects ancestor relationships")
+        function _()
+            m.assertTrue(Rotor.Utils.isAncestorHID("a.b", "a.b.c"))
+            m.assertFalse(Rotor.Utils.isAncestorHID("a.b", "a.b"))
+        end function
+
+        @it("detects descendant relationships")
+        function _()
+            m.assertTrue(Rotor.Utils.isDescendantHID("a.b.c", "a.b"))
+            m.assertFalse(Rotor.Utils.isDescendantHID("a.b", "a.b"))
+        end function
+
+        @describe("removeRedundantValuesInArray")
+
+        @it("sorts and removes duplicate entries")
+        function _()
+            values = [3, 1, 2, 2, 3]
+            Rotor.Utils.removeRedundantValuesInArray(values)
+            m.assertArraysMatch(values, [1, 2, 3])
+        end function
+
+        @describe("getWrappedIndex")
+
+        @it("wraps positive indices")
+        function _()
+            m.assertEqual(Rotor.Utils.getWrappedIndex(7, 5), 2)
+        end function
+
+        @it("wraps negative indices")
+        function _()
+            m.assertEqual(Rotor.Utils.getWrappedIndex(-1, 5), 4)
+        end function
+
+        private function isGreaterThan(value, context)
+            return value > context
+        end function
+
+        private sub assertArraysMatch(actual as dynamic, expected as dynamic)
+            m.assertEqual(FormatJSON(actual), FormatJSON(expected))
+        end sub
+    end class
+end namespace

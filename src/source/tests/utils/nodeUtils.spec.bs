@@ -1,0 +1,116 @@
+namespace tests
+    @suite("Rotor.Utils node helpers")
+    class NodeUtilsSuite extends rooibos.BaseTestSuite
+
+        @describe("createNode")
+
+        @it("creates node and applies fields")
+        function _()
+            node = Rotor.Utils.createNode("Group", {
+                id: "testNode",
+                translation: [1, 2]
+            })
+
+            m.assertEqual(node.id, "testNode")
+            m.assertArraysMatch(node.translation, [1, 2])
+        end function
+
+        @describe("createContentNode")
+
+        @it("adds fields for content node")
+        function _()
+            content = Rotor.Utils.createContentNode({ title: "Hello" })
+            m.assertEqual(content.title, "Hello")
+        end function
+
+        @it("sets fields for custom node type")
+        function _()
+            label = Rotor.Utils.createContentNode({ text: "Hi" }, "Label")
+            m.assertEqual(label.text, "Hi")
+        end function
+
+        @describe("setCustomFields")
+
+        @it("adds new fields and values")
+        function _()
+            node = CreateObject("roSGNode", "Group")
+            Rotor.Utils.setCustomFields(node, { newField: "value" })
+            m.assertEqual(node.getField("newField"), "value")
+        end function
+
+        @it("respects overwrite flag")
+        function _()
+            node = CreateObject("roSGNode", "Group")
+            node.addField("counter", "integer", true)
+            node.setField("counter", 1)
+
+            Rotor.Utils.setCustomFields(node, { counter: 5 }, false)
+            m.assertEqual(node.getField("counter"), 1)
+        end function
+
+        @describe("callbackScoped")
+
+        @it("invokes method name on scope")
+        function _()
+            scope = {
+                result: invalid
+            }
+            scope.handle = function(value)
+                m.result = value * 2
+                return m.result
+            end function
+
+            outcome = Rotor.Utils.callbackScoped("handle", scope, 3)
+            m.assertEqual(outcome, 6)
+            m.assertEqual(scope.result, 6)
+        end function
+
+        @it("invokes function reference within scope")
+        function _()
+            scope = { captured: invalid }
+            callback = function(value)
+                return value + 1
+            end function
+
+            result = Rotor.Utils.callbackScoped(callback, scope, 4)
+            m.assertEqual(result, 5)
+        end function
+
+        @describe("font helpers")
+
+        @it("assigns font node to component")
+        function _()
+            node = CreateObject("roSGNode", "Label")
+            Rotor.Utils.setFontAttribute(node, { uri: "pkg:/fonts/Roboto.ttf", size: 18 })
+            m.assertNotEqual(node.font, invalid)
+            m.assertEqual(node.font.uri, "pkg:/fonts/Roboto.ttf")
+            m.assertEqual(node.font.size, 18)
+        end function
+
+        @it("removes font reference from component")
+        function _()
+            node = CreateObject("roSGNode", "Label")
+            node.font = CreateObject("roSGNode", "Font")
+            Rotor.Utils.removeFontAttribute(node)
+            m.assertEqual(node.font, invalid)
+        end function
+
+        @describe("convertIntrinsicType")
+
+        @it("converts known intrinsic types")
+        function _()
+            m.assertEqual(Rotor.Utils.convertIntrinsicType("roInt"), "integer")
+            m.assertEqual(Rotor.Utils.convertIntrinsicType("roSGNode"), "node")
+            m.assertEqual(Rotor.Utils.convertIntrinsicType("roString"), "string")
+        end function
+
+        @it("returns original when no conversion")
+        function _()
+            m.assertEqual(Rotor.Utils.convertIntrinsicType("customType"), "customtype")
+        end function
+
+        private sub assertArraysMatch(actual as dynamic, expected as dynamic)
+            m.assertEqual(FormatJSON(actual), FormatJSON(expected))
+        end sub
+    end class
+end namespace

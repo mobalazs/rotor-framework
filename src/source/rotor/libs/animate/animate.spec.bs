@@ -3,6 +3,10 @@ import "animate.bs"
 namespace tests
     @suite
     class TestSuite extends rooibos.BaseTestSuite
+        canvas as object
+        r1 as object
+        r2 as object
+
         protected override function beforeEach()
             if (m.canvas = invalid)
                 m.canvas = m.top.createChild("Group")
