@@ -139,7 +139,7 @@ namespace Rotor.Utils
                 target[key] = deepCopy(source[key])
             end for
         else
-            return source ' Ha nem egy tömb vagy asszociatív tömb, egyszerűen visszaadjuk a forrást
+            return source
         end if
 
         return target
@@ -175,9 +175,9 @@ namespace Rotor.Utils
         ' Decide the return value based on lastKeyAsProp
         if lastKeyAsProp and current <> invalid
             obj = wrapObject(keys[keysCount - 1], current)
-            return obj ' reconsider deepcopy
+            return obj ' reconsider deep copy
         else
-            return current ' reconsider deepcopy
+            return current ' reconsider deep copy
         end if
     end function
 
@@ -324,8 +324,8 @@ namespace Rotor.Utils
         return foundIndex
     end function
 
-    function extendArrayOfStrings(targetArray = [] as object, soucreArray = [] as object) as object
-        for each itemStr in soucreArray
+    function extendArrayOfStrings(targetArray = [] as object, sourceArray = [] as object) as object
+        for each itemStr in sourceArray
             foundIndex = Rotor.Utils.findInArray(targetArray, itemStr)
             if foundIndex = -1
                 targetArray.push(itemStr)

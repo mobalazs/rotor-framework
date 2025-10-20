@@ -182,7 +182,7 @@ namespace Rotor.ViewBuilder
         end if
 
 
-        ' get finalized chidlren, will be passed to processor
+        ' get finalized children, will be passed to processor
         if config.children = invalid then config.children = {}
         children = config.children
 

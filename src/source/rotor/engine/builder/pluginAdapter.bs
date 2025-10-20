@@ -31,7 +31,7 @@ namespace Rotor.ViewBuilder
 
         end sub
 
-        ' Plugins has limited type of hooks to lyfecicles (check the list below)
+        ' Plugins has limited type of hooks to lifecycle (check the list below)
         pluginHooks = {}
         pluginKeyList = CreateObject("roList")
 

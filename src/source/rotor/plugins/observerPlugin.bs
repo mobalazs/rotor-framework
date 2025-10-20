@@ -133,7 +133,7 @@ namespace Rotor
 
         '''''''''
         ' detach: Removes all observers associated with a specific node attachment.
-        ' Unobserves fields and removes observer instances from the stack.
+        ' Unobserve fields and removes observer instances from the stack.
         ' @param {dynamic} node The roSGNode from which to detach observers.
         '''''''''
         sub detach(node as dynamic)

@@ -138,7 +138,7 @@ namespace Rotor.ViewBuilder
             widget = m.getByHID(HID)
             ' if widget = invalid then return
 
-            ' remnove from parent
+            ' remove from parent
             parent = widget.parent
             parent.children.Delete(widget.id)
 

@@ -70,7 +70,7 @@ namespace Rotor
                 if newState = invalid then return
 
                 m.exposeState()
-                m.notifyListeners(newState) ' Notify listeners which are also onwned by the same thread and not external (synchronously)
+                m.notifyListeners(newState) ' Notify listeners which are also owned by the same thread and not external (synchronously)
 
                 if m.dispatchQueue.Count() > 0
                     intent = m.dispatchQueue.shift()

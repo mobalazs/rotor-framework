@@ -95,7 +95,7 @@ namespace Rotor.ViewBuilder
         function checkIdAutoId(config as object) as object
             hasHID = config.DoesExist("HID")
             if not hasHID and (config.id = invalid or config.id = "")
-                id = "ID-" + Rotor.Utils.getUUID() ' generate readable id if missing (This is not the engie's generated HID, this id is the "readable" id)
+                id = "ID-" + Rotor.Utils.getUUID() ' generate readable id if missing (This is not the engine's generated HID, this id is the "readable" id)
                 config.id = id
             end if
             return config
