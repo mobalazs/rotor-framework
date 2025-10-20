@@ -58,52 +58,16 @@ namespace tests
     @suite("HelloWorldRenderSuite integration")
     class HelloWorldRenderSuite extends rooibos.BaseTestSuite
 
-        originalTop = invalid
-        originalHelper = invalid
         framework = invalid
-        rootNode = invalid
 
         protected override function beforeEach()
-            globalAA = GetGlobalAA()
-
-            if globalAA.doesExist("top")
-                m.originalTop = globalAA.top
-            else
-                m.originalTop = invalid
-            end if
-
-            if globalAA.doesExist("rotor_framework_helper")
-                m.originalHelper = globalAA.rotor_framework_helper
-            else
-                m.originalHelper = invalid
-            end if
-
-            m.rootNode = CreateObject("roSGNode", "Group")
-            globalAA.top = m.rootNode
-
-            m.framework = new Rotor.Framework({
-                rootNode: m.rootNode
-            })
+            m.framework = new Rotor.Framework()
         end function
 
         protected override function afterEach()
             if m.framework <> invalid
                 m.framework.destroy()
                 m.framework = invalid
-            end if
-
-            globalAA = GetGlobalAA()
-
-            if m.originalTop <> invalid
-                globalAA.top = m.originalTop
-            else if globalAA.doesExist("top")
-                globalAA.Delete("top")
-            end if
-
-            if m.originalHelper <> invalid
-                globalAA.rotor_framework_helper = m.originalHelper
-            else if globalAA.doesExist("rotor_framework_helper")
-                globalAA.Delete("rotor_framework_helper")
             end if
         end function
 
@@ -120,10 +84,11 @@ namespace tests
 
             rootNode = m.framework.getRootNode()
             m.assertNotEqual(rootNode, invalid)
-            groupNode = rootNode.getChild(0)
+            groupNode = rootNode.getChild(3)
             m.assertNotEqual(groupNode, invalid)
-            m.assertEqual(FormatJSON(groupNode.translation), FormatJSON([SAFE_AREA.x, SAFE_AREA.y]))
 
+            m.assertEqual(CDbl(groupNode.translation[0]), CDbl(SAFE_AREA.x))
+            m.assertEqual(CDbl(groupNode.translation[1]), CDbl(SAFE_AREA.y))
             rectNode = groupNode.getChild(0)
             m.assertNotEqual(rectNode, invalid)
             m.assertEqual(rectNode.subtype(), "Rectangle")
