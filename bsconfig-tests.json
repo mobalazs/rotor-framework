@@ -20,7 +20,7 @@
 	"plugins": ["@rokucommunity/bslint", "rooibos-roku"],
 
 	"rooibos": {
-		"isRecordingCodeCoverage": true,
+		"isRecordingCodeCoverage": false,
 		"printTestTimes": true,
 		"testsFilePattern": null,
 		"tags": ["!integration", "!deprecated", "!fixme"],
