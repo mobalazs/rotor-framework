@@ -85,7 +85,7 @@ namespace Rotor.Utils
     end sub
 
     '==========================================
-    ' RALE Utitlity functions
+    ' RALE Utility functions
     '==========================================
 
     ' RALE_Logger__getZeroNumber - Convert number to format "0[number]" if it has less then 2 digits
@@ -101,7 +101,7 @@ namespace Rotor.Utils
     end function
 
     ' modified RALE_Logger__GetTime - Returns current time
-    ' @return {string} - current time in format: "[hours]:[minutes]:[seconds].[miliseconds]"
+    ' @return {string} - current time in format: "[hours]:[minutes]:[seconds].[milliseconds]"
     function RALE_Logger__GetTime(dt)
         h = RALE_Logger__getZeroNumber(dt.getHours())
         n = RALE_Logger__getZeroNumber(dt.getMinutes())
