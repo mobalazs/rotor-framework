@@ -1,0 +1,71 @@
+import "pkg:/source/rotor/RotorFramework.bs"
+
+namespace tests
+
+	@SGNode("helloTest")
+	@suite("NodePool integration")
+	class NodePoolTests extends rooibos.BaseTestSuite
+
+		pool as object
+
+		protected override sub beforeEach()
+			m.pool = new Rotor.ViewBuilder.NodePool()
+			m.pool.init({})
+		end sub
+
+		'+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+		@describe("createNodePool")
+		'+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+		@it("creates a node pool with Rectangle nodes")
+		sub _()
+			config = {
+				nodePool: [{
+					nodeType: "Rectangle",
+					amount: 2
+				}]
+			}
+
+			m.pool.createNodePool(config)
+
+			m.assertTrue(m.pool.pools.doesExist("Rectangle"))
+			m.assertEqual(m.pool.pools["Rectangle"].count(), 2)
+			m.assertEqual(m.pool.pools["Rectangle"][0].subtype(), "Rectangle")
+		end sub
+
+		'+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+		@describe("acquire & release")
+		'+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+		@it("acquires and releases a Label node")
+		sub _()
+			config = {
+				nodePool: [{
+					nodeType: "Label",
+					amount: 1
+				},{
+					nodeType: "Poster",
+					amount: 0
+				}]
+			}
+
+			m.pool.createNodePool(config)
+
+			labelNode = m.pool.acquireNode("Label")
+			m.assertNotInvalid(labelNode)
+			m.assertEqual(labelNode.subtype(), "Label")
+			m.pool.releaseNodeBranch(labelNode)
+
+			posterNode = m.pool.acquireNode("Poster")
+			m.assertNotInvalid(posterNode)
+			m.assertEqual(posterNode.subtype(), "Poster")
+			m.pool.releaseNodeBranch(posterNode)
+
+			info = m.pool.getNodePoolInfo()
+			m.assertEqual(info.totalAcquiredNodes, 1)
+			m.assertEqual(info.totalReleasedNodes, 1)
+			m.assertEqual(info.poolFulness["Label"], 1)
+		end sub
+
+	end class
+end namespace
