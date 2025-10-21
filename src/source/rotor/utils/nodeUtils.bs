@@ -74,6 +74,7 @@ namespace Rotor.Utils
                 return scope.rotor_tmp_callback_scoped()
             end if
         end if
+        scope.rotor_tmp_callback_scoped = invalid
         return invalid
     end function
 

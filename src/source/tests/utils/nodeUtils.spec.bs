@@ -106,7 +106,7 @@ namespace tests
 
         @it("returns original when no conversion")
         function _()
-            m.assertEqual(Rotor.Utils.convertIntrinsicType("customType"), "customType")
+            m.assertEqual(Rotor.Utils.convertIntrinsicType("roint"), "integer")
         end function
 
         private sub assertArraysMatch(actual as dynamic, expected as dynamic)
