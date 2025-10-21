@@ -75,7 +75,8 @@ namespace Rotor.ViewBuilder
             if keyPath = invalid then return m.l10n ' Return just reference to l10n
 
             ' Best for unit tests or story books or special use cases
-            return m.getAssetByKeyPath(keyPath) ' Return cloned and merged sliced data from l10n
+            firstKey = keyPath.Split(".")[0]
+            return m.getAssetByKeyPath(keyPath)[firstKey] ' Return cloned and merged sliced data from l10n
 
         end function
 
