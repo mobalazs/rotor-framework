@@ -3,8 +3,8 @@ import "listenerForDispatchers.bs"
 
 namespace Rotor
 
-    function createDispatcher(customDispatcherId as string, modelInstance as Model, reducerInstance as Reducer) as DispatcherFacade
-        m.dispatcherInstance = new Rotor.Dispatcher(customDispatcherId, modelInstance, reducerInstance) as Dispatcher
+    function createDispatcher(customDispatcherId as string, modelInstance as Model, reducerInstance as Reducer) as Dispatcher
+        m.dispatcherInstance = new Rotor.DispatcherCreator(customDispatcherId, modelInstance, reducerInstance)
 
         frameworkInstance = GetGlobalAA().rotor_framework_helper.frameworkInstance
         dispatcherFacadeInstance = frameworkInstance.dispatcherProvider.getFacade(customDispatcherId, m)
@@ -12,7 +12,8 @@ namespace Rotor
         return dispatcherFacadeInstance
     end function
 
-    class Dispatcher extends ListenerForDispatchers
+    ' Dispatcher
+    class DispatcherCreator extends ListenerForDispatchers
 
         middlewares = []
         isExternal = false

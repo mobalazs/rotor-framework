@@ -22,7 +22,7 @@ namespace Rotor
                 end if
             #end if
 
-            dispatcherFacadeInstance = new Rotor.DispatcherFacade(dispatcherTaskNode, dispatcherId, listenerId, listenerScope)
+            dispatcherFacadeInstance = new Rotor.Dispatcher(dispatcherTaskNode, dispatcherId, listenerId, listenerScope)
 
             return dispatcherFacadeInstance
         end function

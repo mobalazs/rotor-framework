@@ -9,7 +9,7 @@ namespace tests
     class DispatcherTestSuite extends rooibos.BaseTestSuite
 
         fwInstance as Rotor.Framework
-        fooDispatcher as Rotor.DispatcherFacade
+        fooDispatcher as Rotor.Dispatcher
 
         protected override function beforeEach()
             ' Initialize framework

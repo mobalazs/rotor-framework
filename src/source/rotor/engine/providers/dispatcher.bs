@@ -1,7 +1,8 @@
 
 namespace Rotor
 
-    class DispatcherFacade
+    ' Dispatcher Facade (Note: The name only “Dispatcher” so it can be used as a type when declaring variables)
+    class Dispatcher
 
         dispatcherId as string
         listenerId as string

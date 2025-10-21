@@ -3,10 +3,10 @@ import "engine/constants.bs"
 
 ' engine
 import "engine/providers/dispatcherProvider.bs"
-import "engine/providers/dispatcherFacade.bs"
+import "engine/providers/dispatcher.bs"
 
 ' base classes
-import "base/dispatcher.bs"
+import "base/dispatcherCreator.bs"
 import "base/dispatcherExternal.bs"
 import "base/baseReducer.bs"
 import "base/baseModel.bs"
