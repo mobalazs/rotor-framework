@@ -45,7 +45,12 @@ namespace tests
                     subtitle: `${subtitleNodeText} updated`,
                 }
             })
+            ' Check viewModelState.updateCount value
+            ' * One Render was called on Mounted - see template
+            ' * Another Render was called in this test
+            m.assertEqual(viewModelTest.viewModelState.updateCount, 2)
 
+            ' Validate new texts
             m.assertEqual(titleNode.text, `${titleNodeText} updated`)
             m.assertEqual(subtitleNode.text, `${subtitleNodeText} updated`)
 
