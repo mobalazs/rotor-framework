@@ -1,0 +1,55 @@
+import "pkg:/source/rotor/RotorFramework.bs"
+import "pkg:/components/tests/viewModelTest.template.bs"
+import "pkg:/components/tests/viewModelTest.const.bs"
+
+namespace tests
+
+    @SGNode("viewModelTest")
+    @suite("ViewModelTestSuite integration")
+    class ViewModelTestSuite extends rooibos.BaseTestSuite
+
+        fwInstance as Rotor.Framework
+
+        protected override function beforeEach()
+            m.fwInstance = new Rotor.Framework()
+            template = getViewModelTemplate()
+            m.fwInstance.render(template)
+        end function
+
+        protected override function afterEach()
+            m.fwInstance.destroy()
+            m.fwInstance = invalid
+        end function
+
+        @describe("view model rendering")
+
+        @it("renders view model template with updated props")
+        function _()
+            viewModelTest = m.fwInstance.getRootWidget().children.viewModelTest
+            m.assertNotEqual(viewModelTest, invalid)
+
+            titleNode = m.fwInstance.getWidget("titleLabel").node
+            subtitleNode = m.fwInstance.getWidget("subtitleLabel").node
+            m.assertNotEqual(titleNode, invalid)
+            m.assertNotEqual(subtitleNode, invalid)
+
+            titleNodeText = `${VIEW_MODEL_DEFAULT_PROPS.title} created mounted`
+            m.assertEqual(titleNode.text, titleNodeText)
+            subtitleNodeText = `${VIEW_MODEL_DEFAULT_PROPS.subtitle} created mounted`
+            m.assertEqual(subtitleNode.text, subtitleNodeText)
+
+            ' Update ViewModel with new props (rendering runs synchronously)
+            viewModelTest.render({
+                props: {
+                    title: `${titleNodeText} updated`,
+                    subtitle: `${subtitleNodeText} updated`,
+                }
+            })
+
+            m.assertEqual(titleNode.text, `${titleNodeText} updated`)
+            m.assertEqual(subtitleNode.text, `${subtitleNodeText} updated`)
+
+        end function
+
+    end class
+end namespace

@@ -1,0 +1,4 @@
+const VIEW_MODEL_DEFAULT_PROPS = {
+    title: "Test Title",
+    subtitle: "Test Subtitle"
+}

@@ -1,0 +1,73 @@
+import "pkg:/components/tests/viewModelTest.const.bs"
+import "pkg:/components/tests/helloTest.const.bs"
+
+class ViewModelTestViewModel extends ViewModel
+
+    props = {
+        title: "Default Title",
+        subtitle: "Default Subtitle"
+    }
+
+    viewModelState = {
+        updateCount: 0
+    }
+
+    override sub onCreateView()
+        m.props.title += " created"
+        m.props.subtitle += " created"
+    end sub
+
+    override sub onMountView()
+        m.render({
+            props: {
+                title: m.props.title + " mounted",
+                subtitle: m.props.subtitle + " mounted"
+            }
+        })
+    end sub
+
+    override sub onUpdateView()
+        m.viewModelState.updateCount++
+        ' Update label node's text field
+        m.children.titleLabel.node.text = m.props.title
+        ' Another way to update the field (requires using an expression)
+        m.children.subtitleLabel.refresh("fields.text")
+    end sub
+
+    override function template() as object
+        return {
+            nodeType: "Group",
+            fields: {
+                translation: [SAFE_AREA.x, SAFE_AREA.y]
+            },
+            children: [{
+                id: "titleLabel",
+                nodeType: "Label",
+                fields: {
+                    text: m.props.title,
+                    horizAlign: "center"
+                }
+            }, {
+                id: "subtitleLabel",
+                nodeType: "Label",
+                fields: {
+                    text: function() return m.props.subtitle : end function, ' Using an expression makes it updatable via refresh("fields.text")
+                    horizAlign: "center",
+                    translation: [0, 40]
+                }
+            }]
+        }
+    end function
+end class
+
+function getViewModelTemplate() as object
+    ' Props can be passed here and will overwrite original props of defined by class
+    return {
+        id: "viewModelTest",
+        viewModel: ViewModelTestViewModel,
+        props: {
+            title: VIEW_MODEL_DEFAULT_PROPS.title,
+            subtitle: VIEW_MODEL_DEFAULT_PROPS.subtitle
+        }
+    }
+end function
