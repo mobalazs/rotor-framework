@@ -1,0 +1,118 @@
+import "pkg:/components/tests/dispatcherTest.const.bs"
+
+' MARK: Dispatcher
+
+class TestModel extends Model
+    state = {
+        foo: "bar",
+        hitCounter: 0
+    }
+end class
+
+class TestReducer extends Reducer
+
+    override function applyMiddlewares()
+        return [
+            function(intent, state) as Intent
+
+                if intent.type = IntentTypes.BLOCK_BY_MIDDLEWARE
+                    return invalid
+                end if
+
+                return intent ' NEXT
+            end function
+
+        ]
+    end function
+
+    override function reducer(state, intent)
+
+        if intent.type = IntentTypes.UPDATE_FOO
+            state.foo = intent.payload.foo
+            state.hitCounter++
+        end if
+
+        return state
+    end function
+end class
+
+class AncestorViewModel extends ViewModel
+
+    props = {
+        foo: ""
+    }
+
+    fooDispatcher as Rotor.Dispatcher
+
+    override function template() as object
+        return {
+            children: [{
+                id: "descendantViewModel",
+                viewModel: DescendantViewModel
+            }]
+        }
+    end function
+
+    override sub onCreateView()
+
+        ' Get fooDispatcher Dispatcher (if not created above)
+        fooDispatcher = m.getDispatcher("fooDispatcher")
+
+        ' Get current state of fooDispatcher
+        fooDispatcher.getState(sub(props, state)
+            ' Get end instantly parse content
+            props.foo = state.foo
+        end sub)
+
+        ' Update foo on state change
+        fooDispatcher.addListener({
+            mapStateToProps: sub(props, state)
+                props.foo = state.foo
+            end sub
+            ' callback: m.onUpdateView ' Optional: onUpdateView is the default callback
+        })
+    end sub
+
+    override sub onUpdateView()
+        ' Do nothing
+    end sub
+
+end class
+
+' MARK: ViewModels
+
+class DescendantViewModel extends ViewModel
+
+    override function template() as object
+        return {
+            dispatcher: "fooDispatcher"
+        }
+    end function
+
+    sub dispatchUpdateFoo(value as string)
+        ' You can get the dispatcher via 'dispatcher' by viewBuilder template.
+        ' Dispatch foo update
+        m.viewModelState.dispatcher.fooDispatcher.dispatch({
+            type: IntentTypes.UPDATE_FOO,
+            payload: {
+                foo: value
+            }
+        })
+    end sub
+
+end class
+
+' MARK: Helper methods for tests
+
+function getDispatcherTestTemplate() as object
+    return {
+        id: "ancestorViewModel",
+        viewModel: AncestorViewModel
+    }
+end function
+
+function CreteFooDispatcher() as object
+    ' Create the fooDispatcher instance (first argument defines the global dispatcher key)
+    return Rotor.createDispatcher("fooDispatcher", new TestModel(), new TestReducer())
+end function
+

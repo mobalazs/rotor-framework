@@ -1,0 +1,4 @@
+enum IntentTypes
+    UPDATE_FOO = "update_foo"
+    BLOCK_BY_MIDDLEWARE = "block_by_middleware"
+end enum

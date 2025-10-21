@@ -6,8 +6,8 @@ namespace Rotor
     function createDispatcher(customDispatcherId as string, modelInstance as Model, reducerInstance as Reducer) as DispatcherFacade
         m.dispatcherInstance = new Rotor.Dispatcher(customDispatcherId, modelInstance, reducerInstance) as Dispatcher
 
-        globalScope = GetGlobalAA()
-        dispatcherFacadeInstance = globalScope.appFw.dispatcherProvider.getFacade(customDispatcherId, m)
+        frameworkInstance = GetGlobalAA().rotor_framework_helper.frameworkInstance
+        dispatcherFacadeInstance = frameworkInstance.dispatcherProvider.getFacade(customDispatcherId, m)
 
         return dispatcherFacadeInstance
     end function
@@ -25,7 +25,6 @@ namespace Rotor
 
         sub new(dispatcherId = "" as string, modelInstance = invalid as object, reducerInstance = invalid as object)
             super()
-
             if dispatcherId = "" then dispatcherId = Rotor.Utils.getUUIDHex()
             m.dispatcherId = dispatcherId
 
@@ -43,7 +42,7 @@ namespace Rotor
             m.exposeState()
 
             ' REGISTER DISPATCHER
-            dispatcherProvider = globalScope.appFw.dispatcherProvider
+            dispatcherProvider = globalScope.rotor_framework_helper.frameworkInstance.dispatcherProvider
             dispatcherProvider.registerDispatcher(m, dispatcherId) ' self registration
         end sub
 

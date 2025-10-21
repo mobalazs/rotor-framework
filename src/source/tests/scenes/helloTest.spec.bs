@@ -11,7 +11,9 @@ namespace tests
         fwInstance as Rotor.Framework
 
         protected override function beforeEach()
+            ' Initialize framework
             m.fwInstance = new Rotor.Framework()
+            ' Render
             template = getHelloTemplate()
             m.fwInstance.render(template)
         end function

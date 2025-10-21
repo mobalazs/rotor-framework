@@ -1,0 +1,68 @@
+import "pkg:/source/rotor/RotorFramework.bs"
+import "pkg:/components/tests/dispatcherTest.template.bs"
+import "pkg:/components/tests/dispatcherTest.const.bs"
+
+namespace tests
+
+    @SGNode("dispatcherTest")
+    @suite("DispatcherTestSuite integration")
+    class DispatcherTestSuite extends rooibos.BaseTestSuite
+
+        fwInstance as Rotor.Framework
+        fooDispatcher as Rotor.DispatcherFacade
+
+        protected override function beforeEach()
+            ' Initialize framework
+            m.fwInstance = new Rotor.Framework()
+            ' Create the fooDispatcher instance (first argument defines the global dispatcher key)
+            m.fooDispatcher = Rotor.createDispatcher("fooDispatcher", new TestModel(), new TestReducer())
+            ' Render
+            template = getDispatcherTestTemplate()
+            m.fwInstance.render(template)
+            ' Create Dispatcher
+            ' Note: dispatcher can be defined almost anywhere (within a class or widget, viewModel, scope of framework and more)
+        end function
+
+        protected override function afterEach()
+            m.fwInstance.destroy()
+            m.fwInstance = invalid
+            m.fooDispatcher = invalid
+        end function
+
+        @describe("dispatcher driven view model updates")
+
+        @it("renders parent and child view models")
+        function _()
+            rootWidget = m.fwInstance.getRootWidget()
+            ancestorWidget = m.fwInstance.getWidget("ancestorViewModel")
+            descendantWidget = m.fwInstance.getWidget("descendantViewModel")
+
+            hitCounter = m.fooDispatcher.getState().hitCounter
+            m.assertEqual(hitCounter, 0)
+
+            foo = ancestorWidget.props.foo
+            m.assertEqual(foo, "bar")
+
+            descendantWidget.dispatchUpdateFoo("baz")
+            foo = ancestorWidget.props.foo
+            m.assertEqual(foo, "baz")
+
+            hitCounter = m.fooDispatcher.getState().hitCounter
+            m.assertEqual(hitCounter, 1)
+
+            ' VAlidate dispatch directly + validate middleware
+            m.fooDispatcher.dispatch({
+                type: IntentTypes.BLOCK_BY_MIDDLEWARE,
+                payload: {
+                    foo: invalid
+                }
+            })
+
+            ' state.hitCounter should not change
+            hitCounter = m.fooDispatcher.getState().hitCounter
+            m.assertEqual(hitCounter, 1, "state.hitCounter should not change when IntentTypes.BLOCK_BY_MIDDLEWARE")
+
+        end function
+
+    end class
+end namespace
