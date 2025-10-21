@@ -353,7 +353,6 @@ namespace Rotor
                 rootNode.removeChild(taskNode)
             end for
 
-
             m.taskNodes.Clear()
 
             rootNode.unobserveFieldScoped("rotorSync")

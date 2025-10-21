@@ -1,41 +1,44 @@
 import "pkg:/source/rotor/RotorFramework.bs"
-import "pkg:/components/tests/ActiveTestNode_const.bs"
+import "pkg:/components/tests/helloTest.template.bs"
+import "pkg:/components/tests/helloTest.const.bs"
 
 namespace tests
 
-    ' @sgnode("Scene")
+    @SGNode("helloTest")
     @suite("HelloWorldRenderSuite integration")
     class HelloTestSuite extends rooibos.BaseTestSuite
 
-        activeNode = invalid
+        fwInstance as Rotor.Framework
 
         protected override function beforeEach()
-            m.activeNode = m.top.createChild("ActiveTestNode")
-            m.activeNode@.renderTest("helloTest")
+            m.fwInstance = new Rotor.Framework()
+            template = getHelloTemplate()
+            m.fwInstance.render(template)
         end function
 
         protected override function afterEach()
-            m.activeNode@.destroy()
-            if m.scene <> invalid
-                m.scene.removeChild(m.activeNode)
-            end if
-            m.activeNode = invalid
+            m.fwInstance.destroy()
+            m.fwInstance = invalid
         end function
 
-        @describe("hello world renderer")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("Validate node tree after Rotor rotor has rendered template.")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
         @it("creates expected nodes in native tree")
         function _()
-            rootNode = m.activeNode@.getRootNode()
 
-            m.assertNotEqual(rootNode, invalid)
-            helloGroup = m.activeNode.getChild(0)
+            ' Get first node belong to helloTest template
+            helloGroup = m.fwInstance.getRootWidget().children.helloGroup.node
+
+            m.assertNotEqual(helloGroup, invalid)
 
             m.assertNotEqual(helloGroup, invalid)
             m.assertEqual(CDbl(helloGroup.translation[0]), CDbl(SAFE_AREA.x))
             m.assertEqual(CDbl(helloGroup.translation[1]), CDbl(SAFE_AREA.y))
 
             helloRect = helloGroup.getChild(0)
+
             m.assertNotEqual(helloRect, invalid)
             m.assertEqual(helloRect.subtype(), "Rectangle")
             m.assertEqual(helloRect.height, CDbl(HELLO_WORLD_CONFIG.RectHeight))
@@ -54,10 +57,11 @@ namespace tests
 
         @it("auto sizes nodes after render tracking fires")
         function _()
+
             ' Get widgets
-            labelWidget = m.activeNode@.getWidget("helloLabel")
+            labelWidget = m.fwInstance.getWidget("helloLabel")
             m.assertNotEqual(labelWidget, invalid)
-            rectWidget = m.activeNode@.getWidget("helloRect")
+            rectWidget = m.fwInstance.getWidget("helloRect")
             m.assertNotEqual(rectWidget, invalid)
 
             ' Get nodes
@@ -67,9 +71,11 @@ namespace tests
             m.assertNotEqual(rectNode, invalid)
 
             ' Note that template rendering works synchronously.
-            ' Verify the effect of renderTracking observer callbacks:
-            m.assertAsyncField(rectNode, "width", 90)
-            m.assertTrue(rectNode.width >= labelNode.width, "Rectangle width should cover label width")
+            ' Verify the effect of renderTracking observer callbacks(autoSizeObserver):
+            originalRectNodeWidth = rectNode.width
+            m.wait(90)
+            ' rectNode width has been updated after Label text had been fully rendered.
+            m.assertTrue(rectNode.width >= originalRectNodeWidth, "Rectangle width should cover label width")
 
         end function
     end class

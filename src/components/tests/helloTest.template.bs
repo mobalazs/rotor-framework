@@ -1,0 +1,48 @@
+
+function getHelloTemplate() as object
+
+    autoSizeObserver = sub(payload as object) typecast m as Rotor.Widget
+        labelNode = m.node
+        rectNode = m.parent.node
+
+        textBounds = labelNode.localBoundingRect()
+        textWidth = textBounds.width
+
+        rectNode.width = textWidth + (HELLO_WORLD_CONFIG.PaddingX * 2)
+        labelNode.width = textWidth
+    end sub
+
+    return {
+        id: "helloGroup",
+        nodeType: "Group",
+        fields: {
+            translation: [SAFE_AREA.x, SAFE_AREA.y]
+        },
+        children: [{
+            id: "helloRect",
+            nodeType: "Rectangle",
+            fields: {
+                width: 0,
+                height: HELLO_WORLD_CONFIG.RectHeight,
+                color: "0x202020FF"
+            },
+            children: {
+                id: "helloLabel",
+                nodeType: "Label",
+                fields: {
+                    enableRenderTracking: true,
+                    text: HELLO_WORLD_TEXT,
+                    horizAlign: "center",
+                    vertAlign: "center",
+                    translation: [HELLO_WORLD_CONFIG.PaddingX, 0],
+                    width: 0,
+                    height: HELLO_WORLD_CONFIG.RectHeight
+                },
+                observer: [{
+                    fieldId: "renderTracking",
+                    callback: autoSizeObserver
+                }]
+            }
+        }]
+    }
+end function
