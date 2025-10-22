@@ -1,11 +1,11 @@
-# Rotor Framework Multi-Thread MVI Pattern - Complete Guide
+# Rotor Framework Cross-Thread MVI Pattern - Complete Guide
 
 ← [Back to Documentation](../README.md#-learn-more)
 
 
 ## Overview
 
-The Multi-Thread MVI (Model-View-Intent) pattern is the heart of the Rotor Framework's state management system. It enables thread-safe communication between the render thread (UI) and task threads (business logic) using a dispatcher-based architecture. This pattern ensures that heavy operations don't block the UI while maintaining synchronized state across threads.
+The Cross-Thread MVI (Model-View-Intent) pattern is the heart of the Rotor Framework's state management system. It enables thread-safe communication between the render thread (UI) and task threads (business logic) using a dispatcher-based architecture. This pattern ensures that heavy operations don't block the UI while maintaining synchronized state across threads.
 
 The framework implementation follows the classic structure of the dispatcher, which consists of **model and reducer**, and also implements the classic structure of the reducer, which consists of **middleware and reducer function**.
 
@@ -18,7 +18,7 @@ The framework implementation follows the classic structure of the dispatcher, wh
 3. **Intent**: Actions that describe what should happen
 4. **Dispatcher**: Thread-safe communication bridge between render and task threads
 
-![Rotor Framework Multi-Thread MVI](images/Rotor_Framework_multi-thread_MVI.jpeg)
+![Rotor Framework Cross-Thread MVI](images/cross-thread_MVI.jpeg)
 
 
 ### Thread Architecture
@@ -29,7 +29,7 @@ The framework implementation follows the classic structure of the dispatcher, wh
 
 ## Simple Example: Home Content Loading
 
-Let's walk through a complete example of loading and displaying home content using the Multi-Thread MVI pattern.
+Let's walk through a complete example of loading and displaying home content using the Cross-Thread MVI pattern.
 
 ### 1. Task Thread Setup
 
@@ -403,4 +403,4 @@ IntentTypes = {
 - Predictable state flow
 - Easy to test and debug
 
-The Multi-Thread MVI pattern provides a robust foundation for building complex, responsive Roku applications while maintaining clean architecture and thread safety.
+The Cross-Thread MVI pattern provides a robust foundation for building complex, responsive Roku applications while maintaining clean architecture and thread safety.

@@ -53,6 +53,7 @@ namespace Rotor
             REGISTER_EXTERNAL_DISPATCHER = "registerExternalDispatcher"
             DESTROY = "destroy"
             TASK_SYNCED = "taskSynced"
+            SYNC_COMPLETED = "sync_completed"
             DISPATCH = "dispatch"
         end enum
 

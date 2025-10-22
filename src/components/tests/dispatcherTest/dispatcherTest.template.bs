@@ -1,40 +1,4 @@
-import "pkg:/components/tests/dispatcherTest.const.bs"
-
-' MARK: Dispatcher
-
-class TestModel extends Model
-    state = {
-        foo: "bar",
-        hitCounter: 0
-    }
-end class
-
-class TestReducer extends Reducer
-
-    override function applyMiddlewares()
-        return [
-            function(intent, state) as Intent
-
-                if intent.type = IntentTypes.BLOCK_BY_MIDDLEWARE
-                    return invalid
-                end if
-
-                return intent ' NEXT
-            end function
-
-        ]
-    end function
-
-    override function reducer(state, intent)
-
-        if intent.type = IntentTypes.UPDATE_FOO
-            state.foo = intent.payload.foo
-            state.hitCounter++
-        end if
-
-        return state
-    end function
-end class
+import "pkg:/components/tests/dispatcherTest/dispatcherTest.const.bs"
 
 class AncestorViewModel extends ViewModel
 
@@ -78,9 +42,6 @@ class AncestorViewModel extends ViewModel
     end sub
 
 end class
-
-' MARK: ViewModels
-
 class DescendantViewModel extends ViewModel
 
     override function template() as object
@@ -110,9 +71,3 @@ function getDispatcherTestTemplate() as object
         viewModel: AncestorViewModel
     }
 end function
-
-function CreteFooDispatcher() as object
-    ' Create the fooDispatcher instance (first argument defines the global dispatcher key)
-    return Rotor.createDispatcher("fooDispatcher", new TestModel(), new TestReducer())
-end function
-

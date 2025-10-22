@@ -44,9 +44,11 @@ namespace Rotor
         version = "0.2.2"
 
         config = {
-            tasks: [], ' required
-            onTaskReady: invalid, ' optional
-            rootNode: invalid, ' optional
+            tasks: [],             ' @array    (required)
+            onReady: invalid,      ' @function (optional)
+            rootNode: invalid,     ' @sgNode   (optional)
+            readyFieldId: invalid, ' @string   (optional)
+
 
             debug: {
                 autoSetNodeId: false
@@ -114,21 +116,30 @@ namespace Rotor
             end if
             m.builder.widgetTree.setRootNode(rootNode)
 
+            ' Register plugins
+            m.registerPlugins(m.config.plugins)
+
             ' Prepare render for syncing with tasks
             rootNode.addField("rotorSync", "assocarray", true)
             rootNode.observeFieldScoped("rotorSync", "Rotor_syncCallback")
 
+            ' Add Field to notify when all tasks have been synced.
+            if m.config.readyFieldId <> invalid
+                rootNode.addField(m.config.readyFieldId, "boolean", false)
+                rootNode.setField(m.config.readyFieldId, false)
+            end if
+
             ' prepare tasks for syncing
-            if config.tasks <> invalid
+            if config.tasks <> invalid and Rotor.Utils.isArray(config.tasks) and config.tasks.Count() > 0
                 m.enableRendering = false ' disable rendering until task sync ready, then call renderQueueFlush()
                 taskNames = Rotor.Utils.ensureArray(config.tasks)
                 for each taskName in taskNames
                     m.setupTaskForSyncing(taskName)
                 end for
+            else
+                m.isReady()
             end if
 
-            ' Register plugins
-            m.registerPlugins(m.config.plugins)
 
         end sub
 
@@ -167,7 +178,7 @@ namespace Rotor
             return m.builder.widgetTree.getByHID("0")
         end function
 
-        public function getSubtreeClone(searchPattern as string, keyPathList = [] as Object, parentHID = "0" as string) as object
+        public function getSubtreeClone(searchPattern as string, keyPathList = [] as object, parentHID = "0" as string) as object
             return m.builder.widgetTree.getSubtreeClone(searchPattern, keyPathList, parentHID)
         end function
 
@@ -320,24 +331,35 @@ namespace Rotor
             if registrations.Count() > 0
                 m.dispatchExternalDispatcherRegistrations(registrations)
             else
-                m.taskSyncFinished()
+                m.isReady()
             end if
         end sub
 
         sub handleTaskSynced(taskId as string)
             m.taskSyncReadyFlag[taskId] = true
             if m.haveAllTasksSynced()
-                m.taskSyncFinished()
+                m.isReady()
             end if
         end sub
 
-        sub taskSyncFinished()
+        ' Notify ready in 3 ways.
+        sub isReady()
 
-            if Rotor.Utils.isFunction(m.config.onTaskReady)
-                Rotor.Utils.callbackScoped(m.config.onTaskReady, GetGlobalAA())
+            ' Notify ready state on rotorSync field
+            m.getRootNode().setField("rotorSync", {
+                type: Rotor.Const.ThreadSyncType.SYNC_COMPLETED
+            })
+
+            ' Notify ready state by calling onReady fn if configured
+            if Rotor.Utils.isFunction(m.config.onReady)
+                Rotor.Utils.callbackScoped(m.config.onReady, GetGlobalAA())
             end if
             m.builder.renderQueueFlush()
 
+            ' Notify ready state on rotorSync field
+            if  m.config.readyFieldId <> invalid
+                m.getRootNode().setField(m.config.readyFieldId, true)
+            end if
         end sub
 
 
@@ -391,6 +413,8 @@ namespace Rotor
             framework.handleTaskSyncing(sync)
         else if sync.type = Rotor.Const.ThreadSyncType.TASK_SYNCED
             framework.handleTaskSynced(taskNode.taskId)
+        else if sync.type = Rotor.Const.ThreadSyncType.SYNC_COMPLETED
+            ' Do nothing
         end if
 
     end sub

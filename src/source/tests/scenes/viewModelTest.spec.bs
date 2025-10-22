@@ -1,6 +1,6 @@
 import "pkg:/source/rotor/RotorFramework.bs"
-import "pkg:/components/tests/viewModelTest.template.bs"
-import "pkg:/components/tests/viewModelTest.const.bs"
+import "pkg:/components/tests/viewModelTest/viewModelTest.template.bs"
+import "pkg:/components/tests/viewModelTest/viewModelTest.const.bs"
 
 namespace tests
 

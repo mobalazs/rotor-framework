@@ -1,12 +1,13 @@
 import "pkg:/source/rotor/RotorFramework.bs"
-import "pkg:/components/tests/dispatcherTest.template.bs"
-import "pkg:/components/tests/dispatcherTest.const.bs"
+import "pkg:/components/tests/dispatcherTest/dispatcherTest.const.bs"
+import "pkg:/components/tests/dispatcherTest/dispatcherTest.template.bs"
+import "pkg:/components/tests/dispatcherTest/dispatcherTest.dispatcher.bs"
 
 namespace tests
 
     @SGNode("dispatcherTest")
-    @suite("DispatcherTestSuite integration")
-    class DispatcherTestSuite extends rooibos.BaseTestSuite
+    @suite("DispatcherRenderThreadTestSuite integration")
+    class DispatcherRenderThreadTestSuite extends rooibos.BaseTestSuite
 
         fwInstance as Rotor.Framework
         fooDispatcher as Rotor.Dispatcher
@@ -14,13 +15,11 @@ namespace tests
         protected override function beforeEach()
             ' Initialize framework
             m.fwInstance = new Rotor.Framework()
-            ' Create the fooDispatcher instance (first argument defines the global dispatcher key)
-            m.fooDispatcher = Rotor.createDispatcher("fooDispatcher", new TestModel(), new TestReducer())
+            ' Create fooDispatcher instance (owned by the render thread)
+            m.fooDispatcher = test.createFooDispatcher()
             ' Render
             template = getDispatcherTestTemplate()
             m.fwInstance.render(template)
-            ' Create Dispatcher
-            ' Note: dispatcher can be defined almost anywhere (within a class or widget, viewModel, scope of framework and more)
         end function
 
         protected override function afterEach()
@@ -40,12 +39,10 @@ namespace tests
             hitCounter = m.fooDispatcher.getState().hitCounter
             m.assertEqual(hitCounter, 0)
 
-            foo = ancestorWidget.props.foo
-            m.assertEqual(foo, "bar")
+            m.assertEqual(ancestorWidget.props.foo, "bar")
 
-            descendantWidget.dispatchUpdateFoo("baz")
-            foo = ancestorWidget.props.foo
-            m.assertEqual(foo, "baz")
+            descendantWidget.dispatchUpdateFoo("baz") ' Runs synchronously since this is not a cross-thread dispatch
+            m.assertEqual(ancestorWidget.props.foo, "baz")
 
             hitCounter = m.fooDispatcher.getState().hitCounter
             m.assertEqual(hitCounter, 1)

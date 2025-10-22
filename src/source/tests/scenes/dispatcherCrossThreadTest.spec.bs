@@ -1,0 +1,109 @@
+import "pkg:/source/rotor/RotorFramework.bs"
+import "pkg:/components/tests/dispatcherTest/dispatcherTest.const.bs"
+import "pkg:/components/tests/dispatcherTest/dispatcherTest.template.bs"
+import "pkg:/components/tests/dispatcherTest/dispatcherTest.dispatcher.bs"
+
+namespace tests
+
+    ' ******************************************************************
+    ' ** Note:
+    ' **
+    ' ** The main difference between the "DispatcherTest" and the "DispatcherCrossThreadTest"
+    ' ** is that the cross-thread Dispatcher runs inside a task thread, demonstrating that
+    ' ** the same dispatcher pattern can be used there and available in render thread as well.
+    ' ** With this approach, the entire application state management can be implemented -
+    ' ** using MVI design patter. It allows building a fetch pool, maintaining a single source of truth, etc.
+    ' **
+    ' ** It’s important to note that when a Dispatcher is created in the render thread,
+    ' ** it can only be used for purposes that exist within that render context —
+    ' ** for example, as a controller or logic layer for a specific UI component.
+    ' ******************************************************************
+
+    @SGNode("dispatcherTest")
+    @suite("dispatcherCrossThreadTest integration")
+    class dispatcherCrossThreadTest extends rooibos.BaseTestSuite
+
+        fwInstance as Rotor.Framework
+
+        protected override function beforeEach()
+            m.fwInstance = new Rotor.Framework({
+                tasks: ["DispatcherCrossThreadTest"],
+                readyFieldId: "isReady"
+            })
+        end function
+
+        protected override function afterEach()
+            m.fwInstance.destroy()
+            m.fwInstance = invalid
+        end function
+
+        @describe("dispatcher driven view model updates")
+
+        @async(4000)
+        @it("renders parent and child view models")
+        function _()
+            m.waitForReady()
+        end function
+
+        private sub waitForReady()
+            rootNode = m.fwInstance.getRootNode()
+            if rootNode?.isReady = true
+                template = getDispatcherTestTemplate()
+                m.fwInstance.render(template)
+                m.performAssertions()
+
+            else
+                rooibos_promises_internal_delay(function(ctx as dynamic)
+                    ctx.waitForReady()
+                end function, m, 0.0005)
+            end if
+        end sub
+
+        function performAssertions()
+            rootNode = m.fwInstance.getRootNode()
+
+            fooDispatcher = m.fwInstance.getDispatcher("fooDispatcher")
+
+            rootWidget = m.fwInstance.getRootWidget()
+            ancestorWidget = m.fwInstance.getWidget("ancestorViewModel")
+            descendantWidget = m.fwInstance.getWidget("descendantViewModel")
+
+            m.assertNotEqual(rootWidget, invalid)
+            m.assertNotEqual(ancestorWidget, invalid)
+            m.assertNotEqual(descendantWidget, invalid)
+
+            hitCounter = fooDispatcher.getState().hitCounter
+            m.assertEqual(hitCounter, 0)
+
+            m.assertEqual(ancestorWidget.props.foo, "bar")
+
+            ' Validate dispatch result on ancestor (which is listening for fooDispatcher)
+            fooDispatcherTaskNode = fooDispatcher.dispatcherInstance.taskNode.fooDispatcher
+            descendantWidget.dispatchUpdateFoo("baz") ' Runs async since this is a cross-thread dispatch
+            rooibos_promises_internal_delay(function(ctx as dynamic)
+                ancestorWidget = ctx.fwInstance.getWidget("ancestorViewModel")
+                ctx.assertEqual(ancestorWidget.props.foo, "baz")
+
+                ' Start another async test: validate BLOCK_BY_MIDDLEWARE
+                fooDispatcher = ctx.fwInstance.getDispatcher("fooDispatcher")
+                hitCounter = fooDispatcher.getState().hitCounter
+                ctx.assertEqual(hitCounter, 1)
+                fooDispatcher.dispatch({
+                    type: IntentTypes.BLOCK_BY_MIDDLEWARE,
+                    payload: {
+                        foo: invalid
+                    }
+                })
+                rooibos_promises_internal_delay(function(ctx as dynamic)
+                    fooDispatcher = ctx.fwInstance.getDispatcher("fooDispatcher")
+                    hitCounter = fooDispatcher.getState().hitCounter
+                    ctx.assertEqual(hitCounter, 1, "state.hitCounter should not change when IntentTypes.BLOCK_BY_MIDDLEWARE")
+
+                    ctx.done()
+                end function, ctx, 0.09)
+
+            end function, m, 0.09)
+
+        end function
+    end class
+end namespace

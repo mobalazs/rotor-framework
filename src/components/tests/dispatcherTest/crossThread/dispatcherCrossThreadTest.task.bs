@@ -1,0 +1,28 @@
+' Rotor Framework Task
+import "pkg:/source/rotor/RotorFrameworkTask.bs"
+
+' Constants
+import "pkg:/components/tests/dispatcherTest/dispatcherTest.const.bs"
+
+' Model and Reducer for Dispatcher
+import "pkg:/components/tests/dispatcherTest/dispatcherTest.dispatcher.bs"
+
+
+sub init()
+    m.top.functionName = "task"
+    m.appFw = new Rotor.FrameworkTask()
+
+    ' Note that you can add more Tasks here
+    ' m.appFw = new Rotor.FrameworkTask({
+    '     tasks: ["AnotherTask1", "AnotherTask2"] ' optional
+    ' })
+
+end sub
+
+sub task()
+
+    ' Create Foo Dispatcher (Owned by this Task)
+    m.fooDispatcher = test.createFooDispatcher()
+
+    m.appFw.sync() ' main loop of cross-thread MVI
+end sub

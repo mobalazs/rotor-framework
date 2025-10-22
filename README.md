@@ -7,7 +7,7 @@
 ## 🚀 Key Features
 
 * **ViewBuilder system**: Declarative and extensible view construction with a flexible, code-based template system, automatic full lifecycle management, and a virtual node tree abstraction.
-* **Roku-friendly MVI design pattern**: Predictable state, clear separation of concerns, and multi-thread compatibility.
+* **Roku-friendly MVI design pattern**: Predictable state, clear separation of concerns, and cross-thread compatibility.
 * **Component-based UI**: Isolated, reusable UI widgets and view models.
 * **i18n support**: Locale-aware interface with flexible language resource injection.
 * **Integrated Animate Library**: [https://github.com/haystacknews/animate](https://github.com/haystacknews/animate)
@@ -98,7 +98,7 @@ The Rotor framework boilerplate and POC also include a build system feature that
 
 ### Core Documentation
 * [ViewBuilder Guide](docs/view-builder.md) - Complete guide to the declarative UI system
-* [Multi-Thread MVI design pattern](docs/multi-thread-mvi.md) - State management across threads
+* [Cross-Thread MVI design pattern](docs/cross-thread-mvi.md) - State management across threads
 
 ### ViewBuilder Deep Dives
 * [ViewBuilder Core How-to](docs/view-builder-core-howto.md) - Core concepts and usage patterns
