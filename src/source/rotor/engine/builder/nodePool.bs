@@ -56,9 +56,9 @@ namespace Rotor.ViewBuilder
             m.pools.Clear()
         end sub
 
-        sub createNodePool(config)
+        sub presetNodePool(config)
             Rotor.Utils.deepExtendAA(m.config, config)
-            for each thisPool in config.nodePool
+            for each thisPool in m.config.nodePool
                 for index = 0 to thisPool.amount - 1
                     if not m.pools.doesExist(thisPool.nodeType)
                         m.pools[thisPool.nodeType] = []

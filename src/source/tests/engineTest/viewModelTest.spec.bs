@@ -56,7 +56,11 @@ namespace tests
             m.assertEqual(titleNode.text, `${titleNodeText} updated`)
             m.assertEqual(subtitleNode.text, `${subtitleNodeText} updated`)
 
+            ' Check hint text got viewModelState.foo via fieldsPlugin
+            hintLabelNode = m.fwInstance.getWidget("hintLabel").node
+            m.assertEqual(hintLabelNode.text, viewModelTest.viewModelState.foo)
+
         end function
 
-    end class
-end namespace
+        end class
+    end namespace

@@ -1,7 +1,0 @@
-
-const SAFE_AREA = { x: 90, y: 60 }
-const HELLO_WORLD_TEXT = "Hello World!"
-const HELLO_WORLD_CONFIG = {
-    PaddingX: 32,
-    RectHeight: 110
-}

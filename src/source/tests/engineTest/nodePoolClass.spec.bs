@@ -1,10 +1,12 @@
 import "pkg:/source/rotor/RotorFramework.bs"
+import "pkg:/components/tests/widgetTest/widgetTest.template.bs"
+import "pkg:/components/tests/widgetTest/widgetTest.const.bs"
 
 namespace tests
 
-	@SGNode("helloTest")
-	@suite("NodePool integration")
-	class NodePoolTests extends rooibos.BaseTestSuite
+	@SGNode("widgetTest")
+	@suite("Node Pool class")
+	class NodePoolClassTests extends rooibos.BaseTestSuite
 
 		pool as object
 
@@ -14,7 +16,7 @@ namespace tests
 		end sub
 
 		'+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-		@describe("createNodePool")
+		@describe("presetNodePool")
 		'+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 		@it("creates a node pool with Rectangle nodes")
@@ -26,7 +28,7 @@ namespace tests
 				}]
 			}
 
-			m.pool.createNodePool(config)
+			m.pool.presetNodePool(config)
 
 			m.assertTrue(m.pool.pools.doesExist("Rectangle"))
 			m.assertEqual(m.pool.pools["Rectangle"].count(), 2)
@@ -43,13 +45,13 @@ namespace tests
 				nodePool: [{
 					nodeType: "Label",
 					amount: 1
-				},{
+				}, {
 					nodeType: "Poster",
 					amount: 0
 				}]
 			}
 
-			m.pool.createNodePool(config)
+			m.pool.presetNodePool(config)
 
 			labelNode = m.pool.acquireNode("Label")
 			m.assertNotInvalid(labelNode)
@@ -66,6 +68,6 @@ namespace tests
 			m.assertEqual(info.totalReleasedNodes, 1)
 			m.assertEqual(info.poolFulness["Label"], 1)
 		end sub
-
 	end class
+
 end namespace

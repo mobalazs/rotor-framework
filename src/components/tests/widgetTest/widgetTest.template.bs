@@ -1,4 +1,4 @@
-import "pkg:/components/tests/helloTest/helloTest.const.bs"
+import "pkg:/components/tests/widgetTest/widgetTest.const.bs"
 
 function getHelloTemplate() as object
 
@@ -9,7 +9,7 @@ function getHelloTemplate() as object
         textBounds = labelNode.localBoundingRect()
         textWidth = textBounds.width
 
-        rectNode.width = textWidth + (HELLO_WORLD_CONFIG.PaddingX * 2)
+        rectNode.width = textWidth + (HELLO_CONFIG.PaddingX * 2)
         labelNode.width = textWidth
     end sub
 
@@ -24,20 +24,21 @@ function getHelloTemplate() as object
             nodeType: "Rectangle",
             fields: {
                 width: 0,
-                height: HELLO_WORLD_CONFIG.RectHeight,
+                height: HELLO_CONFIG.RectHeight,
                 color: "0x202020FF"
             },
             children: {
                 id: "helloLabel",
                 nodeType: "Label",
+                fontStyle: HELLO_LABEL_FONT_AA,
                 fields: {
                     enableRenderTracking: true,
-                    text: HELLO_WORLD_TEXT,
+                    text: HELLO_TEXT,
                     horizAlign: "center",
                     vertAlign: "center",
-                    translation: [HELLO_WORLD_CONFIG.PaddingX, 0],
+                    translation: [HELLO_CONFIG.PaddingX, 0],
                     width: 0,
-                    height: HELLO_WORLD_CONFIG.RectHeight
+                    height: HELLO_CONFIG.RectHeight
                 },
                 observer: [{
                     fieldId: "renderTracking",

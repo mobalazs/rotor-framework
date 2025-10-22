@@ -1,0 +1,90 @@
+import "pkg:/source/rotor/RotorFramework.bs"
+import "pkg:/components/tests/widgetTest/widgetTest.template.bs"
+import "pkg:/components/tests/widgetTest/widgetTest.const.bs"
+
+namespace tests
+
+	@SGNode("widgetTest")
+	@suite("NodePoolTest integration")
+	class NodePoolTest extends rooibos.BaseTestSuite
+
+		fwInstance as Rotor.Framework
+
+		protected override function beforeEach()
+			' Initialize framework
+			m.fwInstance = new Rotor.Framework({
+				nodePool: [{
+					nodeType: "Label",
+					amount: 10
+				}, {
+					nodeType: "Rectangle",
+					amount: 10
+				}, {
+					nodeType: "Poster",
+					amount: 10
+				}]
+			})
+			' Render
+			template = getHelloTemplate()
+			m.fwInstance.render(template)
+		end function
+
+		protected override function afterEach()
+			m.fwInstance.destroy()
+			m.fwInstance = invalid
+		end function
+
+		'+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+		@describe("validate nodep pool")
+		'+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+		@it("Validate Node Pool Info")
+		sub _()
+			nodePoolInfo = m.fwInstance.getNodePoolInfo()
+
+			m.assertNotEqual(nodePoolInfo, invalid)
+			m.assertNotEqual(nodePoolInfo.outOfStockNodes, invalid)
+			m.assertNotEqual(nodePoolInfo.poolFulness, invalid)
+
+			m.assertEqual(nodePoolInfo.outOfStockNodes.Label, 0)
+			m.assertEqual(nodePoolInfo.outOfStockNodes.Rectangle, 0)
+			m.assertEqual(nodePoolInfo.outOfStockNodes.Poster, 0)
+			m.assertEqual(nodePoolInfo.poolFulness.Label, 9)
+			m.assertEqual(nodePoolInfo.poolFulness.Rectangle, 9)
+			m.assertEqual(nodePoolInfo.poolFulness.Poster, 10)
+
+			m.assertEqual(nodePoolInfo.totalAcquiredNodes, 2)
+			m.assertEqual(nodePoolInfo.totalReleasedNodes, 0)
+		end sub
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+		@describe("validate nodep pool after erase widget")
+		'+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+		@it("Validate Node Pool Info after erase widget")
+		sub _()
+
+            ' Erase one Label
+			helloLabelWidget = m.fwInstance.getWidget("helloLabel")
+            helloLabelWidget.erase()
+
+   			nodePoolInfo = m.fwInstance.getNodePoolInfo()
+
+			m.assertNotEqual(nodePoolInfo, invalid)
+			m.assertNotEqual(nodePoolInfo.outOfStockNodes, invalid)
+			m.assertNotEqual(nodePoolInfo.poolFulness, invalid)
+
+			m.assertEqual(nodePoolInfo.outOfStockNodes.Label, 0)
+			m.assertEqual(nodePoolInfo.outOfStockNodes.Rectangle, 0)
+			m.assertEqual(nodePoolInfo.outOfStockNodes.Poster, 0)
+			m.assertEqual(nodePoolInfo.poolFulness.Label, 10)
+			m.assertEqual(nodePoolInfo.poolFulness.Rectangle, 9)
+			m.assertEqual(nodePoolInfo.poolFulness.Poster, 10)
+
+			m.assertEqual(nodePoolInfo.totalAcquiredNodes, 2)
+			m.assertEqual(nodePoolInfo.totalReleasedNodes, 1)
+		end sub
+
+	end class
+
+end namespace

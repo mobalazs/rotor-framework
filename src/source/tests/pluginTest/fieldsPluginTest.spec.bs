@@ -1,12 +1,12 @@
 import "pkg:/source/rotor/RotorFramework.bs"
-import "pkg:/components/tests/helloTest/helloTest.template.bs"
-import "pkg:/components/tests/helloTest/helloTest.const.bs"
+import "pkg:/components/tests/widgetTest/widgetTest.template.bs"
+import "pkg:/components/tests/widgetTest/widgetTest.const.bs"
 
 namespace tests
 
-    @SGNode("helloTest")
-    @suite("HelloWorldRenderSuite integration")
-    class HelloTestSuite extends rooibos.BaseTestSuite
+    @SGNode("widgetTest")
+    @suite("FieldsPluginTestSuite integration")
+    class fieldsPluginTestSuite extends rooibos.BaseTestSuite
 
         fwInstance as Rotor.Framework
 
@@ -41,18 +41,22 @@ namespace tests
 
             m.assertNotEqual(helloRect, invalid)
             m.assertEqual(helloRect.subtype(), "Rectangle")
-            m.assertEqual(helloRect.height, CDbl(HELLO_WORLD_CONFIG.RectHeight))
+            m.assertEqual(helloRect.height, CDbl(HELLO_CONFIG.RectHeight))
             m.assertEqual(helloRect.color, &h202020FF)
             m.assertEqual(helloRect.width, 0.0)
 
             helloLabel = helloRect.getChild(0)
             m.assertNotEqual(helloLabel, invalid)
             m.assertEqual(helloLabel.subtype(), "Label")
-            m.assertEqual(helloLabel.text, HELLO_WORLD_TEXT)
+            m.assertEqual(helloLabel.text, HELLO_TEXT)
             m.assertEqual(helloLabel.horizAlign, "center")
             m.assertEqual(helloLabel.vertAlign, "center")
-            m.assertEqual(helloLabel.translation[0], CDbl(HELLO_WORLD_CONFIG.PaddingX))
-            m.assertEqual(helloLabel.height, CDbl(HELLO_WORLD_CONFIG.RectHeight))
+            m.assertEqual(helloLabel.translation[0], CDbl(HELLO_CONFIG.PaddingX))
+            m.assertEqual(helloLabel.height, CDbl(HELLO_CONFIG.RectHeight))
+
+            ' Font style plugin test
+            m.assertEqual(helloLabel.font.size, HELLO_LABEL_FONT_AA.size)
+            m.assertEqual(helloLabel.font.uri, HELLO_LABEL_FONT_AA.uri)
         end function
 
         @it("auto sizes nodes after render tracking fires")

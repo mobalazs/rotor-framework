@@ -44,10 +44,11 @@ namespace Rotor
         version = "0.2.2"
 
         config = {
-            tasks: [],             ' @array    (required)
-            onReady: invalid,      ' @function (optional)
-            rootNode: invalid,     ' @sgNode   (optional)
+            tasks: invalid, ' @array    (optional)
+            onReady: invalid, ' @function (optional)
+            rootNode: invalid, ' @sgNode   (optional)
             readyFieldId: invalid, ' @string   (optional)
+            nodePool: invalid, ' @array    (optional)
 
 
             debug: {
@@ -115,6 +116,11 @@ namespace Rotor
                 rootNode = m.config.rootNode
             end if
             m.builder.widgetTree.setRootNode(rootNode)
+
+            ' Configure Node Pool
+            if Rotor.Utils.isArray(m.config.nodePool)
+                m.presetNodePool({ nodePool: m.config.nodePool })
+            end if
 
             ' Register plugins
             m.registerPlugins(m.config.plugins)
@@ -202,8 +208,8 @@ namespace Rotor
             return m.builder.nodePool.getNodePoolInfo()
         end function
 
-        public function createNodePool(config) as object
-            return m.builder.nodePool.createNodePool(config)
+        public function presetNodePool(config) as object
+            return m.builder.nodePool.presetNodePool(config)
         end function
 
         sub initInfo()
@@ -357,7 +363,7 @@ namespace Rotor
             m.builder.renderQueueFlush()
 
             ' Notify ready state on rotorSync field
-            if  m.config.readyFieldId <> invalid
+            if m.config.readyFieldId <> invalid
                 m.getRootNode().setField(m.config.readyFieldId, true)
             end if
         end sub
