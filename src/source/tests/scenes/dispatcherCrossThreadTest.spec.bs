@@ -118,15 +118,15 @@ namespace tests
                 hitCounter = fooDispatcher.getState().hitCounter
                 ctx.assertEqual(hitCounter, 1, "state.hitCounter should not change when IntentTypes.BLOCK_BY_MIDDLEWARE")
 
-                ctx.destroyFw()
+                ctx.fwInstance.destroy()
+
+                ' Validate proper destroy
+                ctx.assertEqual(ctx.fwInstance.taskNodes.Count(), 0)
+                ctx.assertEqual(ctx.fwInstance.getRootWidget().children.Count(), 0)
+
                 ctx.done()
             end function, m, 0.09)
         end function
-
-        sub destroyFw()
-            m.fwInstance.destroy()
-            m.fwInstance = invalid
-        end sub
 
     end class
 end namespace
