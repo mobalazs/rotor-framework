@@ -28,7 +28,7 @@ namespace tests
             m.fooDispatcher = invalid
         end function
 
-        @describe("dispatcher driven view model updates")
+        @describe("render-thread dispatcher propagates state to ancestor view")
 
         @it("propagates render-thread dispatch to ancestor view")
         function _()

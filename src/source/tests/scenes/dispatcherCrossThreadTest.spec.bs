@@ -38,9 +38,9 @@ namespace tests
         protected override function afterEach()
         end function
 
-        @describe("dispatcher driven view model updates")
+        @describe("task-thread dispatcher delivers state to render thread")
 
-        @async(4000)
+        @async()
         @it("awaits task-ready signal before assertions")
         function _()
             m.waitForReady()
@@ -52,7 +52,6 @@ namespace tests
                 template = getDispatcherTestTemplate()
                 m.fwInstance.render(template)
                 m.done()
-
             else
                 rooibos_promises_internal_delay(function(ctx as dynamic)
                     ctx.waitForReady()
@@ -60,59 +59,74 @@ namespace tests
             end if
         end sub
 
-        @async(4000)
-        @it("propagates cross-thread dispatcher updates to parent")
+        @async()
+        @it("reports initial cross-thread dispatcher state")
         function _()
             rootNode = m.fwInstance.getRootNode()
-
-            fooDispatcher = m.fwInstance.getDispatcher("fooDispatcher")
-
             rootWidget = m.fwInstance.getRootWidget()
             ancestorWidget = m.fwInstance.getWidget("ancestorViewModel")
             descendantWidget = m.fwInstance.getWidget("descendantViewModel")
-
             m.assertNotEqual(rootWidget, invalid)
             m.assertNotEqual(ancestorWidget, invalid)
             m.assertNotEqual(descendantWidget, invalid)
 
-            hitCounter = fooDispatcher.getState().hitCounter
-            m.assertEqual(hitCounter, 0)
+            fooDispatcher = m.fwInstance.getDispatcher("fooDispatcher")
+            fooDispatcherState = fooDispatcher.getState()
+            m.assertEqual(fooDispatcherState.hitCounter, 0)
+            m.assertEqual(fooDispatcherState.foo, "bar")
+
+            m.done()
+        end function
+
+        @async()
+        @it("propagates child dispatch to ancestor view")
+        function _()
+            fooDispatcher = m.fwInstance.getDispatcher("fooDispatcher")
+            ancestorWidget = m.fwInstance.getWidget("ancestorViewModel")
+            descendantWidget = m.fwInstance.getWidget("descendantViewModel")
 
             m.assertEqual(ancestorWidget.props.foo, "bar")
 
-            ' Validate dispatch result on ancestor (which is listening for fooDispatcher)
-            fooDispatcherTaskNode = fooDispatcher.dispatcherInstance.taskNode.fooDispatcher
+            ' Start async test: validate dispatchUpdateFoo
             descendantWidget.dispatchUpdateFoo("baz") ' Runs async since this is a cross-thread dispatch
             rooibos_promises_internal_delay(function(ctx as dynamic)
                 ancestorWidget = ctx.fwInstance.getWidget("ancestorViewModel")
                 ctx.assertEqual(ancestorWidget.props.foo, "baz")
 
-                ' Start another async test: validate BLOCK_BY_MIDDLEWARE
                 fooDispatcher = ctx.fwInstance.getDispatcher("fooDispatcher")
                 hitCounter = fooDispatcher.getState().hitCounter
                 ctx.assertEqual(hitCounter, 1)
-                fooDispatcher.dispatch({
-                    type: IntentTypes.BLOCK_BY_MIDDLEWARE,
-                    payload: {
-                        foo: invalid
-                    }
-                })
-                rooibos_promises_internal_delay(function(ctx as dynamic)
-                    fooDispatcher = ctx.fwInstance.getDispatcher("fooDispatcher")
-                    hitCounter = fooDispatcher.getState().hitCounter
-                    ctx.assertEqual(hitCounter, 1, "state.hitCounter should not change when IntentTypes.BLOCK_BY_MIDDLEWARE")
 
-                    ctx.finish()
-                end function, ctx, 0.09)
-
+                ctx.done()
             end function, m, 0.09)
 
         end function
 
-        sub finish()
+        @async()
+        @it("ignores BLOCK_BY_MIDDLEWARE intents")
+        function _()
+            fooDispatcher = m.fwInstance.getDispatcher("fooDispatcher")
+            fooDispatcher.dispatch({
+                type: IntentTypes.BLOCK_BY_MIDDLEWARE,
+                payload: {
+                    foo: invalid
+                }
+            })
+            ' Start async test: validate BLOCK_BY_MIDDLEWARE
+            rooibos_promises_internal_delay(function(ctx as dynamic)
+                fooDispatcher = ctx.fwInstance.getDispatcher("fooDispatcher")
+                hitCounter = fooDispatcher.getState().hitCounter
+                ctx.assertEqual(hitCounter, 1, "state.hitCounter should not change when IntentTypes.BLOCK_BY_MIDDLEWARE")
+
+                ctx.destroyFw()
+                ctx.done()
+            end function, m, 0.09)
+        end function
+
+        sub destroyFw()
             m.fwInstance.destroy()
             m.fwInstance = invalid
-            m.done()
         end sub
+
     end class
 end namespace

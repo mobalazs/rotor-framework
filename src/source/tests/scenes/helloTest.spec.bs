@@ -23,7 +23,7 @@ namespace tests
             m.fwInstance = invalid
         end function
 
-        @describe("Validate node tree after Rotor rotor has rendered template.")
+        @describe("hello world template produces expected node tree")
 
         @it("creates expected nodes in native tree")
         function _()
