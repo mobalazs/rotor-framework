@@ -56,7 +56,8 @@ namespace tests
             m.assertEqual(titleNode.text, `${titleNodeText} updated`)
             m.assertEqual(subtitleNode.text, `${subtitleNodeText} updated`)
 
-            ' Check hint text got viewModelState.foo via fieldsPlugin
+            ' Assert that hint text was populated from viewModelState.foo through the Fields Plugin
+            ' ViewModelState properties are accessible through the Fields Plugin using the "@" operator
             hintLabelNode = m.fwInstance.getWidget("hintLabel").node
             m.assertEqual(hintLabelNode.text, viewModelTest.viewModelState.foo)
 

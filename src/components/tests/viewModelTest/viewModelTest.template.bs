@@ -60,7 +60,7 @@ class ViewModelTestViewModel extends ViewModel
                 id: "hintLabel",
                 nodeType: "Label",
                 fields: {
-                    text: "@foo",
+                    text: "@foo", ' ViewModelState properties are accessible through the Fields Plugin using the "@" operator
                     horizAlign: "center",
                     translation: [0, 40]
                 }
