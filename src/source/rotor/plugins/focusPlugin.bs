@@ -139,6 +139,18 @@ namespace Rotor
                 globalScope = GetGlobalAA()
                 pluginKey = m.pluginKey ' Plugin's key in the widget's plugin dictionary.
                 return globalScope.rotor_framework_helper.frameworkInstance.plugins[pluginKey].isLongPress
+            end function,
+
+            '''''''''
+            ' triggerKeyPress: Simulate key press
+            '
+            ' @param {string} key pressed key
+            ' @return {object} The widget instance that currently holds focus, or invalid.
+            '''''''''
+            triggerKeyPress: function(key) as object
+                globalScope = GetGlobalAA()
+                pluginKey = m.pluginKey
+                return globalScope.rotor_framework_helper.frameworkInstance.plugins[pluginKey].onKeyEventHandler(key, true)
             end function
 
         }
@@ -1104,7 +1116,7 @@ namespace Rotor
             isGroup = false
             enableNativeFocus as boolean
             enableSpatialNavigation as boolean
-            onSelected as Dynamic
+            onSelected as dynamic
 
             private metrics = {
                 segments: {}
@@ -1112,7 +1124,7 @@ namespace Rotor
             private bounding as object
 
             ' override sub update(newConfig as object)
-                ' super.update(newConfig)
+            ' super.update(newConfig)
             ' end sub
 
             sub refreshBounding()
