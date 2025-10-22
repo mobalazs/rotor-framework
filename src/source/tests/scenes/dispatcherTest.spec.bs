@@ -30,7 +30,7 @@ namespace tests
 
         @describe("dispatcher driven view model updates")
 
-        @it("renders parent and child view models")
+        @it("propagates render-thread dispatch to ancestor view")
         function _()
             rootWidget = m.fwInstance.getRootWidget()
             ancestorWidget = m.fwInstance.getWidget("ancestorViewModel")

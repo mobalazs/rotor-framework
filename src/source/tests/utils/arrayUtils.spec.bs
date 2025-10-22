@@ -4,14 +4,14 @@ namespace tests
 
         @describe("convertArrayToAAHash")
 
-        @it("maps entries to true by default")
+        @it("mapDefaults sets mapped values to true")
         function _()
             result = Rotor.Utils.convertArrayToAAHash(["foo", "bar"])
             m.assertTrue(result["foo"])
             m.assertTrue(result["bar"])
         end function
 
-        @it("respects custom truthy value")
+        @it("mapDefaults respects custom truthy flag")
         function _()
             result = Rotor.Utils.convertArrayToAAHash(["foo"], false)
             m.assertFalse(result["foo"])
@@ -19,7 +19,7 @@ namespace tests
 
         @describe("deepExtendAA")
 
-        @it("merges nested associative arrays")
+        @it("deepExtendAA merges nested associative arrays")
         function _()
             target = {
                 config: {
@@ -48,14 +48,14 @@ namespace tests
             m.assertEqual(result.add, "new")
         end function
 
-        @it("returns source when target is not associative array")
+        @it("deepExtendAA returns source when target invalid")
         function _()
             result = Rotor.Utils.deepExtendAA([], { flag: true })
             m.assertEqual(result.flag, true)
         end function
 
         @describe("wrapObject")
-        @it("creates associative array with single entry")
+        @it("wrapObject produces single entry associative array")
         function _()
             wrapped = Rotor.Utils.wrapObject("key", 42)
             m.assertEqual(wrapped["key"], 42)
@@ -63,7 +63,7 @@ namespace tests
 
         @describe("deepCopy and cloneExtendAA")
 
-        @it("deepCopy clones nested collections")
+        @it("deepCopy duplicates nested collections")
         function _()
             original = {
                 list: [
@@ -81,7 +81,7 @@ namespace tests
             m.assertEqual(clone.list[1]["value"], 5)
         end function
 
-        @it("cloneExtendAA clones source before extending")
+        @it("cloneExtendAA extends clone of source")
         function _()
             source = { flag: false, nested: { value: 1 } }
             result = Rotor.Utils.cloneExtendAA(source, { nested: { value: 9 }, added: true })
@@ -94,19 +94,19 @@ namespace tests
 
         @describe("getValueByKeyPath")
 
-        @it("returns nested value by path")
+        @it("getValueByKeyPath retrieves nested value")
         function _()
             value = Rotor.Utils.getValueByKeyPath({ outer: { inner: { item: 7 } } }, "outer.inner.item")
             m.assertEqual(value, 7)
         end function
 
-        @it("wraps last key when requested")
+        @it("getValueByKeyPath wraps leaf when requested")
         function _()
             result = Rotor.Utils.getValueByKeyPath({ outer: { inner: 5 } }, "outer.inner", true)
             m.assertEqual(result.inner, 5)
         end function
 
-        @it("returns invalid when path missing")
+        @it("getValueByKeyPath returns invalid when missing")
         function _()
             value = Rotor.Utils.getValueByKeyPath({ level: {} }, "level.missing")
             m.assertEqual(value, invalid)
@@ -114,7 +114,7 @@ namespace tests
 
         @describe("getCloneByKeyPath")
 
-        @it("returns clone of the path hierarchy")
+        @it("getCloneByKeyPath clones hierarchy")
         function _()
             source = { a: { b: { c: 3 } } }
             clone = Rotor.Utils.getCloneByKeyPath(source, "a.b")
@@ -126,7 +126,7 @@ namespace tests
 
         @describe("filterArrayUseHandler")
 
-        @it("filters array using handler")
+        @it("filterArrayUseHandler selects items by predicate")
         function _()
             data = [1, 3, 5, 2]
             result = Rotor.Utils.filterArrayUseHandler(data, m.isGreaterThan, 2)
@@ -135,19 +135,19 @@ namespace tests
 
         @describe("find helpers")
 
-        @it("findInArray returns index when found")
+        @it("findInArray returns index for matching item")
         function _()
             index = Rotor.Utils.findInArray(["a", "b", "c"], "b")
             m.assertEqual(index, 1)
         end function
 
-        @it("findInArray returns -1 when absent")
+        @it("findInArray returns -1 when item missing")
         function _()
             index = Rotor.Utils.findInArray([1, 2, 3], 5)
             m.assertEqual(index, -1)
         end function
 
-        @it("findInArrayOfAA finds element by key")
+        @it("findInArrayOfAA locates element by key")
         function _()
             items = [{ id: "first" }, { id: "second" }]
             index = Rotor.Utils.findInArrayOfAA(items, "id", "second")
@@ -155,7 +155,7 @@ namespace tests
             m.assertEqual(Rotor.Utils.findInArrayOfAA(items, "id", "missing"), -1)
         end function
 
-        @it("findInAArrayByKey returns matching key name")
+        @it("findInAArrayByKey returns matching key")
         function _()
             map = {
                 one: { name: "Alpha" },
@@ -165,7 +165,7 @@ namespace tests
             m.assertEqual(key, "two")
         end function
 
-        @it("findInArrayByKey searches nested structures")
+        @it("findInArrayByKey navigates path within array")
         function _()
             items = [
                 { data: { name: "Alpha" } },
@@ -178,7 +178,7 @@ namespace tests
 
         @describe("checkArrayItemsByHandler")
 
-        @it("selects value based on handler comparison")
+        @it("checkArrayItemsByHandler picks value via handler")
         function _()
             stats = [
                 { total: 10 },
@@ -192,7 +192,7 @@ namespace tests
 
         @describe("extendArrayOfStrings")
 
-        @it("adds missing strings and keeps existing entries")
+        @it("extendArrayOfStrings appends unique values")
         function _()
             target = ["alpha"]
             result = Rotor.Utils.extendArrayOfStrings(target, ["beta", "alpha"])
@@ -201,7 +201,7 @@ namespace tests
 
         @describe("isDifferent")
 
-        @it("compares primitive and composite values")
+        @it("isDifferent compares primitive and composite values")
         function _()
             m.assertFalse(Rotor.Utils.isDifferent(5, 5))
             m.assertTrue(Rotor.Utils.isDifferent(5, 7))
@@ -214,7 +214,7 @@ namespace tests
             m.assertTrue(Rotor.Utils.isDifferent(left, right))
         end function
 
-        @it("compares SceneGraph nodes by identity")
+        @it("isDifferent compares SceneGraph nodes by identity")
         function _()
             nodeA = CreateObject("roSGNode", "Group")
             nodeB = nodeA
@@ -226,7 +226,7 @@ namespace tests
 
         @describe("ensureArray")
 
-        @it("returns input when already array")
+        @it("ensureArray returns input when already array")
         function _()
             data = [1]
             result = Rotor.Utils.ensureArray(data)
@@ -234,7 +234,7 @@ namespace tests
             m.assertArraysMatch(data, [1, 2])
         end function
 
-        @it("wraps non-array value")
+        @it("ensureArray wraps non-array value")
         function _()
             result = Rotor.Utils.ensureArray("item")
             m.assertArraysMatch(result, ["item"])
@@ -242,13 +242,13 @@ namespace tests
 
         @describe("hierarchy id helpers")
 
-        @it("detects ancestor relationships")
+        @it("isAncestorHID detects ancestor relationship")
         function _()
             m.assertTrue(Rotor.Utils.isAncestorHID("a.b", "a.b.c"))
             m.assertFalse(Rotor.Utils.isAncestorHID("a.b", "a.b"))
         end function
 
-        @it("detects descendant relationships")
+        @it("isDescendantHID detects descendant relationship")
         function _()
             m.assertTrue(Rotor.Utils.isDescendantHID("a.b.c", "a.b"))
             m.assertFalse(Rotor.Utils.isDescendantHID("a.b", "a.b"))
@@ -256,7 +256,7 @@ namespace tests
 
         @describe("removeRedundantValuesInArray")
 
-        @it("sorts and removes duplicate entries")
+        @it("removeRedundantValuesInArray removes duplicates")
         function _()
             values = [3, 1, 2, 2, 3]
             Rotor.Utils.removeRedundantValuesInArray(values)
@@ -265,12 +265,12 @@ namespace tests
 
         @describe("getWrappedIndex")
 
-        @it("wraps positive indices")
+        @it("getWrappedIndex wraps positive index")
         function _()
             m.assertEqual(Rotor.Utils.getWrappedIndex(7, 5), 2)
         end function
 
-        @it("wraps negative indices")
+        @it("getWrappedIndex wraps negative index")
         function _()
             m.assertEqual(Rotor.Utils.getWrappedIndex(-1, 5), 4)
         end function

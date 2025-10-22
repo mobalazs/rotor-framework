@@ -4,43 +4,43 @@ namespace tests
 
         @describe("type guards")
 
-        @it("isValid detects valid values and invalid")
+        @it("isValid distinguishes valid and invalid values")
         function _()
             m.assertTrue(Rotor.Utils.isValid(0))
             m.assertFalse(Rotor.Utils.isValid(invalid))
         end function
 
-        @it("checks for associative arrays")
+        @it("isAssociativeArray reports associative arrays")
         function _()
             m.assertTrue(Rotor.Utils.isAssociativeArray({ key: true }))
             m.assertFalse(Rotor.Utils.isAssociativeArray([1, 2]))
         end function
 
-        @it("checks for arrays")
+        @it("isArray reports arrays correctly")
         function _()
             m.assertTrue(Rotor.Utils.isArray([1, 2]))
             m.assertFalse(Rotor.Utils.isArray({}))
         end function
 
-        @it("checks for strings")
+        @it("isString reports string values")
         function _()
             m.assertTrue(Rotor.Utils.isString("hello"))
             m.assertFalse(Rotor.Utils.isString(5))
         end function
 
-        @it("checks for function values")
+        @it("isFunction identifies callable values")
         function _()
             m.assertTrue(Rotor.Utils.isFunction(m.sampleFunction))
             m.assertFalse(Rotor.Utils.isFunction("notFunction"))
         end function
 
-        @it("checks for integers")
+        @it("isInteger accepts integer types")
         function _()
             m.assertTrue(Rotor.Utils.isInteger(5))
             m.assertFalse(Rotor.Utils.isInteger(5.5))
         end function
 
-        @it("checks for boolean values")
+        @it("isBoolean accepts boolean values")
         function _()
             m.assertTrue(Rotor.Utils.isBoolean(true))
             m.assertFalse(Rotor.Utils.isBoolean(0))
@@ -48,26 +48,26 @@ namespace tests
 
         @describe("math helpers")
 
-        @it("returns min of values")
+        @it("min returns smallest numeric value")
         function _()
             m.assertEqual(Rotor.Utils.min(4, 9), 4)
         end function
 
-        @it("returns max of values")
+        @it("max returns largest numeric value")
         function _()
             m.assertEqual(Rotor.Utils.max(4, 9), 9)
         end function
 
         @describe("uuid helpers")
 
-        @it("generates uuid with expected format")
+        @it("uuid generates expected id format")
         function _()
             uuid = Rotor.Utils.getUUID()
             m.assertEqual(uuid.Len(), 36)
             m.assertTrue(uuid.Instr("-") > -1)
         end function
 
-        @it("generates hex string of requested length")
+        @it("uuidHex produces hex of requested length")
         function _()
             token = Rotor.Utils.getUUIDHex(6)
             m.assertEqual(token.Len(), 6)
@@ -79,20 +79,20 @@ namespace tests
 
         @describe("RALE logger helpers")
 
-        @it("pads numbers with leading zeros")
+        @it("leftPad adds leading zeros")
         function _()
             m.assertEqual(Rotor.Utils.RALE_Logger__getZeroNumber(5), "05")
             m.assertEqual(Rotor.Utils.RALE_Logger__getZeroNumber(123), "123")
         end function
 
-        @it("formats time using roDateTime")
+        @it("formatTime renders roDateTime time")
         function _()
             dt = m.createDateTime("2024-06-02T03:04:05Z")
             formatted = Rotor.Utils.RALE_Logger__GetTime(dt)
             m.assertEqual(formatted, "03:04:05.00")
         end function
 
-        @it("formats date using roDateTime")
+        @it("formatDate renders roDateTime date")
         function _()
             dt = m.createDateTime("2024-06-02T00:00:00Z")
             formatted = Rotor.Utils.RALE_Logger__GetDate(dt)

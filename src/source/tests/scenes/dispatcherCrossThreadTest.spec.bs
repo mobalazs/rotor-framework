@@ -25,22 +25,23 @@ namespace tests
 
         fwInstance as Rotor.Framework
 
-        protected override function beforeEach()
+        protected override function setup()
             m.fwInstance = new Rotor.Framework({
                 tasks: ["DispatcherCrossThreadTest"],
                 readyFieldId: "isReady"
             })
         end function
 
+        protected override function beforeEach()
+        end function
+
         protected override function afterEach()
-            m.fwInstance.destroy()
-            m.fwInstance = invalid
         end function
 
         @describe("dispatcher driven view model updates")
 
         @async(4000)
-        @it("renders parent and child view models")
+        @it("awaits task-ready signal before assertions")
         function _()
             m.waitForReady()
         end function
@@ -50,7 +51,7 @@ namespace tests
             if rootNode?.isReady = true
                 template = getDispatcherTestTemplate()
                 m.fwInstance.render(template)
-                m.performAssertions()
+                m.done()
 
             else
                 rooibos_promises_internal_delay(function(ctx as dynamic)
@@ -59,7 +60,9 @@ namespace tests
             end if
         end sub
 
-        function performAssertions()
+        @async(4000)
+        @it("propagates cross-thread dispatcher updates to parent")
+        function _()
             rootNode = m.fwInstance.getRootNode()
 
             fooDispatcher = m.fwInstance.getDispatcher("fooDispatcher")
@@ -99,11 +102,17 @@ namespace tests
                     hitCounter = fooDispatcher.getState().hitCounter
                     ctx.assertEqual(hitCounter, 1, "state.hitCounter should not change when IntentTypes.BLOCK_BY_MIDDLEWARE")
 
-                    ctx.done()
+                    ctx.finish()
                 end function, ctx, 0.09)
 
             end function, m, 0.09)
 
         end function
+
+        sub finish()
+            m.fwInstance.destroy()
+            m.fwInstance = invalid
+            m.done()
+        end sub
     end class
 end namespace
