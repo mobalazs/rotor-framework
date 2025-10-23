@@ -100,13 +100,21 @@ namespace Rotor.ViewBuilder
                 startNode = m.getByHID(startNode.parentHID)
             end while
 
-            ' Add leading "**" if not present – this helps recover from human error
-            if parts[0] <> "**" then parts.unshift("**")
-
             results = []
 
+            ' If parts is empty after resolving "..", return the startNode itself
+            if parts.Count() = 0
+                return [startNode]
+            end if
+
+            ' Add leading "**" if pattern doesn't start with ** or *
+            ' This enables deep search when user provides just an ID like "menuItem2"
+            if parts[0] <> "**" and parts[0] <> "*"
+                parts.unshift("**")
+            end if
+
             lastPart = parts[parts.Count() - 1]
-            if startNode.HID <> "0" and startNode.id = lastPart
+            if startNode.HID <> "0" and LCase(startNode.id) = lastPart
                 results.unshift(startNode)
             end if
 
@@ -133,6 +141,48 @@ namespace Rotor.ViewBuilder
         ' @param {integer} index - Current position in the pattern
         ' @return {object} - Array of matching widgets
         ''''''''''
+        '''''''''
+        ' matchesPattern: Check if a string matches a wildcard pattern
+        '
+        ' Supports:
+        '   - "*" matches everything
+        '   - "prefix*" matches strings starting with prefix
+        '   - "*suffix" matches strings ending with suffix
+        '   - "prefix*suffix" matches strings starting with prefix and ending with suffix
+        '
+        ' @param {string} str - The string to check
+        ' @param {string} pattern - The pattern with optional wildcards
+        ' @return {boolean} - True if matches, false otherwise
+        '''''''''
+        function matchesPattern(str as string, pattern as string) as boolean
+            if pattern = "*" then return true
+            if pattern.Instr("*") < 0 then return str = pattern ' No wildcard, exact match
+
+            ' Split pattern by *
+            parts = pattern.Split("*")
+            partsCount = parts.Count()
+
+            ' Check prefix (before first *)
+            if parts[0] <> "" and str.Left(parts[0].Len()) <> parts[0]
+                return false
+            end if
+
+            ' Check suffix (after last *)
+            if parts[partsCount - 1] <> "" and str.Right(parts[partsCount - 1].Len()) <> parts[partsCount - 1]
+                return false
+            end if
+
+            ' For patterns like "prefix*suffix", check both prefix and suffix
+            if partsCount = 2 and parts[0] <> "" and parts[1] <> ""
+                ' Check if string is long enough
+                if str.Len() < parts[0].Len() + parts[1].Len()
+                    return false
+                end if
+            end if
+
+            return true
+        end function
+
         function recursionFind(results as object, parts as object, untilFirstItem as boolean, children = {} as object, index = 0 as integer) as object
             currentPart = parts[index]
             partsCount = parts.Count()
@@ -142,9 +192,11 @@ namespace Rotor.ViewBuilder
             if children.Count() > 0
                 for each key in children
                     widget = children[key]
+                    ' Note: key is already lowercase because widgets are stored with LCase(id) as key in tree.bs:85
 
                     if isLastPart = true
-                        if currentPart = "*" or currentPart = key
+                        ' Check if current part matches the key (supports wildcards like "menuItem*")
+                        if m.matchesPattern(key, currentPart)
                             results.push(widget)
                             if untilFirstItem = true then return results
                         end if
@@ -153,13 +205,15 @@ namespace Rotor.ViewBuilder
                         matchedParent = false
 
                         if currentPart = "**"
-                            if nextPart = "*" or nextPart = key
+                            ' Deep search: check if next part matches current key
+                            if m.matchesPattern(key, nextPart)
                                 matchedParent = true
-                                nextChildren = children
+                                nextChildren = children ' Stay at same level, exit ** mode
                             else
                                 nextChildren = widget.children
                             end if
-                        else if currentPart = "*" or currentPart = key
+                        else if m.matchesPattern(key, currentPart)
+                            ' Matched current level, move to next level
                             matchedParent = true
                             nextChildren = widget.children
                         end if
