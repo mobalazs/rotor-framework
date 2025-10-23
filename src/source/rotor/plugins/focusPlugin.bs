@@ -7,6 +7,160 @@ namespace Rotor
     '** @class FocusPlugin
     '** @brief A Brighterscript class for handling focus logic,
     '** focus groups, and spatial navigation within the Rotor framework.
+    '**
+    '** ═══════════════════════════════════════════════════════════════
+    '** CONCEPTUAL OVERVIEW: BUBBLING vs CAPTURING
+    '** ═══════════════════════════════════════════════════════════════
+    '**
+    '** This plugin implements two complementary focus resolution strategies:
+    '**
+    '** 1. BUBBLING FOCUS (bubblingFocus) - "Upward Search"
+    '**    ┌─────────────────────────────────────────────────────────┐
+    '**    │ WHEN: User interaction (key press) cannot find target   │
+    '**    │ DIRECTION: Child → Parent → Grandparent (upward)        │
+    '**    │ PURPOSE: "I can't navigate further, ask my parents"     │
+    '**    └─────────────────────────────────────────────────────────┘
+    '**
+    '**    Example: User presses UP from a focused item, but there's
+    '**    no item above. The plugin "bubbles up" through ancestor
+    '**    groups to find an alternative navigation path defined at
+    '**    a higher level.
+    '**
+    '** 2. CAPTURING FOCUS (capturingFocus_recursively) - "Downward Rescue"
+    '**    ┌─────────────────────────────────────────────────────────┐
+    '**    │ WHEN: Need to resolve abstract target to concrete item  │
+    '**    │ DIRECTION: Group → Nested Group → FocusItem (downward)  │
+    '**    │ PURPOSE: "Found a group/ID, find the actual item"       │
+    '**    └─────────────────────────────────────────────────────────┘
+    '**
+    '**    This is a "rescue operation" that converts:
+    '**    - Group reference → concrete FocusItem
+    '**    - ID string → actual widget with focus capability
+    '**
+    '**    Example: Bubbling found "menuGroup", but we need a specific
+    '**    focusable item. Capturing recursively descends through the
+    '**    group's defaultFocusId chain until it finds a real FocusItem.
+    '**
+    '**
+    '** DEEP SEARCH ENHANCEMENT:
+    '**    The capturing process now searches deeply in hierarchies.
+    '**    If defaultFocusId doesn't match immediate children, it will:
+    '**    - Search all descendant FocusItems (any depth)
+    '**    - Search all nested Groups (any depth)
+    '**    - Apply fallback logic if a matching Group is found
+    '**
+    '**    This means defaultFocusId: "deepItem" will find "deepItem"
+    '**    even if it's 3+ levels deep in the hierarchy!
+    '**
+    '** TOGETHER THEY WORK AS:
+    '**    User Action → Bubbling (↑ find alternative) → Capturing (↓ resolve target)
+    '**
+    '** ═══════════════════════════════════════════════════════════════
+    '** COMPLETE RULES REFERENCE
+    '** ═══════════════════════════════════════════════════════════════
+    '**
+    '** RULE #1: Widget Types
+    '**   - focus: { group: {...} } → Group (container)
+    '**   - focus: {...} (no group key) → FocusItem (focusable element)
+    '**   - No focus config → Not part of focus system
+    '**
+    '** RULE #2: FocusItem Direction Values
+    '**   - String (Node ID): Static navigation to that element
+    '**   - Function: Dynamic, evaluated at runtime
+    '**   - true: Blocks the direction (nothing happens)
+    '**   - false/undefined: Spatial navigation attempts
+    '**
+    '** RULE #3: Navigation Priority (Decreasing Order)
+    '**   1. FocusItem static direction (left: "button2")
+    '**   2. Spatial navigation (within group only)
+    '**   3. BubblingFocus (ask parent groups)
+    '**
+    '** RULE #4: Spatial Navigation Scope
+    '**   - ONLY works within a single group
+    '**   - Cannot cross into sibling or parent groups
+    '**   - Searches only possibleFocusItems from group.getGroupMembersHIDs()
+    '**
+    '** RULE #5: Group Direction Activation
+    '**   Group direction triggers ONLY when:
+    '**   - FocusItem has NO static direction
+    '**   - Spatial navigation found NOTHING
+    '**   - BubblingFocus reaches this group
+    '**
+    '** RULE #6: Group Direction Values
+    '**   - String (Node ID): Navigate to that group/item (may EXIT group)
+    '**   - true: BLOCKS (stays on current element)
+    '**   - false/undefined: Continue bubbling to next ancestor
+    '**
+    '** RULE #7: Group Direction Does NOT Block Spatial Navigation
+    '**   Setting group.right = true does NOT prevent spatial navigation
+    '**   INSIDE the group. It only blocks EXITING the group when spatial
+    '**   navigation finds nothing.
+    '**
+    '** RULE #8: Exiting a Group - 3 Methods
+    '**   Method 1: FocusItem explicit direction
+    '**     focusItem.right = "otherGroupItem" → EXITS immediately
+    '**   Method 2: Group direction (via BubblingFocus)
+    '**     group.right = "otherGroup" → EXITS when spatial nav fails
+    '**   Method 3: Ancestor group direction
+    '**     parentGroup.right = "otherGroup" → EXITS when child groups pass
+    '**
+    '** RULE #9: Blocking Group Exit
+    '**   To prevent exit: group.left = true, group.right = true
+    '**   Exception: FocusItem explicit directions still work!
+    '**
+    '** RULE #10: BubblingFocus Flow
+    '**   FocusItem (no direction) → Spatial nav (nothing) → Group.direction?
+    '**     - "nodeId" → CapturingFocus(nodeId) [EXIT]
+    '**     - true → STOP (stay on current)
+    '**     - false/undefined → Continue to parent group
+    '**     - No more ancestors → Stay on current
+    '**
+    '** RULE #11: CapturingFocus Priority
+    '**   1. group.lastFocusedHID (if exists) [AUTO-SAVED]
+    '**   2. group.defaultFocusId [CONFIGURED]
+    '**   3. Deep search (if defaultFocusId not found immediately)
+    '**
+    '** RULE #12: DefaultFocusId Targets
+    '**   - FocusItem node ID → Focus goes directly to it
+    '**   - Group node ID → Capturing continues on that group
+    '**   - Non-existent ID → Deep search attempts
+    '**
+    '** RULE #13: Deep Search Activation
+    '**   Triggers when:
+    '**   - CapturingFocus doesn't find defaultFocusId in immediate children
+    '**   - defaultFocusId is not empty
+    '**   Searches:
+    '**   1. All descendant FocusItems (any depth)
+    '**   2. All nested Groups (any depth, applies their fallback)
+    '**
+    '** RULE #14: Spatial Enter
+    '**   When enableSpatialEnter = true on a group:
+    '**   - Entering the group uses spatial navigation from the direction
+    '**   - Finds geometrically closest item instead of defaultFocusId
+    '**   - Falls back to defaultFocusId if spatial finds nothing
+    '**
+    '** RULE #15: Navigation Decision Tree Summary
+    '**   User presses direction key:
+    '**     1. FocusItem.direction exists? → Use it (may EXIT group)
+    '**     2. Spatial nav finds item? → Navigate (STAYS in group)
+    '**     3. BubblingFocus: Group.direction?
+    '**        - "nodeId" → EXIT to that target
+    '**        - true → BLOCK (stay)
+    '**        - undefined → Continue to ancestor
+    '**     4. No more ancestors? → STAY on current item
+    '**
+    '** COMMON PATTERNS:
+    '**   Sidebar + Content:
+    '**     sidebar: { group: { right: true } }
+    '**     menuItem1: { right: "contentFirst" } [explicit exit]
+    '**
+    '**   Modal Dialog (locked):
+    '**     modal: { group: { left: true, right: true, up: true, down: true } }
+    '**
+    '**   Nested Navigation:
+    '**     innerGroup: { group: { down: undefined } } [no direction]
+    '**     outerGroup: { group: { down: "bottomBar" } } [catches bubbling]
+    '**
     '** @namespace Rotor
     '** @extends Rotor.BasePlugin
     '******************************************************************
@@ -245,12 +399,11 @@ namespace Rotor
             ' Handle group configuration if present
             if isGroup
                 m.setupGroup(HID, config, widget)
-            end if
-
+            else
             ' Handle focus item configuration if applicable
             ' if isFocusItem
                 m.setupFocusItem(HID, config, widget)
-            ' end if
+            end if
         end sub
 
         '''''''''
@@ -351,15 +504,20 @@ namespace Rotor
                 ' Case 1: ref is a valid focusItem HID.
                 focusItem = m.focusItemStack.get(ref)
             else
-                ' Case 2: ref might be a group HID or group node ID.
-                ' Try finding group by HID first, then by Node ID.
-                group = m.groupStack.get(ref) ?? m.groupStack.getByNodeId(ref)
-                if group <> invalid
-                    ' If group found, find its default/entry focus item recursively.
-                    HID = m.capturingFocus_recursively(group.HID)
-                    focusItem = m.focusItemStack.get(HID) ' May still be invalid if capture fails
+                ' Case 2: ref might be a focusItem node ID.
+                focusItem = m.focusItemStack.getByNodeId(ref)
 
-                    ' else: ref is not a known FocusItem HID or Group identifier
+                if focusItem = invalid
+                    ' Case 3: ref might be a group HID or group node ID.
+                    ' Try finding group by HID first, then by Node ID.
+                    group = m.groupStack.get(ref) ?? m.groupStack.getByNodeId(ref)
+                    if group <> invalid
+                        ' If group found, find its default/entry focus item recursively.
+                        HID = m.capturingFocus_recursively(group.HID)
+                        focusItem = m.focusItemStack.get(HID) ' May still be invalid if capture fails
+
+                        ' else: ref is not a known FocusItem HID or Group identifier
+                    end if
                 end if
             end if
 
@@ -562,8 +720,13 @@ namespace Rotor
                 ' FOUND at least
 
             else if newHID <> ""
-                ' NEXT
+                ' NEXT - try to find as group first, then deep search
                 newHID = m.capturingFocus_recursively(newHID, direction, group.HID)
+
+                ' If still not found, perform deep search in all descendants
+                if newHID = ""
+                    newHID = m.deepSearchFocusItemByNodeId(group.HID, group.getFallbackNodeId())
+                end if
             end if
 
             ' Prevent capturing by fallback in the same group where original focus was. (This is useful for setting top level focus directions)
@@ -575,6 +738,50 @@ namespace Rotor
 
             return newHID
 
+        end function
+
+        '''''''''
+        ' deepSearchFocusItemByNodeId: Deep search for a FocusItem or Group by nodeId within a group hierarchy.
+        '
+        ' @param {string} groupHID The HID of the group to search within.
+        ' @param {string} nodeId The node ID to search for.
+        ' @return {string} The HID of the found FocusItem or Group, or empty string if not found.
+        '''''''''
+        function deepSearchFocusItemByNodeId(groupHID as string, nodeId as string) as string
+            if nodeId = "" then return ""
+
+            ' Get all descendants of this group (both FocusItems and nested Groups)
+            allFocusItems = m.focusItemStack.getAll()
+            allGroups = m.groupStack.getAll()
+
+            ' First, search in direct and nested FocusItems
+            for each focusItemHID in allFocusItems
+                if Rotor.Utils.isDescendantHID(focusItemHID, groupHID)
+                    focusItem = m.focusItemStack.get(focusItemHID)
+                    if focusItem <> invalid and focusItem.id = nodeId
+                        return focusItemHID
+                    end if
+                end if
+            end for
+
+            ' Second, search in nested Groups (and if found, apply fallback logic on that group)
+            for each nestedGroupHID in allGroups
+                if Rotor.Utils.isDescendantHID(nestedGroupHID, groupHID) and nestedGroupHID <> groupHID
+                    nestedGroup = m.groupStack.get(nestedGroupHID)
+                    if nestedGroup <> invalid and nestedGroup.id = nodeId
+                        ' Found a matching group - now apply fallback logic on it
+                        fallbackHID = nestedGroup.getFallbackIdentifier()
+                        if m.focusItemStack.has(fallbackHID)
+                            return fallbackHID
+                        else if fallbackHID <> ""
+                            ' Recursively resolve the fallback
+                            return m.capturingFocus_recursively(fallbackHID, "", nestedGroupHID)
+                        end if
+                    end if
+                end if
+            end for
+
+            return ""
         end function
 
         function bubblingFocus(groupHID, direction = "" as string) as dynamic
@@ -1031,6 +1238,27 @@ namespace Rotor
                 return collection
                 ' Collect all focusItems which contain the group HID
                 ' Exclude any other Group HID's
+            end function
+
+            '''''''''
+            ' getFallbackNodeId: Returns the nodeId to use for fallback (defaultFocusId or lastFocusedHID).
+            '
+            ' @return {string} The nodeId to use for fallback, or empty string if none.
+            '''''''''
+            function getFallbackNodeId() as string
+                if m.lastFocusedHID <> ""
+                    ' Note: lastFocusedHID is already a HID, not a nodeId, so we need to get the nodeId
+                    lastFocusedItem = m.focusItemsRef.get(m.lastFocusedHID)
+                    if lastFocusedItem <> invalid
+                        return lastFocusedItem.id
+                    end if
+                end if
+
+                if Rotor.Utils.isFunction(m.defaultFocusId)
+                    return Rotor.Utils.callbackScoped(m.defaultFocusId, m.widget) ?? ""
+                else
+                    return m.defaultFocusId
+                end if
             end function
 
             function getFallbackIdentifier() as string

@@ -38,7 +38,6 @@ namespace tests
         function _()
             ' VAlidate initial focus (focus has been set by capturing feature)
             focusedWidget = m.fwInstance.plugins.focus.getFocusedWidget()
-            stop
             m.assertEqual(focusedWidget.id, "L1")
             ' Given: Framework is initialized with L1 focused
             l1Widget = m.fwInstance.getWidget("L1")
@@ -48,332 +47,459 @@ namespace tests
             m.assertTrue(l1Widget.plugins.focus.isFocusNavigationEnabled())
         end function
 
-        ' @it("validates initial focus is on L1")
-        ' function _()
-        '     ' Given: Framework is initialized with initial focus on L1
-        '     l1Widget = m.fwInstance.getWidget("L1")
-
-        '     ' Then: Focus should be on L1
-        '     focusedWidget = l1Widget.plugins.focus.getFocusedWidget()
-        '     m.assertNotInvalid(focusedWidget)
-        '     m.assertEqual(focusedWidget.id, "L1")
-        '     m.assertTrue(focusedWidget.viewModelState.isFocused)
-        ' end function
-
-        ' ' ======================================================================
-        ' ' TEST SUITE 2: Directional Navigation (Global)
-        ' ' ======================================================================
-
-        ' @describe("directional navigation from L1")
-
-        ' @it("stays on L1 when pressing left (edge of group)")
-        ' function _()
-        '     ' Given: Focus is on L1 (leftmost in GroupL2)
-        '     l1Widget = m.fwInstance.getWidget("L1")
-
-        '     ' When: Press left key (should stay or be captured)
-        '     l1Widget.plugins.focus.triggerKeyPress("left")
-
-        '     ' Then: Focus should remain on L1 (no left neighbor)
-        '     focusedWidget = l1Widget.plugins.focus.getFocusedWidget()
-        '     m.assertNotInvalid(focusedWidget)
-        '     m.assertEqual(focusedWidget.id, "L1")
-        ' end function
-
-        ' @it("navigates from L1 up (if up direction configured)")
-        ' function _()
-        '     ' Given: Focus is on L1
-        '     l1Widget = m.fwInstance.getWidget("L1")
-
-        '     ' When: Press up key
-        '     l1Widget.plugins.focus.triggerKeyPress("up")
-
-        '     ' Then: Focus should move per configuration (test what actually happens)
-        '     focusedWidget = l1Widget.plugins.focus.getFocusedWidget()
-        '     m.assertNotInvalid(focusedWidget)
-        '     ' Note: Adjust expectation based on template configuration
-        ' end function
-
-        ' @it("navigates from L1 down (if down direction configured)")
-        ' function _()
-        '     ' Given: Focus is on L1
-        '     l1Widget = m.fwInstance.getWidget("L1")
-
-        '     ' When: Press down key
-        '     l1Widget.plugins.focus.triggerKeyPress("down")
-
-        '     ' Then: Focus should move per configuration (test what actually happens)
-        '     focusedWidget = l1Widget.plugins.focus.getFocusedWidget()
-        '     m.assertNotInvalid(focusedWidget)
-        '     ' Note: Adjust expectation based on template configuration
-        ' end function
-
-        ' ' ======================================================================
-        ' ' TEST SUITE 3: Spatial Navigation Inside Inner Groups
-        ' ' ======================================================================
-
-        ' @describe("spatial navigation within GroupL2")
-
-        ' @it("navigates from L1 right to L2")
-        ' function _()
-        '     ' Given: Focus is on L1 (set in beforeEach)
-        '     l1Widget = m.fwInstance.getWidget("L1")
-
-        '     ' When: Press right key
-        '     l1Widget.plugins.focus.triggerKeyPress("right")
-
-        '     ' Then: Focus should move to L2
-        '     focusedWidget = l1Widget.plugins.focus.getFocusedWidget()
-        '     m.assertNotInvalid(focusedWidget)
-        '     m.assertEqual(focusedWidget.id, "L2")
-        '     m.assertTrue(focusedWidget.viewModelState.isFocused)
-        ' end function
-
-        ' @it("navigates from L2 left back to L1")
-        ' function _()
-        '     ' Given: Focus is moved to L2
-        '     l1Widget = m.fwInstance.getWidget("L1")
-        '     l1Widget.plugins.focus.setFocus("L2")
-
-        '     ' When: Press left key
-        '     l2Widget = m.fwInstance.getWidget("L2")
-        '     l2Widget.plugins.focus.triggerKeyPress("left")
-
-        '     ' Then: Focus should move back to L1
-        '     focusedWidget = l2Widget.plugins.focus.getFocusedWidget()
-        '     m.assertNotInvalid(focusedWidget)
-        '     m.assertEqual(focusedWidget.id, "L1")
-        '     m.assertTrue(focusedWidget.viewModelState.isFocused)
-        ' end function
-
-        ' @describe("spatial navigation within GroupR2")
-
-        ' @it("navigates from R1 right to R2")
-        ' function _()
-        '     ' Given: Focus is moved to R1
-        '     l1Widget = m.fwInstance.getWidget("L1")
-        '     l1Widget.plugins.focus.setFocus("R1")
-
-        '     ' When: Press right key
-        '     r1Widget = m.fwInstance.getWidget("R1")
-        '     r1Widget.plugins.focus.triggerKeyPress("right")
-
-        '     ' Then: Focus should move to R2
-        '     focusedWidget = r1Widget.plugins.focus.getFocusedWidget()
-        '     m.assertNotInvalid(focusedWidget)
-        '     m.assertEqual(focusedWidget.id, "R2")
-        '     m.assertTrue(focusedWidget.viewModelState.isFocused)
-        ' end function
-
-        ' @it("navigates from R2 left back to R1")
-        ' function _()
-        '     ' Given: Focus is moved to R2
-        '     l1Widget = m.fwInstance.getWidget("L1")
-        '     l1Widget.plugins.focus.setFocus("R2")
-
-        '     ' When: Press left key
-        '     r2Widget = m.fwInstance.getWidget("R2")
-        '     r2Widget.plugins.focus.triggerKeyPress("left")
-
-        '     ' Then: Focus should move back to R1
-        '     focusedWidget = r2Widget.plugins.focus.getFocusedWidget()
-        '     m.assertNotInvalid(focusedWidget)
-        '     m.assertEqual(focusedWidget.id, "R1")
-        '     m.assertTrue(focusedWidget.viewModelState.isFocused)
-        ' end function
-
-        ' ' ======================================================================
-        ' ' TEST SUITE 4: Focus Capturing (Inner Groups)
-        ' ' ======================================================================
-
-        ' @describe("focus capturing in GroupL2 with horizontal capture enabled")
-
-        ' @it("captures left key from L1 - stays within GroupL2")
-        ' function _()
-        '     ' Given: Focus is on L1 (set in beforeEach)
-        '     l1Widget = m.fwInstance.getWidget("L1")
-
-        '     ' When: Press left key (should be captured if configured)
-        '     l1Widget.plugins.focus.triggerKeyPress("left")
-
-        '     ' Then: Focus should remain on L1 (captured, no exit from group)
-        '     focusedWidget = l1Widget.plugins.focus.getFocusedWidget()
-        '     m.assertNotInvalid(focusedWidget)
-        '     m.assertEqual(focusedWidget.id, "L1")
-        ' end function
-
-        ' @it("captures right key from L2 - stays within GroupL2")
-        ' function _()
-        '     ' Given: Focus is moved to L2
-        '     l1Widget = m.fwInstance.getWidget("L1")
-        '     l1Widget.plugins.focus.setFocus("L2")
-
-        '     ' When: Press right key (should be captured if configured)
-        '     l2Widget = m.fwInstance.getWidget("L2")
-        '     l2Widget.plugins.focus.triggerKeyPress("right")
-
-        '     ' Then: Focus should remain on L2
-        '     focusedWidget = l2Widget.plugins.focus.getFocusedWidget()
-        '     m.assertNotInvalid(focusedWidget)
-        '     m.assertEqual(focusedWidget.id, "L2")
-        ' end function
-
-        ' @describe("focus capturing in GroupR2 with horizontal capture enabled")
-
-        ' @it("captures left key from R1 - stays within GroupR2")
-        ' function _()
-        '     ' Given: Focus is moved to R1
-        '     l1Widget = m.fwInstance.getWidget("L1")
-        '     l1Widget.plugins.focus.setFocus("R1")
-
-        '     ' When: Press left key (should be captured if configured)
-        '     r1Widget = m.fwInstance.getWidget("R1")
-        '     r1Widget.plugins.focus.triggerKeyPress("left")
-
-        '     ' Then: Focus should remain on R1
-        '     focusedWidget = r1Widget.plugins.focus.getFocusedWidget()
-        '     m.assertNotInvalid(focusedWidget)
-        '     m.assertEqual(focusedWidget.id, "R1")
-        ' end function
-
-        ' @it("captures right key from R2 - stays within GroupR2")
-        ' function _()
-        '     ' Given: Focus is moved to R2
-        '     l1Widget = m.fwInstance.getWidget("L1")
-        '     l1Widget.plugins.focus.setFocus("R2")
-
-        '     ' When: Press right key (should be captured if configured)
-        '     r2Widget = m.fwInstance.getWidget("R2")
-        '     r2Widget.plugins.focus.triggerKeyPress("right")
-
-        '     ' Then: Focus should remain on R2
-        '     focusedWidget = r2Widget.plugins.focus.getFocusedWidget()
-        '     m.assertNotInvalid(focusedWidget)
-        '     m.assertEqual(focusedWidget.id, "R2")
-        ' end function
-
-        ' ' ======================================================================
-        ' ' TEST SUITE 5: Focus Bubbling (Depth 3 to Top)
-        ' ' ======================================================================
-
-        ' @describe("focus bubbling from inner groups")
-
-        ' @it("bubbles from L1 up (per group configuration)")
-        ' function _()
-        '     ' Given: Focus is on L1 (set in beforeEach)
-        '     l1Widget = m.fwInstance.getWidget("L1")
-
-        '     ' When: Press up key
-        '     l1Widget.plugins.focus.triggerKeyPress("up")
-
-        '     ' Then: Focus should bubble per GroupL2.up configuration
-        '     focusedWidget = l1Widget.plugins.focus.getFocusedWidget()
-        '     m.assertNotInvalid(focusedWidget)
-        '     ' Note: Verify based on actual template configuration
-        ' end function
-
-        ' @it("bubbles from L2 up (per group configuration)")
-        ' function _()
-        '     ' Given: Focus is moved to L2
-        '     l1Widget = m.fwInstance.getWidget("L1")
-        '     l1Widget.plugins.focus.setFocus("L2")
-
-        '     ' When: Press up key
-        '     l2Widget = m.fwInstance.getWidget("L2")
-        '     l2Widget.plugins.focus.triggerKeyPress("up")
-
-        '     ' Then: Focus should bubble per GroupL2.up configuration
-        '     focusedWidget = l2Widget.plugins.focus.getFocusedWidget()
-        '     m.assertNotInvalid(focusedWidget)
-        '     ' Note: Verify based on actual template configuration
-        ' end function
-
-        ' @it("bubbles from R1 up (per group configuration)")
-        ' function _()
-        '     ' Given: Focus is moved to R1
-        '     l1Widget = m.fwInstance.getWidget("L1")
-        '     l1Widget.plugins.focus.setFocus("R1")
-
-        '     ' When: Press up key
-        '     r1Widget = m.fwInstance.getWidget("R1")
-        '     r1Widget.plugins.focus.triggerKeyPress("up")
-
-        '     ' Then: Focus should bubble per GroupR2.up configuration
-        '     focusedWidget = r1Widget.plugins.focus.getFocusedWidget()
-        '     m.assertNotInvalid(focusedWidget)
-        '     ' Note: Verify based on actual template configuration
-        ' end function
-
-        ' @it("bubbles from R2 up (per group configuration)")
-        ' function _()
-        '     ' Given: Focus is moved to R2
-        '     l1Widget = m.fwInstance.getWidget("L1")
-        '     l1Widget.plugins.focus.setFocus("R2")
-
-        '     ' When: Press up key
-        '     r2Widget = m.fwInstance.getWidget("R2")
-        '     r2Widget.plugins.focus.triggerKeyPress("up")
-
-        '     ' Then: Focus should bubble per GroupR2.up configuration
-        '     focusedWidget = r2Widget.plugins.focus.getFocusedWidget()
-        '     m.assertNotInvalid(focusedWidget)
-        '     ' Note: Verify based on actual template configuration
-        ' end function
-
-        ' ' ======================================================================
-        ' ' TEST SUITE 6: Node Tree Structure Validation
-        ' ' ======================================================================
-
-        ' @describe("focus test template produces expected node tree")
-
-        ' @it("creates expected nodes in native tree")
-        ' function _()
-        '     ' Given: Framework is initialized
-        '     rootWidget = m.fwInstance.getRootWidget()
-        '     m.assertNotInvalid(rootWidget)
-
-        '     ' Then: Validate topWidget group structure
-        '     topWidget = rootWidget.children.topWidget
-        '     m.assertNotInvalid(topWidget)
-        '     m.assertEqual(topWidget.id, "topWidget")
-
-        '     ' Validate left branch structure (GroupL -> GroupL2 -> L1, L2)
-        '     groupL = m.fwInstance.getWidget("GroupL")
-        '     m.assertNotInvalid(groupL)
-        '     m.assertEqual(groupL.id, "GroupL")
-
-        '     groupL2 = m.fwInstance.getWidget("GroupL2")
-        '     m.assertNotInvalid(groupL2)
-        '     m.assertEqual(groupL2.id, "GroupL2")
-
-        '     l1 = m.fwInstance.getWidget("L1")
-        '     m.assertNotInvalid(l1)
-        '     m.assertEqual(l1.id, "L1")
-        '     m.assertEqual(l1.node.subtype(), "Rectangle")
-
-        '     l2 = m.fwInstance.getWidget("L2")
-        '     m.assertNotInvalid(l2)
-        '     m.assertEqual(l2.id, "L2")
-        '     m.assertEqual(l2.node.subtype(), "Rectangle")
-
-        '     ' Validate right branch structure (GroupR -> GroupR2 -> R1, R2)
-        '     groupR = m.fwInstance.getWidget("GroupR")
-        '     m.assertNotInvalid(groupR)
-        '     m.assertEqual(groupR.id, "GroupR")
-
-        '     groupR2 = m.fwInstance.getWidget("GroupR2")
-        '     m.assertNotInvalid(groupR2)
-        '     m.assertEqual(groupR2.id, "GroupR2")
-
-        '     r1 = m.fwInstance.getWidget("R1")
-        '     m.assertNotInvalid(r1)
-        '     m.assertEqual(r1.id, "R1")
-        '     m.assertEqual(r1.node.subtype(), "Rectangle")
-
-        '     r2 = m.fwInstance.getWidget("R2")
-        '     m.assertNotInvalid(r2)
-        '     m.assertEqual(r2.id, "R2")
-        '     m.assertEqual(r2.node.subtype(), "Rectangle")
-        ' end function
+        @it("validates initial focus is on L1")
+        function _()
+            ' Given: Framework is initialized with initial focus on L1
+            l1Widget = m.fwInstance.getWidget("L1")
+
+            ' Then: Focus should be on L1
+            focusedWidget = l1Widget.plugins.focus.getFocusedWidget()
+            m.assertNotInvalid(focusedWidget)
+            m.assertEqual(focusedWidget.id, "L1")
+            m.assertTrue(focusedWidget.viewModelState.isFocused)
+        end function
+
+        ' ======================================================================
+        ' TEST SUITE 2: Directional Navigation (Global)
+        ' ======================================================================
+
+        @describe("directional navigation from L1")
+
+        @it("stays on L1 when pressing left (edge of group)")
+        function _()
+            ' Given: Focus is on L1 (leftmost in GroupL2)
+            l1Widget = m.fwInstance.getWidget("L1")
+
+            ' When: Press left key (should stay or be captured)
+            l1Widget.plugins.focus.triggerKeyPress("left")
+
+            ' Then: Focus should remain on L1 (no left neighbor)
+            focusedWidget = l1Widget.plugins.focus.getFocusedWidget()
+            m.assertNotInvalid(focusedWidget)
+            m.assertEqual(focusedWidget.id, "L1")
+        end function
+
+        @it("navigates from L1 up (if up direction configured)")
+        function _()
+            ' Given: Focus is on L1
+            l1Widget = m.fwInstance.getWidget("L1")
+
+            ' When: Press up key
+            l1Widget.plugins.focus.triggerKeyPress("up")
+
+            ' Then: Focus should move per configuration (test what actually happens)
+            focusedWidget = l1Widget.plugins.focus.getFocusedWidget()
+            m.assertNotInvalid(focusedWidget)
+            ' Note: Adjust expectation based on template configuration
+        end function
+
+        @it("navigates from L1 down (if down direction configured)")
+        function _()
+            ' Given: Focus is on L1
+            l1Widget = m.fwInstance.getWidget("L1")
+
+            ' When: Press down key
+            l1Widget.plugins.focus.triggerKeyPress("down")
+
+            ' Then: Focus should move per configuration (test what actually happens)
+            focusedWidget = l1Widget.plugins.focus.getFocusedWidget()
+            m.assertNotInvalid(focusedWidget)
+            ' Note: Adjust expectation based on template configuration
+        end function
+
+        ' ======================================================================
+        ' TEST SUITE 3: Spatial Navigation Inside Inner Groups
+        ' ======================================================================
+
+        @describe("spatial navigation within GroupL2")
+
+        @it("navigates from L1 right to L2")
+        function _()
+            ' Given: Focus is on L1 (set in beforeEach)
+            l1Widget = m.fwInstance.getWidget("L1")
+
+            ' When: Press right key
+            l1Widget.plugins.focus.triggerKeyPress("right")
+
+            ' Then: Focus should move to L2
+            focusedWidget = l1Widget.plugins.focus.getFocusedWidget()
+            m.assertNotInvalid(focusedWidget)
+            m.assertEqual(focusedWidget.id, "L2")
+            m.assertTrue(focusedWidget.viewModelState.isFocused)
+        end function
+
+        @it("navigates from L2 left back to L1")
+        function _()
+            ' Given: Focus is moved to L2
+            l1Widget = m.fwInstance.getWidget("L1")
+            l1Widget.plugins.focus.setFocus("L2")
+
+            ' When: Press left key
+            l2Widget = m.fwInstance.getWidget("L2")
+            l2Widget.plugins.focus.triggerKeyPress("left")
+
+            ' Then: Focus should move back to L1
+            focusedWidget = l2Widget.plugins.focus.getFocusedWidget()
+            m.assertNotInvalid(focusedWidget)
+            m.assertEqual(focusedWidget.id, "L1")
+            m.assertTrue(focusedWidget.viewModelState.isFocused)
+        end function
+
+        @describe("spatial navigation within GroupR2")
+
+        @it("navigates from R1 right to R2")
+        function _()
+            ' Given: Focus is moved to R1
+            l1Widget = m.fwInstance.getWidget("L1")
+            l1Widget.plugins.focus.setFocus("R1")
+
+            ' When: Press right key
+            r1Widget = m.fwInstance.getWidget("R1")
+            r1Widget.plugins.focus.triggerKeyPress("right")
+
+            ' Then: Focus should move to R2
+            focusedWidget = r1Widget.plugins.focus.getFocusedWidget()
+            m.assertNotInvalid(focusedWidget)
+            m.assertEqual(focusedWidget.id, "R2")
+            m.assertTrue(focusedWidget.viewModelState.isFocused)
+        end function
+
+        @it("navigates from R2 left back to R1")
+        function _()
+            ' Given: Focus is moved to R2
+            l1Widget = m.fwInstance.getWidget("L1")
+            l1Widget.plugins.focus.setFocus("R2")
+
+            ' When: Press left key
+            r2Widget = m.fwInstance.getWidget("R2")
+            r2Widget.plugins.focus.triggerKeyPress("left")
+
+            ' Then: Focus should move back to R1
+            focusedWidget = r2Widget.plugins.focus.getFocusedWidget()
+            m.assertNotInvalid(focusedWidget)
+            m.assertEqual(focusedWidget.id, "R1")
+            m.assertTrue(focusedWidget.viewModelState.isFocused)
+        end function
+
+        ' ======================================================================
+        ' TEST SUITE 4: Focus Capturing (Inner Groups)
+        ' ======================================================================
+
+        @describe("focus capturing in GroupL2 with horizontal capture enabled")
+
+        @it("captures left key from L1 - stays within GroupL2")
+        function _()
+            ' Given: Focus is on L1 (set in beforeEach)
+            l1Widget = m.fwInstance.getWidget("L1")
+
+            ' When: Press left key (should be captured if configured)
+            l1Widget.plugins.focus.triggerKeyPress("left")
+
+            ' Then: Focus should remain on L1 (captured, no exit from group)
+            focusedWidget = l1Widget.plugins.focus.getFocusedWidget()
+            m.assertNotInvalid(focusedWidget)
+            m.assertEqual(focusedWidget.id, "L1")
+        end function
+
+        @it("captures right key from L2 - stays within GroupL2")
+        function _()
+            ' Given: Focus is moved to L2
+            l1Widget = m.fwInstance.getWidget("L1")
+            l1Widget.plugins.focus.setFocus("L2")
+
+            ' When: Press right key (should be captured if configured)
+            l2Widget = m.fwInstance.getWidget("L2")
+            l2Widget.plugins.focus.triggerKeyPress("right")
+
+            ' Then: Focus should remain on L2
+            focusedWidget = l2Widget.plugins.focus.getFocusedWidget()
+            m.assertNotInvalid(focusedWidget)
+            m.assertEqual(focusedWidget.id, "L2")
+        end function
+
+        @describe("focus capturing in GroupR2 with horizontal capture enabled")
+
+        @it("captures left key from R1 - stays within GroupR2")
+        function _()
+            ' Given: Focus is moved to R1
+            l1Widget = m.fwInstance.getWidget("L1")
+            l1Widget.plugins.focus.setFocus("R1")
+
+            ' When: Press left key (should be captured if configured)
+            r1Widget = m.fwInstance.getWidget("R1")
+            r1Widget.plugins.focus.triggerKeyPress("left")
+
+            ' Then: Focus should remain on R1
+            focusedWidget = r1Widget.plugins.focus.getFocusedWidget()
+            m.assertNotInvalid(focusedWidget)
+            m.assertEqual(focusedWidget.id, "R1")
+        end function
+
+        @it("captures right key from R2 - stays within GroupR2")
+        function _()
+            ' Given: Focus is moved to R2
+            l1Widget = m.fwInstance.getWidget("L1")
+            l1Widget.plugins.focus.setFocus("R2")
+
+            ' When: Press right key (should be captured if configured)
+            r2Widget = m.fwInstance.getWidget("R2")
+            r2Widget.plugins.focus.triggerKeyPress("right")
+
+            ' Then: Focus should remain on R2
+            focusedWidget = r2Widget.plugins.focus.getFocusedWidget()
+            m.assertNotInvalid(focusedWidget)
+            m.assertEqual(focusedWidget.id, "R2")
+        end function
+
+        ' ======================================================================
+        ' TEST SUITE 5: Focus Bubbling (Depth 3 to Top)
+        ' ======================================================================
+
+        @describe("focus bubbling from inner groups")
+
+        @it("bubbles from L1 up (per group configuration)")
+        function _()
+            ' Given: Focus is on L1 (set in beforeEach)
+            l1Widget = m.fwInstance.getWidget("L1")
+
+            ' When: Press up key
+            l1Widget.plugins.focus.triggerKeyPress("up")
+
+            ' Then: Focus should bubble per GroupL2.up configuration
+            focusedWidget = l1Widget.plugins.focus.getFocusedWidget()
+            m.assertNotInvalid(focusedWidget)
+            ' Note: Verify based on actual template configuration
+        end function
+
+        @it("bubbles from L2 up (per group configuration)")
+        function _()
+            ' Given: Focus is moved to L2
+            l1Widget = m.fwInstance.getWidget("L1")
+            l1Widget.plugins.focus.setFocus("L2")
+
+            ' When: Press up key
+            l2Widget = m.fwInstance.getWidget("L2")
+            l2Widget.plugins.focus.triggerKeyPress("up")
+
+            ' Then: Focus should bubble per GroupL2.up configuration
+            focusedWidget = l2Widget.plugins.focus.getFocusedWidget()
+            m.assertNotInvalid(focusedWidget)
+            ' Note: Verify based on actual template configuration
+        end function
+
+        @it("bubbles from R1 up (per group configuration)")
+        function _()
+            ' Given: Focus is moved to R1
+            l1Widget = m.fwInstance.getWidget("L1")
+            l1Widget.plugins.focus.setFocus("R1")
+
+            ' When: Press up key
+            r1Widget = m.fwInstance.getWidget("R1")
+            r1Widget.plugins.focus.triggerKeyPress("up")
+
+            ' Then: Focus should bubble per GroupR2.up configuration
+            focusedWidget = r1Widget.plugins.focus.getFocusedWidget()
+            m.assertNotInvalid(focusedWidget)
+            ' Note: Verify based on actual template configuration
+        end function
+
+        @it("bubbles from R2 up (per group configuration)")
+        function _()
+            ' Given: Focus is moved to R2
+            l1Widget = m.fwInstance.getWidget("L1")
+            l1Widget.plugins.focus.setFocus("R2")
+
+            ' When: Press up key
+            r2Widget = m.fwInstance.getWidget("R2")
+            r2Widget.plugins.focus.triggerKeyPress("up")
+
+            ' Then: Focus should bubble per GroupR2.up configuration
+            focusedWidget = r2Widget.plugins.focus.getFocusedWidget()
+            m.assertNotInvalid(focusedWidget)
+            ' Note: Verify based on actual template configuration
+        end function
+
+        ' ======================================================================
+        ' TEST SUITE 6: Node Tree Structure Validation
+        ' ======================================================================
+
+        @describe("focus test template produces expected node tree")
+
+        @it("creates expected nodes in native tree")
+        function _()
+            ' Given: Framework is initialized
+            rootWidget = m.fwInstance.getRootWidget()
+            m.assertNotInvalid(rootWidget)
+
+            ' Then: Validate topWidget group structure
+            topWidget = rootWidget.children.topWidget
+            m.assertNotInvalid(topWidget)
+            m.assertEqual(topWidget.id, "topWidget")
+
+            ' Validate left branch structure (GroupL -> GroupL2 -> L1, L2)
+            groupL = m.fwInstance.getWidget("GroupL")
+            m.assertNotInvalid(groupL)
+            m.assertEqual(groupL.id, "GroupL")
+
+            groupL2 = m.fwInstance.getWidget("GroupL2")
+            m.assertNotInvalid(groupL2)
+            m.assertEqual(groupL2.id, "GroupL2")
+
+            l1 = m.fwInstance.getWidget("L1")
+            m.assertNotInvalid(l1)
+            m.assertEqual(l1.id, "L1")
+            m.assertEqual(l1.node.subtype(), "Rectangle")
+
+            l2 = m.fwInstance.getWidget("L2")
+            m.assertNotInvalid(l2)
+            m.assertEqual(l2.id, "L2")
+            m.assertEqual(l2.node.subtype(), "Rectangle")
+
+            ' Validate right branch structure (GroupR -> GroupR2 -> R1, R2)
+            groupR = m.fwInstance.getWidget("GroupR")
+            m.assertNotInvalid(groupR)
+            m.assertEqual(groupR.id, "GroupR")
+
+            groupR2 = m.fwInstance.getWidget("GroupR2")
+            m.assertNotInvalid(groupR2)
+            m.assertEqual(groupR2.id, "GroupR2")
+
+            r1 = m.fwInstance.getWidget("R1")
+            m.assertNotInvalid(r1)
+            m.assertEqual(r1.id, "R1")
+            m.assertEqual(r1.node.subtype(), "Rectangle")
+
+            r2 = m.fwInstance.getWidget("R2")
+            m.assertNotInvalid(r2)
+            m.assertEqual(r2.id, "R2")
+            m.assertEqual(r2.node.subtype(), "Rectangle")
+        end function
+
+        ' ======================================================================
+        ' TEST SUITE 7: Deep Search for defaultFocusId
+        ' ======================================================================
+
+        @describe("deep search for defaultFocusId - focusItem 3 levels down")
+
+        @it("finds DeepTarget 3 levels down when setting focus on DeepSearchGroup")
+        function _()
+            ' Given: DeepSearchGroup has defaultFocusId: "DeepTarget" which is 3 levels deep
+            deepSearchGroup = m.fwInstance.getWidget("DeepSearchGroup")
+            m.assertNotInvalid(deepSearchGroup)
+
+            ' When: Set focus on DeepSearchGroup (should trigger capturing with deep search)
+            deepSearchGroup.plugins.focus.setFocus("DeepSearchGroup")
+
+            ' Then: Focus should be on DeepTarget (3 levels down)
+            focusedWidget = deepSearchGroup.plugins.focus.getFocusedWidget()
+            m.assertNotInvalid(focusedWidget)
+            m.assertEqual(focusedWidget.id, "DeepTarget")
+            m.assertTrue(focusedWidget.viewModelState.isFocused)
+        end function
+
+        @it("validates DeepTarget exists in the widget tree")
+        function _()
+            ' Given: Framework is initialized
+            deepTarget = m.fwInstance.getWidget("DeepTarget")
+            m.assertNotInvalid(deepTarget)
+            m.assertEqual(deepTarget.id, "DeepTarget")
+            m.assertEqual(deepTarget.node.subtype(), "Rectangle")
+        end function
+
+        @it("can navigate from DeepTarget to DeepSibling")
+        function _()
+            ' Given: Focus is on DeepTarget
+            deepSearchGroup = m.fwInstance.getWidget("DeepSearchGroup")
+            deepSearchGroup.plugins.focus.setFocus("DeepTarget")
+
+            ' When: Press right key (spatial navigation)
+            deepTarget = m.fwInstance.getWidget("DeepTarget")
+            deepTarget.plugins.focus.triggerKeyPress("right")
+
+            ' Then: Focus should move to DeepSibling
+            focusedWidget = deepTarget.plugins.focus.getFocusedWidget()
+            m.assertNotInvalid(focusedWidget)
+            m.assertEqual(focusedWidget.id, "DeepSibling")
+        end function
+
+        @describe("deep search for defaultFocusId - nested group with fallback")
+
+        @it("finds nested group and applies its fallback (FinalTarget)")
+        function _()
+            ' Given: NestedGroupTestParent has defaultFocusId: "NestedTargetGroup" (a group 2 levels down)
+            '        NestedTargetGroup has defaultFocusId: "FinalTarget"
+            nestedGroupTestParent = m.fwInstance.getWidget("NestedGroupTestParent")
+            m.assertNotInvalid(nestedGroupTestParent)
+
+            ' When: Set focus on NestedGroupTestParent
+            nestedGroupTestParent.plugins.focus.setFocus("NestedGroupTestParent")
+
+            ' Then: Focus should be on FinalTarget (via NestedTargetGroup fallback)
+            focusedWidget = nestedGroupTestParent.plugins.focus.getFocusedWidget()
+            m.assertNotInvalid(focusedWidget)
+            m.assertEqual(focusedWidget.id, "FinalTarget")
+            m.assertTrue(focusedWidget.viewModelState.isFocused)
+        end function
+
+        @it("validates NestedTargetGroup exists in the widget tree")
+        function _()
+            ' Given: Framework is initialized
+            nestedTargetGroup = m.fwInstance.getWidget("NestedTargetGroup")
+            m.assertNotInvalid(nestedTargetGroup)
+            m.assertEqual(nestedTargetGroup.id, "NestedTargetGroup")
+        end function
+
+        @it("can navigate within NestedTargetGroup")
+        function _()
+            ' Given: Focus is on FinalTarget
+            nestedGroupTestParent = m.fwInstance.getWidget("NestedGroupTestParent")
+            nestedGroupTestParent.plugins.focus.setFocus("FinalTarget")
+
+            ' When: Press right key (spatial navigation)
+            finalTarget = m.fwInstance.getWidget("FinalTarget")
+            finalTarget.plugins.focus.triggerKeyPress("right")
+
+            ' Then: Focus should move to FinalSibling
+            focusedWidget = finalTarget.plugins.focus.getFocusedWidget()
+            m.assertNotInvalid(focusedWidget)
+            m.assertEqual(focusedWidget.id, "FinalSibling")
+        end function
+
+        @describe("deep search edge cases")
+
+        @it("deep search does not break existing direct child behavior")
+        function _()
+            ' Given: GroupL2 has defaultFocusId: "L1" (direct child)
+            groupL2 = m.fwInstance.getWidget("GroupL2")
+            m.assertNotInvalid(groupL2)
+
+            ' When: Set focus on GroupL2
+            groupL2.plugins.focus.setFocus("GroupL2")
+
+            ' Then: Focus should be on L1 (existing behavior preserved)
+            focusedWidget = groupL2.plugins.focus.getFocusedWidget()
+            m.assertNotInvalid(focusedWidget)
+            m.assertEqual(focusedWidget.id, "L1")
+        end function
+
+        @it("spatial navigation still works in deep hierarchies")
+        function _()
+            ' Given: Focus is on DeepTarget
+            deepSearchGroup = m.fwInstance.getWidget("DeepSearchGroup")
+            deepSearchGroup.plugins.focus.setFocus("DeepTarget")
+
+            deepTarget = m.fwInstance.getWidget("DeepTarget")
+
+            ' When: Press right then left
+            deepTarget.plugins.focus.triggerKeyPress("right")
+            deepSibling = m.fwInstance.getWidget("DeepSibling")
+            deepSibling.plugins.focus.triggerKeyPress("left")
+
+            ' Then: Focus should return to DeepTarget
+            focusedWidget = deepSibling.plugins.focus.getFocusedWidget()
+            m.assertNotInvalid(focusedWidget)
+            m.assertEqual(focusedWidget.id, "DeepTarget")
+        end function
+
     end class
 end namespace
