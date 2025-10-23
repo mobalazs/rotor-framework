@@ -93,18 +93,18 @@ namespace Rotor
             ' @param {boolean} enableNativeFocus If true, allows setting native focus on the underlying node.
             ' @return {boolean} True if focus state was changed successfully, false otherwise.
             '''''''''
-            setFocus: function(isFocused = true as dynamic, enableNativeFocus = false as boolean) as boolean
+            setFocus: function(command = true as dynamic, enableNativeFocus = false as boolean) as boolean
                 globalScope = GetGlobalAA()
                 pluginKey = m.pluginKey ' Plugin's key in the widget's plugin dictionary.
                 HID = m.HID ' Widget's unique Hierarchical ID (bound viewModelState).
 
-                if Rotor.Utils.isString(isFocused)
+                if Rotor.Utils.isString(command)
                     ' If string, focus widget by ID/HID.
-                    otherId = isFocused
+                    otherId = command
                     return globalScope.rotor_framework_helper.frameworkInstance.plugins[pluginKey].setFocus(otherId, true, enableNativeFocus)
                 else ' Boolean value provided
                     ' If boolean, focus/blur current widget.
-                    return globalScope.rotor_framework_helper.frameworkInstance.plugins[pluginKey].setFocus(HID, isFocused, enableNativeFocus)
+                    return globalScope.rotor_framework_helper.frameworkInstance.plugins[pluginKey].setFocus(HID, command, enableNativeFocus)
                 end if
             end function,
 
@@ -165,6 +165,7 @@ namespace Rotor
         longPressKey = "" ' Key being held for long press
         ' m.longPressStartHID = "" ' Key being held for long press
         measurementCheckHIDs = [] ' Potentially for deferred measurement checks (unused currently)
+        enableLongPressFeature = true ' Global flag for enabling/disabling navigation
         enableFocusNavigation = true ' Global flag for enabling/disabling navigation
         widgetTree as object ' Reference to the main widget tree
         focusItemStack = new Rotor.FocusPluginHelper.FocusItemStack() ' Stores FocusItem instances
@@ -234,7 +235,7 @@ namespace Rotor
             config = Rotor.Utils.deepCopy(pluginConfig)
             isGroup = config.doesExist(Rotor.Const.GROUP_CONFIG_KEY)
             ' An item is focusItem if it's explicitly a group with other props, or not a group but has props.
-            isFocusItem = (isGroup = true and config.Count() > 1) or (isGroup = false and config.Count() > 0)
+            ' isFocusItem = (isGroup = true and config.Count() > 1) or (isGroup = false and config.Count() > 0)
 
             ' Ensure essential identifiers are in the config
             config.id = id
@@ -247,9 +248,9 @@ namespace Rotor
             end if
 
             ' Handle focus item configuration if applicable
-            if isFocusItem
+            ' if isFocusItem
                 m.setupFocusItem(HID, config, widget)
-            end if
+            ' end if
         end sub
 
         '''''''''
@@ -624,7 +625,9 @@ namespace Rotor
         ' * KEY EVENT HANDLER
         function onKeyEventHandler(key as string, press as boolean) as object
             ' Check long-press
-            m.checkLongPressState(key, press)
+            if m.enableLongPressFeature = true
+                m.checkLongPressState(key, press)
+            end if
             ' Prevent any navigation if it is disabled
             #if debug
                 if m.enableFocusNavigation = false and press = true then print "[PLUGIN][FOCUS][INFO] Focus navigation is disabled. Call enableFocusNavigation(true) to make it enabled"

@@ -1,0 +1,141 @@
+import "pkg:/source/rotor/RotorFramework.bs"
+
+' Get the FocusPlugin test template with 3-level, 2-branch structure
+'
+' Template layout (deterministic geometry; two 3-deep branches):
+'
+' topItem (Top) (x=420,y=40, w=140,h=80)           # top item, outside any group
+'   children:
+'     GroupL (x=100,y=160)                          # left branch group (depth 1)
+'       GroupL2 (x=80,y=240)                        # inner left group (depth 2)
+'         L1 (x=80,y=240,  w=140,h=80)              # left leaf 1 (depth 3)
+'         L2 (x=260,y=240, w=140,h=80)              # left leaf 2 (depth 3)
+'     GroupR (x=560,y=160)                          # right branch group (depth 1)
+'       GroupR2 (x=540,y=240)                       # inner right group (depth 2)
+'         R1 (x=540,y=240,  w=140,h=80)             # right leaf 1 (depth 3)
+'         R2 (x=720,y=240,  w=140,h=80)             # right leaf 2 (depth 3)
+
+function getFocusTestTemplate() as object
+    return {
+        id: "topWidget",
+        nodeType: "Rectangle",
+        fields: {
+            translation: [420, 40],
+            width: 140,
+            height: 80,
+            color: "0x4A90E2FF"
+        },
+        focus: {
+            group: {
+                defaultFocusId: "L1",
+                down: "GroupL2",
+                left: "GroupL2",
+                right: "GroupR2"
+            }
+        },
+        children: [
+            ' GroupL - Left branch (depth 1)
+            {
+                id: "GroupL",
+                nodeType: "Group",
+                fields: {
+                    translation: [100, 160]
+                },
+                children: {
+                    ' GroupL2 - Inner left group (depth 2)
+                    id: "GroupL2",
+                    nodeType: "Group",
+                    fields: {
+                        translation: [0, 80]
+                    },
+                    focus: {
+                        group: {
+                            defaultFocusId: "L1"
+                            ' left: true,
+                            ' right: true
+                        }
+                    },
+                    children: [
+                        ' L1 - First left leaf (depth 3)
+                        {
+                            id: "L1",
+                            nodeType: "Rectangle",
+                            fields: {
+                                translation: [0, 0],
+                                width: 140,
+                                height: 80,
+                                color: "0x7ED321FF"
+                            },
+                            focus: {
+                            }
+                        },
+                        ' L2 - Second left leaf (depth 3)
+                        {
+                            id: "L2",
+                            nodeType: "Rectangle",
+                            fields: {
+                                translation: [180, 0],
+                                width: 140,
+                                height: 80,
+                                color: "0x7ED321FF"
+                            },
+                            focus: {
+                            }
+                        }
+                    ]
+                }
+            },
+            ' GroupR - Right branch (depth 1)
+            {
+                id: "GroupR",
+                nodeType: "Group",
+                fields: {
+                    translation: [560, 160]
+                },
+                children: {
+                    ' GroupR2 - Inner right group (depth 2)
+                    id: "GroupR2",
+                    nodeType: "Group",
+                    fields: {
+                        translation: [0, 80]
+                    },
+                    focus: {
+                        group: {
+                            defaultFocusId: "R1",
+                            left: true,
+                            right: true
+                        }
+                    },
+                    children: [
+                        ' R1 - First right leaf (depth 3)
+                        {
+                            id: "R1",
+                            nodeType: "Rectangle",
+                            fields: {
+                                translation: [0, 0],
+                                width: 140,
+                                height: 80,
+                                color: "0xF5A623FF"
+                            },
+                            focus: {
+                            }
+                        },
+                        ' R2 - Second right leaf (depth 3)
+                        {
+                            id: "R2",
+                            nodeType: "Rectangle",
+                            fields: {
+                                translation: [180, 0],
+                                width: 140,
+                                height: 80,
+                                color: "0xF5A623FF"
+                            },
+                            focus: {
+                            }
+                        }
+                    ]
+                }
+            }
+        ]
+    }
+end function

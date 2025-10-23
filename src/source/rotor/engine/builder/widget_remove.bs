@@ -16,7 +16,7 @@ namespace Rotor.ViewBuilder
                 if m.frameworkInstance.builder.pluginAdapter.pluginHooks[LifeCycleHookType].DoesExist(pluginKey)
                     postProcessBuffer.add({
                         isPlugin: true,
-                        isView: widget?.isView ?? false,
+                        ' isView: widget?.isView ?? false,
                         widget: widget,
                         hookType: LifeCycleHookType,
                         pluginKey: pluginKey

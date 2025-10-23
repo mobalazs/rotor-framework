@@ -222,7 +222,7 @@ namespace Rotor.ViewBuilder
                             isPlugin: true,
                             widget: widget,
                             hookType: LifeCycleHookType,
-                            isView: widget?.isView ?? false,
+                            ' isView: widget?.isView ?? false,
                             pluginKey: pluginKey
                         })
                     end if
@@ -236,7 +236,7 @@ namespace Rotor.ViewBuilder
                         pluginKey: pluginKey,
                         id: widget.id,
                         HID: widget.HID,
-                        isView: widget?.isView ?? false,
+                        ' isView: widget?.isView ?? false,
                         parentHID: widget.parentHID
                         ' future improvement: make more widget params available
                     }
