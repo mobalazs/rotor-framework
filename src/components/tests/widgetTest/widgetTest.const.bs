@@ -6,6 +6,6 @@ const HELLO_CONFIG = {
     RectHeight: 110
 }
 const HELLO_LABEL_FONT_AA = {
-    uri: "pkg:/fonts/font.ttf",
+    uri: "pkg:/assets/fonts/Roboto-Regular.ttf",
     size: 24
 }
