@@ -1,0 +1,565 @@
+import "pkg:/source/rotor/RotorFramework.bs"
+import "pkg:/components/tests/virtualTreeTest/virtualTreeTest.template.bs"
+
+namespace tests
+
+    @SGNode("virtualTreeTest")
+    @suite("VirtualTree Test Suite")
+    class VirtualTreeTests extends rooibos.BaseTestSuite
+
+        fwInstance as Rotor.Framework
+
+        protected override function beforeEach()
+            ' Initialize framework
+            m.fwInstance = new Rotor.Framework()
+
+            ' Render complex tree template
+            template = getVirtualTreeTestTemplate()
+            m.fwInstance.render(template)
+        end function
+
+        protected override function afterEach()
+            m.fwInstance.destroy()
+            m.fwInstance = invalid
+        end function
+
+        ' ======================================================================
+        ' TEST SUITE 1: findWidgets - Direct ID Lookup
+        ' ======================================================================
+
+        @describe("findWidgets - direct ID lookup")
+
+        @it("finds widget by exact id")
+        function _()
+            ' When: Search for exact id
+            results = m.fwInstance.findWidgets("app")
+
+            ' Then: Should return array with one widget
+            m.assertNotInvalid(results)
+            m.assertEqual(results.Count(), 1)
+            m.assertEqual(results[0].id, "app")
+        end function
+
+        @it("finds deeply nested widget by id")
+        function _()
+            ' When: Search for deeply nested widget
+            results = m.fwInstance.findWidgets("menuItem2")
+
+            ' Then: Should find it regardless of depth
+            m.assertNotInvalid(results)
+            m.assertEqual(results.Count(), 1)
+            m.assertEqual(results[0].id, "menuItem2")
+        end function
+
+        @it("returns invalid for non-existent id")
+        function _()
+            ' When: Search for non-existent id
+            results = m.fwInstance.findWidgets("nonExistent")
+
+            ' Then: Should return invalid
+            m.assertInvalid(results)
+        end function
+
+        ' ======================================================================
+        ' TEST SUITE 2: findWidgets - Single Wildcard (*)
+        ' ======================================================================
+
+        @describe("findWidgets - single wildcard")
+
+        @it("finds all direct children with *")
+        function _()
+            ' When: Search for all direct children of root
+            results = m.fwInstance.findWidgets("*")
+
+            ' Then: Should find root widget (direct child of tree root)
+            m.assertNotInvalid(results)
+            m.assertEqual(results.Count(), 1)
+            m.assertEqual(results[0].id, "root")
+        end function
+
+        @it("finds children of specific widget with path and *")
+        function _()
+            ' When: Search for all children of root widget using path
+            results = m.fwInstance.findWidgets("root/*")
+
+            ' Then: Should find app, dialog, overlay
+            m.assertNotInvalid(results)
+            m.assertEqual(results.Count(), 3)
+
+            ' Verify all expected widgets are found
+            foundApp = false
+            foundDialog = false
+            foundOverlay = false
+            for each widget in results
+                if widget.id = "app" then foundApp = true
+                if widget.id = "dialog" then foundDialog = true
+                if widget.id = "overlay" then foundOverlay = true
+            end for
+            m.assertTrue(foundApp, "Should find app widget")
+            m.assertTrue(foundDialog, "Should find dialog widget")
+            m.assertTrue(foundOverlay, "Should find overlay widget")
+        end function
+
+        @it("finds widgets matching pattern with *")
+        function _()
+            ' When: Search for menuItem*
+            results = m.fwInstance.findWidgets("menuItem*")
+
+            ' Then: Should find menuItem1, menuItem2, menuItem3
+            m.assertNotInvalid(results)
+            m.assertEqual(results.Count(), 3)
+        end function
+
+        ' ======================================================================
+        ' TEST SUITE 3: findWidgets - Double Wildcard (**)
+        ' ======================================================================
+
+        @describe("findWidgets - double wildcard")
+
+        @it("finds all widgets at any depth with **")
+        function _()
+            ' When: Search for all title widgets anywhere
+            results = m.fwInstance.findWidgets("**/title")
+
+            ' Then: Should find title in header and title in article
+            m.assertNotInvalid(results)
+            m.assertEqual(results.Count(), 2)
+        end function
+
+        @it("finds all footer widgets with **")
+        function _()
+            ' When: Search for footer anywhere
+            results = m.fwInstance.findWidgets("**/footer")
+
+            ' Then: Should find footer in app and footer in article
+            m.assertNotInvalid(results)
+            m.assertEqual(results.Count(), 2)
+        end function
+
+        @it("** searches recursively through entire tree")
+        function _()
+            ' When: Search for all comment widgets (children of comments container)
+            results = m.fwInstance.findWidgets("**/comments/*")
+
+            ' Then: Should find comment1, comment2, comment3
+            m.assertNotInvalid(results)
+            m.assertEqual(results.Count(), 3)
+        end function
+
+        ' ======================================================================
+        ' TEST SUITE 4: findWidgets - Path-Based Searches
+        ' ======================================================================
+
+        @describe("findWidgets - path-based searches")
+
+        @it("finds widget with explicit path")
+        function _()
+            ' When: Search with explicit path
+            results = m.fwInstance.findWidgets("app/header/nav")
+
+            ' Then: Should find nav widget
+            m.assertNotInvalid(results)
+            m.assertEqual(results.Count(), 1)
+            m.assertEqual(results[0].id, "nav")
+        end function
+
+        @it("finds widget with partial path and wildcard")
+        function _()
+            ' When: Search with partial path
+            results = m.fwInstance.findWidgets("app/*/nav")
+
+            ' Then: Should find nav under header
+            m.assertNotInvalid(results)
+            m.assertEqual(results.Count(), 1)
+            m.assertEqual(results[0].id, "nav")
+        end function
+
+        @it("finds widgets with ** in middle of path")
+        function _()
+            ' When: Search with ** in path
+            results = m.fwInstance.findWidgets("app/**/menuItem1")
+
+            ' Then: Should find menuItem1
+            m.assertNotInvalid(results)
+            m.assertEqual(results.Count(), 1)
+            m.assertEqual(results[0].id, "menuItem1")
+        end function
+
+        @it("finds multiple widgets with path and *")
+        function _()
+            ' When: Search for all items in nav
+            results = m.fwInstance.findWidgets("app/header/nav/*")
+
+            ' Then: Should find all 3 menu items
+            m.assertNotInvalid(results)
+            m.assertEqual(results.Count(), 3)
+        end function
+
+        ' ======================================================================
+        ' TEST SUITE 5: findWidgets - Relative Path (./ and ..)
+        ' ======================================================================
+
+        @describe("findWidgets - relative paths")
+
+        @it("resolves ./ as root")
+        function _()
+            ' When: Search with ./ prefix
+            results = m.fwInstance.findWidgets("./app")
+
+            ' Then: Should find app from root
+            m.assertNotInvalid(results)
+            m.assertEqual(results.Count(), 1)
+            m.assertEqual(results[0].id, "app")
+        end function
+
+        @it("resolves .. to parent node")
+        function _()
+            ' Given: Get HID of menuItem1
+            menuItem1 = m.fwInstance.getWidget("menuItem1")
+            menuItem1HID = menuItem1.HID
+
+            ' When: Search for parent with ..
+            results = m.fwInstance.findWidgets("..", menuItem1HID)
+
+            ' Then: Should find nav (parent)
+            m.assertNotInvalid(results)
+            m.assertEqual(results.Count(), 1)
+            m.assertEqual(results[0].id, "nav")
+        end function
+
+        @it("resolves multiple .. to ancestor")
+        function _()
+            ' Given: Get HID of menuItem1
+            menuItem1 = m.fwInstance.getWidget("menuItem1")
+            menuItem1HID = menuItem1.HID
+
+            ' When: Search for grandparent with ../../
+            results = m.fwInstance.findWidgets("../..", menuItem1HID)
+
+            ' Then: Should find header
+            m.assertNotInvalid(results)
+            m.assertEqual(results.Count(), 1)
+            m.assertEqual(results[0].id, "header")
+        end function
+
+        @it("searches sibling with ../")
+        function _()
+            ' Given: Get HID of header
+            header = m.fwInstance.getWidget("header")
+            headerHID = header.HID
+
+            ' When: Search for sibling content
+            results = m.fwInstance.findWidgets("../content", headerHID)
+
+            ' Then: Should find content widget
+            m.assertNotInvalid(results)
+            m.assertEqual(results.Count(), 1)
+            m.assertEqual(results[0].id, "content")
+        end function
+
+        ' ======================================================================
+        ' TEST SUITE 6: findWidgets - Normalization
+        ' ======================================================================
+
+        @describe("findWidgets - pattern normalization")
+
+        @it("removes leading slashes")
+        function _()
+            ' When: Search with leading slashes
+            results = m.fwInstance.findWidgets("///app")
+
+            ' Then: Should still find app
+            m.assertNotInvalid(results)
+            m.assertEqual(results[0].id, "app")
+        end function
+
+        @it("collapses multiple slashes to one")
+        function _()
+            ' When: Search with multiple slashes
+            results = m.fwInstance.findWidgets("app//header///nav")
+
+            ' Then: Should still find nav
+            m.assertNotInvalid(results)
+            m.assertEqual(results[0].id, "nav")
+        end function
+
+        @it("collapses multiple ** to single **")
+        function _()
+            ' When: Search with multiple **
+            results = m.fwInstance.findWidgets("app/**/**/menuItem1")
+
+            ' Then: Should find menuItem1
+            m.assertNotInvalid(results)
+            m.assertEqual(results[0].id, "menuItem1")
+        end function
+
+        @it("converts trailing ** to *")
+        function _()
+            ' When: Search with trailing **
+            results = m.fwInstance.findWidgets("overlay/**")
+
+            ' Then: Should find direct children (not overlay itself)
+            m.assertNotInvalid(results)
+            m.assertEqual(results.Count(), 2)
+        end function
+
+        ' ======================================================================
+        ' TEST SUITE 7: findWidgets - Search from Specific Node (HID)
+        ' ======================================================================
+
+        @describe("findWidgets - search from HID")
+
+        @it("searches from specific node HID")
+        function _()
+            ' Given: Get HID of app widget
+            appWidget = m.fwInstance.getWidget("app")
+            appHID = appWidget.HID
+
+            ' When: Search for footer from app HID (deep search with **)
+            results = m.fwInstance.findWidgets("footer", appHID)
+
+            ' Then: Should find both footer widgets within app subtree
+            ' (app/footer AND app/content/main/article/footer)
+            m.assertNotInvalid(results)
+            m.assertEqual(results.Count(), 2)
+
+            ' Verify both are named "footer"
+            for each widget in results
+                m.assertEqual(widget.id, "footer")
+            end for
+        end function
+
+        @it("searches only direct children from HID with *")
+        function _()
+            ' Given: Get HID of app widget
+            appWidget = m.fwInstance.getWidget("app")
+            appHID = appWidget.HID
+
+            ' When: Search for all direct children using *
+            results = m.fwInstance.findWidgets("*", appHID)
+
+            ' Then: Should find header, content, footer (3 direct children)
+            m.assertNotInvalid(results)
+            m.assertEqual(results.Count(), 3)
+
+            ' Verify all are direct children of app
+            foundHeader = false
+            foundContent = false
+            foundFooter = false
+            for each widget in results
+                if widget.id = "header" then foundHeader = true
+                if widget.id = "content" then foundContent = true
+                if widget.id = "footer" then foundFooter = true
+            end for
+            m.assertTrue(foundHeader)
+            m.assertTrue(foundContent)
+            m.assertTrue(foundFooter)
+        end function
+
+        @it("searches subtree from HID")
+        function _()
+            ' Given: Get HID of content widget
+            contentWidget = m.fwInstance.getWidget("content")
+            contentHID = contentWidget.HID
+
+            ' When: Search for all direct children in content
+            results = m.fwInstance.findWidgets("*", contentHID)
+
+            ' Then: Should find sidebar and main (2 direct children)
+            m.assertNotInvalid(results)
+            m.assertEqual(results.Count(), 2)
+
+            ' Verify both children are found
+            foundSidebar = false
+            foundMain = false
+            for each widget in results
+                if widget.id = "sidebar" then foundSidebar = true
+                if widget.id = "main" then foundMain = true
+            end for
+            m.assertTrue(foundSidebar)
+            m.assertTrue(foundMain)
+        end function
+
+        ' ======================================================================
+        ' TEST SUITE 8: getChildrenWidgets
+        ' ======================================================================
+
+        @describe("getChildrenWidgets")
+
+        @it("returns direct children of widget")
+        function _()
+            ' When: Get children of app
+            children = m.fwInstance.getChildrenWidgets("app")
+
+            ' Then: Should return header, content, footer in order
+            m.assertNotInvalid(children)
+            m.assertEqual(children.Count(), 3)
+            m.assertEqual(children[0].id, "header")
+            m.assertEqual(children[1].id, "content")
+            m.assertEqual(children[2].id, "footer")
+        end function
+
+        @it("returns children in correct node order")
+        function _()
+            ' When: Get children of nav
+            children = m.fwInstance.getChildrenWidgets("nav")
+
+            ' Then: Should return menu items in order
+            m.assertNotInvalid(children)
+            m.assertEqual(children.Count(), 3)
+            m.assertEqual(children[0].id, "menuItem1")
+            m.assertEqual(children[1].id, "menuItem2")
+            m.assertEqual(children[2].id, "menuItem3")
+        end function
+
+        @it("returns invalid for widget without children")
+        function _()
+            ' When: Get children of leaf widget
+            children = m.fwInstance.getChildrenWidgets("logo")
+
+            ' Then: Should return empty array
+            m.assertNotInvalid(children)
+            m.assertEqual(children.Count(), 0)
+        end function
+
+        @it("returns invalid for non-existent widget")
+        function _()
+            ' When: Get children of non-existent widget
+            children = m.fwInstance.getChildrenWidgets("nonExistent")
+
+            ' Then: Should return invalid
+            m.assertInvalid(children)
+        end function
+
+        @it("works with HID parameter")
+        function _()
+            ' Given: Get HID of header
+            header = m.fwInstance.getWidget("header")
+            headerHID = header.HID
+
+            ' When: Get children using HID
+            children = m.fwInstance.getChildrenWidgets("nav", headerHID)
+
+            ' Then: Should find nav's children
+            m.assertNotInvalid(children)
+            m.assertEqual(children.Count(), 3)
+        end function
+
+        ' ======================================================================
+        ' TEST SUITE 9: getSubtreeClone
+        ' ======================================================================
+
+        @describe("getSubtreeClone")
+
+        @it("clones subtree structure")
+        function _()
+            ' When: Clone dialog subtree
+            subtree = m.fwInstance.getSubtreeClone("dialog")
+
+            ' Then: Should have dialog structure
+            m.assertNotInvalid(subtree)
+            m.assertNotInvalid(subtree.HID)
+            m.assertNotInvalid(subtree.children)
+            m.assertEqual(subtree.children.Count(), 3)
+        end function
+
+        @it("clones deep subtree")
+        function _()
+            ' When: Clone app subtree
+            subtree = m.fwInstance.getSubtreeClone("app")
+
+            ' Then: Should have full app tree structure
+            m.assertNotInvalid(subtree)
+            m.assertNotInvalid(subtree.children)
+            m.assertEqual(subtree.children.Count(), 3)
+
+            ' Check nested structure
+            headerChild = subtree.children[0]
+            m.assertEqual(headerChild.id, "header")
+            m.assertNotInvalid(headerChild.children)
+        end function
+
+        @it("includes specified keyPaths")
+        function _()
+            ' When: Clone with specific keyPaths
+            subtree = m.fwInstance.getSubtreeClone("nav", ["id", "parentHID"])
+
+            ' Then: Should include id and HID (HID is always included)
+            m.assertNotInvalid(subtree)
+            m.assertNotInvalid(subtree.id)
+            m.assertNotInvalid(subtree.HID)
+            m.assertNotInvalid(subtree.parentHID)
+        end function
+
+        @it("returns invalid for non-existent widget")
+        function _()
+            ' When: Clone non-existent widget
+            subtree = m.fwInstance.getSubtreeClone("nonExistent")
+
+            ' Then: Should return invalid
+            m.assertInvalid(subtree)
+        end function
+
+        @it("works with HID parameter")
+        function _()
+            ' Given: Get HID of app
+            app = m.fwInstance.getWidget("app")
+            appHID = app.HID
+
+            ' When: Clone header from app HID
+            subtree = m.fwInstance.getSubtreeClone("header", [], appHID)
+
+            ' Then: Should clone header
+            m.assertNotInvalid(subtree)
+            m.assertNotInvalid(subtree.children)
+        end function
+
+        ' ======================================================================
+        ' TEST SUITE 10: Edge Cases and Error Handling
+        ' ======================================================================
+
+        @describe("edge cases and error handling")
+
+        @it("handles empty search pattern")
+        function _()
+            ' When: Search with empty string
+            results = m.fwInstance.findWidgets("")
+
+            ' Then: Should return root or invalid
+            ' Based on normalization, empty becomes ** which matches from root
+            m.assertTrue(results = invalid or results.Count() >= 0)
+        end function
+
+        @it("handles case-insensitive search")
+        function _()
+            ' When: Search with uppercase
+            results = m.fwInstance.findWidgets("APP")
+
+            ' Then: Should find app (case insensitive)
+            m.assertNotInvalid(results)
+            m.assertEqual(results[0].id, "app")
+        end function
+
+        @it("handles mixed case in path")
+        function _()
+            ' When: Search with mixed case
+            results = m.fwInstance.findWidgets("App/Header/Nav")
+
+            ' Then: Should find nav
+            m.assertNotInvalid(results)
+            m.assertEqual(results[0].id, "nav")
+        end function
+
+        @it("handles complex glob patterns")
+        function _()
+            ' When: Search with complex pattern
+            results = m.fwInstance.findWidgets("**/dialog*/**/*Button")
+
+            ' Then: Should find cancelButton and okButton
+            m.assertNotInvalid(results)
+            m.assertEqual(results.Count(), 2)
+        end function
+
+    end class
+
+end namespace

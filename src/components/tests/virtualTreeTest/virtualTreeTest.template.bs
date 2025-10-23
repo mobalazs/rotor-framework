@@ -1,0 +1,211 @@
+' Virtual Tree Test Template
+' Complex multi-level widget structure for testing VirtualTree find() glob patterns
+
+' Get complex multi-level tree template for testing
+'
+' Tree Structure:
+' root
+'   ├── app
+'   │   ├── header
+'   │   │   ├── logo
+'   │   │   ├── title
+'   │   │   └── nav
+'   │   │       ├── menuItem1
+'   │   │       ├── menuItem2
+'   │   │       └── menuItem3
+'   │   ├── content
+'   │   │   ├── sidebar
+'   │   │   │   ├── widget1
+'   │   │   │   └── widget2
+'   │   │   └── main
+'   │   │       ├── article
+'   │   │       │   ├── title
+'   │   │       │   ├── body
+'   │   │       │   └── footer
+'   │   │       └── comments
+'   │   │           ├── comment1
+'   │   │           ├── comment2
+'   │   │           └── comment3
+'   │   └── footer
+'   │       ├── links
+'   │       └── copyright
+'   ├── dialog
+'   │   ├── dialogTitle
+'   │   ├── dialogBody
+'   │   └── dialogFooter
+'   │       ├── cancelButton
+'   │       └── okButton
+'   └── overlay
+'       ├── spinner
+'       └── message
+'
+function getVirtualTreeTestTemplate() as object
+    return {
+        id: "root",
+        nodeType: "Group",
+        children: [
+            ' App section
+            {
+                id: "app",
+                nodeType: "Group",
+                children: [
+                    ' Header
+                    {
+                        id: "header",
+                        nodeType: "Group",
+                        children: [
+                            {
+                                id: "logo",
+                                nodeType: "Group"
+                            },
+                            {
+                                id: "title",
+                                nodeType: "Group"
+                            },
+                            {
+                                id: "nav",
+                                nodeType: "Group",
+                                children: [
+                                    {
+                                        id: "menuItem1",
+                                        nodeType: "Group"
+                                    },
+                                    {
+                                        id: "menuItem2",
+                                        nodeType: "Group"
+                                    },
+                                    {
+                                        id: "menuItem3",
+                                        nodeType: "Group"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    ' Content
+                    {
+                        id: "content",
+                        nodeType: "Group",
+                        children: [
+                            {
+                                id: "sidebar",
+                                nodeType: "Group",
+                                children: [
+                                    {
+                                        id: "widget1",
+                                        nodeType: "Group"
+                                    },
+                                    {
+                                        id: "widget2",
+                                        nodeType: "Group"
+                                    }
+                                ]
+                            },
+                            {
+                                id: "main",
+                                nodeType: "Group",
+                                children: [
+                                    {
+                                        id: "article",
+                                        nodeType: "Group",
+                                        children: [
+                                            {
+                                                id: "title",
+                                                nodeType: "Group"
+                                            },
+                                            {
+                                                id: "body",
+                                                nodeType: "Group"
+                                            },
+                                            {
+                                                id: "footer",
+                                                nodeType: "Group"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        id: "comments",
+                                        nodeType: "Group",
+                                        children: [
+                                            {
+                                                id: "comment1",
+                                                nodeType: "Group"
+                                            },
+                                            {
+                                                id: "comment2",
+                                                nodeType: "Group"
+                                            },
+                                            {
+                                                id: "comment3",
+                                                nodeType: "Group"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    ' Footer
+                    {
+                        id: "footer",
+                        nodeType: "Group",
+                        children: [
+                            {
+                                id: "links",
+                                nodeType: "Group"
+                            },
+                            {
+                                id: "copyright",
+                                nodeType: "Group"
+                            }
+                        ]
+                    }
+                ]
+            },
+            ' Dialog section
+            {
+                id: "dialog",
+                nodeType: "Group",
+                children: [
+                    {
+                        id: "dialogTitle",
+                        nodeType: "Group"
+                    },
+                    {
+                        id: "dialogBody",
+                        nodeType: "Group"
+                    },
+                    {
+                        id: "dialogFooter",
+                        nodeType: "Group",
+                        children: [
+                            {
+                                id: "cancelButton",
+                                nodeType: "Group"
+                            },
+                            {
+                                id: "okButton",
+                                nodeType: "Group"
+                            }
+                        ]
+                    }
+                ]
+            },
+            ' Overlay section
+            {
+                id: "overlay",
+                nodeType: "Group",
+                children: [
+                    {
+                        id: "spinner",
+                        nodeType: "Group"
+                    },
+                    {
+                        id: "message",
+                        nodeType: "Group"
+                    }
+                ]
+            }
+        ]
+    }
+end function

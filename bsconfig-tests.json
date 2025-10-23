@@ -41,7 +41,8 @@
 			"components/MainScene.bs",
 			"source/rotor/engine/constants.bs",
 			"**/roku_modules/**/*",
-			"source/rotor/libs/**/*"
+			"source/rotor/libs/**/*",
+			"source/rotor/base/baseWidget.bs"
 		]
 	},
 
