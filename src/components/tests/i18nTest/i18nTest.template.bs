@@ -1,0 +1,218 @@
+' i18n Test Template
+' Tests i18n integration with ViewBuilder through widget structure
+
+' Mock translation data for testing
+function getI18nTestTranslations() as object
+    return {
+        en_US: {
+            app: {
+                title: "Test Application",
+                subtitle: "Integration Test"
+            },
+            menu: {
+                home: "Home",
+                settings: "Settings",
+                about: "About"
+            },
+            messages: {
+                welcome: "Welcome to Rotor Framework",
+                goodbye: "Goodbye"
+            },
+            nested: {
+                level1: {
+                    level2: {
+                        deepValue: "Deep Nested Value"
+                    }
+                }
+            }
+        },
+        fr_FR: {
+            app: {
+                title: "Application de test",
+                subtitle: "Test d'intégration"
+            },
+            menu: {
+                home: "Accueil",
+                settings: "Paramètres",
+                about: "À propos"
+            },
+            messages: {
+                welcome: "Bienvenue dans Rotor Framework",
+                goodbye: "Au revoir"
+            },
+            nested: {
+                level1: {
+                    level2: {
+                        deepValue: "Valeur profonde imbriquée"
+                    }
+                }
+            }
+        }
+    }
+end function
+
+' ViewModel for testing single i18n path
+class I18nSinglePathViewModel extends ViewModel
+    override function template() as object
+        return {
+            nodeType: "Group",
+            children: {
+                id: "titleLabel",
+                nodeType: "Label",
+                fields: {
+                    text: m.viewModelState.l10n.title,
+                    width: 400,
+                    height: 50
+                }
+            }
+        }
+    end function
+end class
+
+' ViewModel for testing multiple i18n paths
+class I18nMultiPathViewModel extends ViewModel
+    override function template() as object
+        return {
+            nodeType: "Group",
+            fields: {
+                translation: [0, 60]
+            },
+            children: [
+                {
+                    id: "subtitleLabel",
+                    nodeType: "Label",
+                    fields: {
+                        text: m.viewModelState.l10n.subtitle,
+                        width: 400,
+                        height: 50
+                    }
+                },
+                {
+                    id: "homeLabel",
+                    nodeType: "Label",
+                    fields: {
+                        text: m.viewModelState.l10n.home,
+                        translation: [0, 30],
+                        width: 400,
+                        height: 50
+                    }
+                }
+            ]
+        }
+    end function
+end class
+
+' ViewModel for testing locale and RTL flags
+class I18nLocaleViewModel extends ViewModel
+    override function template() as object
+        return {
+            nodeType: "Group",
+            fields: {
+                translation: [0, 150]
+            },
+            children: {
+                id: "welcomeLabel",
+                nodeType: "Label",
+                fields: {
+                    text: m.viewModelState.l10n.welcome,
+                    width: 400,
+                    height: 50
+                }
+            }
+        }
+    end function
+end class
+
+' ViewModel without i18n config (gets full l10n)
+class I18nFullL10nViewModel extends ViewModel
+    override function template() as object
+        return {
+            nodeType: "Group",
+            fields: {
+                translation: [0, 210]
+            },
+            children: {
+                id: "fullL10nLabel",
+                nodeType: "Label",
+                fields: {
+                    text: "Full L10n Test",
+                    width: 400,
+                    height: 50
+                }
+            }
+        }
+    end function
+end class
+
+' ViewModel for testing deep nested paths
+class I18nDeepNestedViewModel extends ViewModel
+    override function template() as object
+        return {
+            nodeType: "Group",
+            fields: {
+                translation: [0, 270]
+            },
+            children: {
+                id: "deepValueLabel",
+                nodeType: "Label",
+                fields: {
+                    text: m.viewModelState.l10n.level2.deepValue,
+                    width: 400,
+                    height: 50
+                }
+            }
+        }
+    end function
+end class
+
+' Template with i18n path configuration using ViewModels
+function getI18nTestTemplate() as object
+    return {
+        id: "i18nTestGroup",
+        nodeType: "Group",
+        fields: {
+            translation: [100, 100]
+        },
+        children: [
+            ' Widget with single i18n path
+            {
+                id: "appTitleWidget",
+                viewModel: I18nSinglePathViewModel,
+                i18n: {
+                    path: "app"
+                }
+            },
+            ' Widget with multiple i18n paths
+            {
+                id: "multiPathWidget",
+                viewModel: I18nMultiPathViewModel,
+                i18n: {
+                    paths: ["app", "menu"]
+                }
+            },
+            ' Widget with locale and RTL flags
+            {
+                id: "localeWidget",
+                viewModel: I18nLocaleViewModel,
+                i18n: {
+                    path: "messages",
+                    includeLocale: true,
+                    includeIsRtl: true
+                }
+            },
+            ' Widget without i18n (should get full l10n)
+            {
+                id: "fullL10nWidget",
+                viewModel: I18nFullL10nViewModel
+            },
+            ' Widget with deep nested path
+            {
+                id: "deepNestedWidget",
+                viewModel: I18nDeepNestedViewModel,
+                i18n: {
+                    path: "nested.level1"
+                }
+            }
+        ]
+    }
+end function

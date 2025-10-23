@@ -1,0 +1,270 @@
+import "pkg:/source/rotor/RotorFramework.bs"
+import "pkg:/components/tests/i18nTest/i18nTest.template.bs"
+
+namespace tests
+
+    @SGNode("i18nTest")
+    @suite("I18n Integration Test Suite")
+    class I18nIntegrationTests extends rooibos.BaseTestSuite
+
+        fwInstance as Rotor.Framework
+        translations as object
+
+        protected override function beforeEach()
+            ' Get mock translations
+            m.translations = getI18nTestTranslations()
+
+            ' Initialize framework with en_US locale
+            m.fwInstance = new Rotor.Framework()
+            m.fwInstance.i18nService.setLocal("en_US")
+            m.fwInstance.i18nService.setL10n(m.translations.en_US)
+
+            ' Render test template
+            template = getI18nTestTemplate()
+            m.fwInstance.render(template)
+        end function
+
+        protected override function afterEach()
+            m.fwInstance.destroy()
+            m.fwInstance = invalid
+            m.translations = invalid
+        end function
+
+        ' ======================================================================
+        ' TEST SUITE 1: Basic i18n Path Integration
+        ' ======================================================================
+
+        @describe("basic i18n path integration")
+
+        @it("widget with single i18n path receives correct l10n data")
+        function _()
+            ' Given: Widget with i18n.path = "app"
+            widget = m.fwInstance.getWidget("appTitleWidget")
+
+            ' Then: viewModelState.l10n should contain app translations
+            m.assertNotInvalid(widget)
+            m.assertNotInvalid(widget.viewModelState)
+            m.assertNotInvalid(widget.viewModelState.l10n)
+            m.assertEqual(widget.viewModelState.l10n.title, "Test Application")
+            m.assertEqual(widget.viewModelState.l10n.subtitle, "Integration Test")
+        end function
+
+        @it("widget with multiple i18n paths receives merged l10n data")
+        function _()
+            ' Given: Widget with i18n.paths = ["app", "menu"]
+            widget = m.fwInstance.getWidget("multiPathWidget")
+
+            ' Then: viewModelState.l10n should contain both app and menu
+            m.assertNotInvalid(widget)
+            m.assertNotInvalid(widget.viewModelState)
+            m.assertNotInvalid(widget.viewModelState.l10n)
+            m.assertEqual(widget.viewModelState.l10n.title, "Test Application")
+            m.assertEqual(widget.viewModelState.l10n.home, "Home")
+            m.assertEqual(widget.viewModelState.l10n.settings, "Settings")
+        end function
+
+        @it("widget without i18n config receives full l10n object")
+        function _()
+            ' Given: Widget without i18n configuration
+            widget = m.fwInstance.getWidget("fullL10nWidget")
+
+            ' Then: viewModelState.l10n should contain all translations
+            m.assertNotInvalid(widget)
+            m.assertNotInvalid(widget.viewModelState)
+            m.assertNotInvalid(widget.viewModelState.l10n)
+            m.assertNotInvalid(widget.viewModelState.l10n.app)
+            m.assertNotInvalid(widget.viewModelState.l10n.menu)
+            m.assertNotInvalid(widget.viewModelState.l10n.messages)
+        end function
+
+        ' ======================================================================
+        ' TEST SUITE 2: Locale and RTL Flags
+        ' ======================================================================
+
+        @describe("locale and RTL flags")
+
+        @it("includes locale when includeLocale is true")
+        function _()
+            ' Given: Widget with i18n.includeLocale = true
+            widget = m.fwInstance.getWidget("localeWidget")
+
+            ' Then: viewModelState should have locale field
+            m.assertNotInvalid(widget)
+            m.assertNotInvalid(widget.viewModelState)
+            m.assertEqual(widget.viewModelState.locale, "en_US")
+        end function
+
+        @it("includes isRTL flag when includeIsRtl is true")
+        function _()
+            ' Given: Widget with i18n.includeIsRtl = true
+            widget = m.fwInstance.getWidget("localeWidget")
+
+            ' Then: viewModelState should have isRTL field
+            m.assertNotInvalid(widget)
+            m.assertNotInvalid(widget.viewModelState)
+            m.assertFalse(widget.viewModelState.isRTL)
+        end function
+
+        @it("does not include locale when includeLocale is not set")
+        function _()
+            ' Given: Widget without includeLocale
+            widget = m.fwInstance.getWidget("appTitleWidget")
+
+            ' Then: viewModelState should not have locale field
+            m.assertNotInvalid(widget)
+            m.assertNotInvalid(widget.viewModelState)
+            m.assertInvalid(widget.viewModelState.locale)
+        end function
+
+        @it("does not include isRTL when includeIsRtl is not set")
+        function _()
+            ' Given: Widget without includeIsRtl
+            widget = m.fwInstance.getWidget("appTitleWidget")
+
+            ' Then: viewModelState should not have isRTL field
+            m.assertNotInvalid(widget)
+            m.assertNotInvalid(widget.viewModelState)
+            m.assertInvalid(widget.viewModelState.isRTL)
+        end function
+
+        ' ======================================================================
+        ' TEST SUITE 3: Deep Nested Paths
+        ' ======================================================================
+
+        @describe("deep nested paths")
+
+        @it("resolves deep nested keyPath correctly")
+        function _()
+            ' Given: Widget with i18n.path = "nested.level1"
+            widget = m.fwInstance.getWidget("deepNestedWidget")
+
+            ' Then: viewModelState.l10n should contain level2 data
+            m.assertNotInvalid(widget)
+            m.assertNotInvalid(widget.viewModelState)
+            m.assertNotInvalid(widget.viewModelState.l10n)
+            m.assertNotInvalid(widget.viewModelState.l10n.level2)
+            m.assertEqual(widget.viewModelState.l10n.level2.deepValue, "Deep Nested Value")
+        end function
+
+        ' ======================================================================
+        ' TEST SUITE 4: Locale Switching
+        ' ======================================================================
+
+        @describe("locale switching")
+
+        @it("updates translations when locale changes")
+        function _()
+            ' Given: Framework initialized with en_US
+            ' When: Switch to fr_FR and re-render
+            m.fwInstance.i18nService.setLocal("fr_FR")
+            m.fwInstance.i18nService.setL10n(m.translations.fr_FR)
+
+            ' Re-render to apply new translations
+            template = getI18nTestTemplate()
+            m.fwInstance.render(template)
+
+            ' Then: Widgets should have French translations
+            widget = m.fwInstance.getWidget("appTitleWidget")
+            m.assertNotInvalid(widget)
+            m.assertNotInvalid(widget.viewModelState)
+            m.assertNotInvalid(widget.viewModelState.l10n)
+            m.assertEqual(widget.viewModelState.l10n.title, "Application de test")
+        end function
+
+        @it("locale flag reflects current locale after switch")
+        function _()
+            ' Given: Framework with locale widget
+            ' When: Switch locale
+            m.fwInstance.i18nService.setLocal("fr_FR")
+            m.fwInstance.i18nService.setL10n(m.translations.fr_FR)
+
+            ' Re-render
+            template = getI18nTestTemplate()
+            m.fwInstance.render(template)
+
+            ' Then: Locale should be fr_FR
+            widget = m.fwInstance.getWidget("localeWidget")
+            m.assertNotInvalid(widget)
+            m.assertNotInvalid(widget.viewModelState)
+            m.assertEqual(widget.viewModelState.locale, "fr_FR")
+        end function
+
+        ' ======================================================================
+        ' TEST SUITE 5: Cache Management
+        ' ======================================================================
+
+        @describe("cache management")
+
+        @it("clears cache when setting new l10n data")
+        function _()
+            ' Given: Framework with cached translations
+            widget = m.fwInstance.getWidget("appTitleWidget")
+            originalTitle = widget.viewModelState.l10n.title
+
+            ' When: Set new l10n data
+            newTranslations = {
+                app: {
+                    title: "Modified Title",
+                    subtitle: "Modified Subtitle"
+                }
+            }
+            m.fwInstance.i18nService.setL10n(newTranslations)
+
+            ' Re-render to get new data
+            template = getI18nTestTemplate()
+            m.fwInstance.render(template)
+
+            widget = m.fwInstance.getWidget("appTitleWidget")
+
+            ' Then: Should have new translation
+            m.assertNotEqual(widget.viewModelState.l10n.title, originalTitle)
+            m.assertEqual(widget.viewModelState.l10n.title, "Modified Title")
+        end function
+
+        ' ======================================================================
+        ' TEST SUITE 6: Edge Cases
+        ' ======================================================================
+
+        @describe("edge cases")
+
+        @it("handles empty l10n data")
+        function _()
+            ' Given: Framework with empty l10n
+            m.fwInstance.i18nService.setL10n({})
+
+            ' When: Render widget
+            m.fwInstance.render({
+                id: "emptyL10nWidget",
+                viewModel: I18nSinglePathViewModel,
+                i18n: {
+                    path: "app"
+                }
+            })
+
+            widget = m.fwInstance.getWidget("emptyL10nWidget")
+
+            ' Then: Should not crash
+            m.assertNotInvalid(widget)
+            m.assertNotInvalid(widget.viewModelState)
+            m.assertNotInvalid(widget.viewModelState.l10n)
+        end function
+
+        @it("widget with different i18n paths have independent l10n data")
+        function _()
+            ' Given: Two widgets with different i18n paths
+            widget1 = m.fwInstance.getWidget("appTitleWidget")
+            widget2 = m.fwInstance.getWidget("localeWidget")
+
+            ' Then: Each should have their own l10n data
+            m.assertNotInvalid(widget1.viewModelState.l10n.title)
+            m.assertNotInvalid(widget2.viewModelState.l10n.welcome)
+
+            ' widget1 should not have messages data
+            m.assertInvalid(widget1.viewModelState.l10n.welcome)
+            ' widget2 should not have app data
+            m.assertInvalid(widget2.viewModelState.l10n.title)
+        end function
+
+    end class
+
+end namespace
