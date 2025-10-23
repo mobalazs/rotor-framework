@@ -29,11 +29,19 @@
 		"lineWidth": 70,
 		"failFast": false,
 		"sendHomeOnFinish": false,
-		"includeFilters": [
-			"**/*.spec.bs",
-			"!**/BaseTestSuite.spec.bs",
-			"!**/roku_modules/**/*",
-			"!source/rotor/libs/**/*.spec.bs"
+
+	    "projectName": "Rotor Framework",
+		"collectCoverage": true,
+		"coverageReportType": "lcov",
+
+		"coverageExcludedFiles": [
+			"**/*.const.bs",
+			"source/Main.brs",
+			"components/rooibos/CodeCoverage.brs",
+			"components/MainScene.bs",
+			"source/rotor/engine/constants.bs",
+			"**/roku_modules/**/*",
+			"source/rotor/libs/**/*"
 		]
 	},
 

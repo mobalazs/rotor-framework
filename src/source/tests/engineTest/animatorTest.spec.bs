@@ -1,0 +1,103 @@
+import "pkg:/source/rotor/RotorFramework.bs"
+import "pkg:/components/tests/viewModelTest/viewModelTest.template.bs"
+import "pkg:/components/tests/viewModelTest/viewModelTest.const.bs"
+
+namespace tests
+
+    @SGNode("viewModelTest")
+    @suite("Animator Test integration")
+    class animatorTest extends rooibos.BaseTestSuite
+
+        fwInstance as Rotor.Framework
+
+        protected override function beforeEach()
+            ' Initialize framework
+            m.fwInstance = new Rotor.Framework()
+            ' Render
+            template = getViewModelTemplate()
+            m.fwInstance.render(template)
+        end function
+
+        protected override function afterEach()
+            m.fwInstance.destroy()
+            m.fwInstance = invalid
+        end function
+
+        @describe("test animate lib integration")
+
+        @async(4000)
+        @it("test animate lib timeline method integration")
+        function _()
+            topWidget = m.fwInstance.getWidget("viewModelTest")
+            titleLabelWidget = m.fwInstance.getWidget("titleLabel")
+            subtitleLabelWidget = m.fwInstance.getWidget("subtitleLabel")
+
+            m.fwInstance.animator("animate-widget").timeline({
+                duration: 0.1,
+                easeFunction: "inOutCubic"
+            }).add({
+                target: topWidget,
+                translationTo: [900, 600]
+            }).add({
+                target: titleLabelWidget,
+                opacity: 0
+            }).add({
+                target: subtitleLabelWidget,
+                scale: [3, 3]
+            }).play().observeState({
+                callback: sub(state) typecast m as Rotor.Widget
+                    suit = GetGlobalAA().testSuite
+
+                    topWidget = m.getWidget("viewModelTest")
+                    titleLabelWidget = m.getWidget("titleLabel")
+                    subtitleLabelWidget = m.getWidget("subtitleLabel")
+
+                    suit.assertEqual(state, "stopped")
+
+                    suit.assertEqual(topWidget.node.translation[0], CDbl(900))
+                    suit.assertEqual(topWidget.node.translation[1], CDbl(600))
+
+                    suit.assertEqual(titleLabelWidget.node.opacity, CDbl(0))
+
+                    suit.assertEqual(subtitleLabelWidget.node.scale[0], CDbl(3))
+
+                    suit.done()
+
+                end sub,
+                until: function(state)
+                    return state = "stopped"
+                end function
+            })
+        end function
+
+        @async(4000)
+        @it("test animate lib create method integration")
+        function _()
+            topWidget = m.fwInstance.getWidget("viewModelTest")
+
+            m.fwInstance.animator(`animate-slotContainer-one-step`).create({
+                duration: 0.1,
+                easeFunction: "inOutCubic"
+                target: topWidget,
+                translationTo: [900, 600],
+                opacity: 0
+            }).play().observeState({
+                callback: sub(state) typecast m as Rotor.Widget
+                    suit = GetGlobalAA().testSuite
+                    topWidget = m.getWidget("viewModelTest")
+
+                    suit.assertEqual(state, "stopped")
+
+                    suit.assertEqual(topWidget.node.translation[0], CDbl(900))
+                    suit.assertEqual(topWidget.node.translation[1], CDbl(600))
+
+                    suit.assertEqual(topWidget.node.opacity, CDbl(0))
+
+                    suit.done()
+
+                end sub
+            })
+        end function
+
+    end class
+end namespace
