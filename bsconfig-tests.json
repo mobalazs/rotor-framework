@@ -17,7 +17,11 @@
 	"createPackage": false,
 	"emitDefinitions": true,
 	"sourceMap": true,
-	"plugins": ["@rokucommunity/bslint", "rooibos-roku"],
+	"plugins": [
+		"@rokucommunity/bslint",
+		"rooibos-roku",
+		"./scripts/plugins/manifest-modifier.js"
+	],
 
 	"rooibos": {
 		"isRecordingCodeCoverage": true,

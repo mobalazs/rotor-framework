@@ -31,48 +31,13 @@ if (!rokuHost || !rokuPassword) {
 
 // Paths
 const projectRoot = path.join(__dirname, '..');
-const manifestPath = path.join(projectRoot, 'src', 'manifest');
 const outputFile = path.join(projectRoot, 'lcov.info');
-
-// Backup and modify manifest
-let originalManifest = '';
-let manifestModified = false;
-
-function modifyManifest() {
-  console.log('Modifying manifest for unit testing...');
-
-  // Read original manifest
-  originalManifest = fs.readFileSync(manifestPath, 'utf8');
-
-  // Modify bs_const to enable unittest
-  const modifiedManifest = originalManifest.replace(
-    /^bs_const=.*$/m,
-    'bs_const=debug=true;unittest=true'
-  );
-
-  // Write modified manifest
-  fs.writeFileSync(manifestPath, modifiedManifest, 'utf8');
-  manifestModified = true;
-  console.log('Manifest modified: unittest=true');
-}
-
-function restoreManifest() {
-  if (manifestModified && originalManifest) {
-    console.log('Restoring original manifest...');
-    fs.writeFileSync(manifestPath, originalManifest, 'utf8');
-    manifestModified = false;
-    console.log('Manifest restored');
-  }
-}
 
 // Flag to track if we're inside the coverage section
 let isCapturing = false;
 
 // Array to store coverage lines
 const coverageLines = [];
-
-// Modify manifest before building
-modifyManifest();
 
 console.log('Starting build and deploy to Roku device...');
 console.log(`Target: ${rokuHost}`);
@@ -105,7 +70,6 @@ buildProcess.stderr.on('data', (data) => {
 buildProcess.on('close', (code) => {
   if (code !== 0) {
     console.error(`\nBuild/Deploy failed with code: ${code}`);
-    restoreManifest();
     process.exit(code);
   }
 
@@ -159,7 +123,6 @@ buildProcess.on('close', (code) => {
 
   telnetClient.on('error', (err) => {
     console.error('Telnet connection error:', err.message);
-    restoreManifest();
     process.exit(1);
   });
 
@@ -178,7 +141,6 @@ buildProcess.on('close', (code) => {
 // Handle process errors
 buildProcess.on('error', (error) => {
   console.error('Failed to start process:', error);
-  restoreManifest();
   process.exit(1);
 });
 
@@ -186,19 +148,17 @@ buildProcess.on('error', (error) => {
 process.on('SIGINT', () => {
   console.log('\nTerminating...');
   buildProcess.kill('SIGINT');
-  restoreManifest();
   process.exit(0);
 });
 
 process.on('SIGTERM', () => {
   console.log('\nTerminating...');
   buildProcess.kill('SIGTERM');
-  restoreManifest();
   process.exit(0);
 });
 
 function sendExitSignalToDevice() {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const options = {
       hostname: rokuHost,
       port: 8060,
@@ -206,7 +166,7 @@ function sendExitSignalToDevice() {
       method: 'POST'
     };
 
-    const req = http.request(options, (res) => {
+    const req = http.request(options, () => {
       console.log('Exit signal sent to device (Home button pressed)');
       resolve();
     });
@@ -225,9 +185,6 @@ function writeCoverageAndExit(telnetClient) {
   if (telnetClient) {
     telnetClient.end();
   }
-
-  // Restore manifest first
-  restoreManifest();
 
   // Write captured coverage lines to lcov.info
   if (coverageLines.length > 0) {
