@@ -1,4 +1,4 @@
-import "pkg:/components/tests/dispatcherTest/dispatcherTest.const.bs"
+import "pkg:/components/tests/dispatcherTest/DispatcherTest.const.bs"
 
 class AncestorViewModel extends ViewModel
 

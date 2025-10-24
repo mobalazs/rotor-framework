@@ -1,5 +1,5 @@
 import "pkg:/source/rotor/RotorFramework.bs"
-import "pkg:/components/tests/i18nTest/i18nTest.template.bs"
+import "pkg:/components/tests/i18nTest/I18nTest.template.bs"
 
 namespace tests
 

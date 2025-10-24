@@ -1,12 +1,12 @@
-import "processor.bs"
-import "postProcessor.bs"
-import "nodePool.bs"
-import "tree.bs"
-import "../../base/baseWidget.bs"
-import "widget_create.bs"
-import "widget_update.bs"
-import "widget_remove.bs"
-import "pluginAdapter.bs"
+import "Processor.bs"
+import "PostProcessor.bs"
+import "NodePool.bs"
+import "Tree.bs"
+import "../../base/BaseWidget.bs"
+import "WidgetCreate.bs"
+import "WidgetUpdate.bs"
+import "WidgetRemove.bs"
+import "PluginAdapter.bs"
 
 namespace Rotor.ViewBuilder
 

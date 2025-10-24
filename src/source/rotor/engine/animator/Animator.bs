@@ -1,5 +1,5 @@
 
-import "../../libs/animate/animate.bs" ' https://github.com/haystacknews/animate
+import "../../libs/animate/Animate.bs" ' https://github.com/haystacknews/animate
 
 
 namespace Rotor

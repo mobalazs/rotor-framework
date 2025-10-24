@@ -1,5 +1,5 @@
-import "pkg:/components/tests/viewModelTest/viewModelTest.const.bs"
-import "pkg:/components/tests/widgetTest/widgetTest.const.bs"
+import "pkg:/components/tests/viewModelTest/ViewModelTest.const.bs"
+import "pkg:/components/tests/widgetTest/WidgetTest.const.bs"
 
 class ViewModelTestViewModel extends ViewModel
 

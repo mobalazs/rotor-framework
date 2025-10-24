@@ -1,21 +1,21 @@
 ' constants
-import "engine/constants.bs"
+import "engine/Constants.bs"
 
 ' engine
-import "engine/providers/dispatcherProvider.bs"
-import "engine/providers/dispatcher.bs"
+import "engine/providers/DispatcherProvider.bs"
+import "engine/providers/Dispatcher.bs"
 
 ' base classes
-import "base/dispatcherCreator.bs"
-import "base/dispatcherExternal.bs"
-import "base/baseReducer.bs"
-import "base/baseModel.bs"
-import "base/baseStack.bs"
+import "base/DispatcherCreator.bs"
+import "base/DispatcherExternal.bs"
+import "base/BaseReducer.bs"
+import "base/BaseModel.bs"
+import "base/BaseStack.bs"
 
 ' utils
-import "utils/generalUtils.bs"
-import "utils/nodeUtils.bs"
-import "utils/arrayUtils.bs"
+import "utils/GeneralUtils.bs"
+import "utils/NodeUtils.bs"
+import "utils/ArrayUtils.bs"
 
 namespace Rotor
 

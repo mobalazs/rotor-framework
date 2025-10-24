@@ -1,33 +1,33 @@
 ' constants
-import "engine/constants.bs"
+import "engine/Constants.bs"
 
 ' engine
-import "engine/builder/builder.bs"
-import "engine/services/i18n.bs"
-import "engine/providers/dispatcherProvider.bs"
-import "engine/providers/dispatcher.bs"
-import "engine/animator/animator.bs"
+import "engine/builder/Builder.bs"
+import "engine/services/I18n.bs"
+import "engine/providers/DispatcherProvider.bs"
+import "engine/providers/Dispatcher.bs"
+import "engine/animator/Animator.bs"
 
 ' base classes
-import "base/baseWidget.bs"
-import "base/dispatcherCreator.bs"
-import "base/dispatcherExternal.bs"
-import "base/baseReducer.bs"
-import "base/baseModel.bs"
-import "base/baseStack.bs"
-import "base/baseViewModel.bs"
+import "base/BaseWidget.bs"
+import "base/DispatcherCreator.bs"
+import "base/DispatcherExternal.bs"
+import "base/BaseReducer.bs"
+import "base/BaseModel.bs"
+import "base/BaseStack.bs"
+import "base/BaseViewModel.bs"
 
 ' utils
-import "utils/generalUtils.bs"
-import "utils/nodeUtils.bs"
-import "utils/arrayUtils.bs"
+import "utils/GeneralUtils.bs"
+import "utils/NodeUtils.bs"
+import "utils/ArrayUtils.bs"
 
 ' plugins
-import "plugins/dispatcherProviderPlugin.bs"
-import "plugins/fieldsPlugin.bs"
-import "plugins/fontStylePlugin.bs"
-import "plugins/observerPlugin.bs"
-import "plugins/focusPlugin.bs"
+import "plugins/DispatcherProviderPlugin.bs"
+import "plugins/FieldsPlugin.bs"
+import "plugins/FontStylePlugin.bs"
+import "plugins/ObserverPlugin.bs"
+import "plugins/FocusPlugin.bs"
 
 namespace Rotor
 

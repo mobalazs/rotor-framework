@@ -1,4 +1,4 @@
-import "../base/basePlugin.bs"
+import "../base/BasePlugin.bs"
 
 '**
 ' A Brighterscript class for handling custom fields in a widget.

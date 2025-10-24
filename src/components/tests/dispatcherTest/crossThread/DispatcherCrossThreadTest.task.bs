@@ -2,10 +2,10 @@
 import "pkg:/source/rotor/RotorFrameworkTask.bs"
 
 ' Constants
-import "pkg:/components/tests/dispatcherTest/dispatcherTest.const.bs"
+import "pkg:/components/tests/dispatcherTest/DispatcherTest.const.bs"
 
 ' Model and Reducer for Dispatcher
-import "pkg:/components/tests/dispatcherTest/dispatcherTest.dispatcher.bs"
+import "pkg:/components/tests/dispatcherTest/DispatcherTest.dispatcher.bs"
 
 
 sub init()

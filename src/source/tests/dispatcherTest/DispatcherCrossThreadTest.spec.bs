@@ -1,7 +1,7 @@
 import "pkg:/source/rotor/RotorFramework.bs"
-import "pkg:/components/tests/dispatcherTest/dispatcherTest.const.bs"
-import "pkg:/components/tests/dispatcherTest/dispatcherTest.template.bs"
-import "pkg:/components/tests/dispatcherTest/dispatcherTest.dispatcher.bs"
+import "pkg:/components/tests/dispatcherTest/DispatcherTest.const.bs"
+import "pkg:/components/tests/dispatcherTest/DispatcherTest.template.bs"
+import "pkg:/components/tests/dispatcherTest/DispatcherTest.dispatcher.bs"
 
 namespace tests
 

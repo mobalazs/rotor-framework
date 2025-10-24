@@ -1,4 +1,4 @@
-import "tree_base.bs"
+import "TreeBase.bs"
 
 namespace Rotor.ViewBuilder
 

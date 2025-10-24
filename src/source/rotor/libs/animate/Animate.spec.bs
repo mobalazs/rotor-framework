@@ -1,4 +1,4 @@
-import "animate.bs"
+import "Animate.bs"
 
 namespace tests
     @suite
