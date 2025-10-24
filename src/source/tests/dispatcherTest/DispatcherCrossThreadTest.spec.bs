@@ -55,7 +55,7 @@ namespace tests
             else
                 rooibos_promises_internal_delay(function(ctx as dynamic)
                     ctx.waitForReady()
-                end function, m, 0.0005)
+                end function, m, 0.09)
             end if
         end sub
 
