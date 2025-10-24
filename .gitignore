@@ -6,6 +6,7 @@ node_modules
 .roku-deploy-staging
 .env
 ./dist/tests.xml
+lcov.info
 
 # IDE specific
 
