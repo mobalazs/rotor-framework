@@ -7,7 +7,7 @@
 	"scripts": {
 		"build": "bsc  --project bsconfig.json --createPackage=false",
 		"build-tests": "bsc --project bsconfig-tests.json --createPackage=false",
-		"collect-coverage": "node scripts/collect-coverage.js",
+		"build-tests-coverage": "node scripts/collect-coverage.js",
 		"lint": "npx bslint --project bsconfig.json  --lintConfig bslint.json",
 		"linter": "bsc --create-package --copy-to-staging false"
 	},
