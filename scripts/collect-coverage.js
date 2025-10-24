@@ -32,7 +32,7 @@ if (!rokuHost || !rokuPassword) {
 
 // Paths
 const projectRoot = path.join(__dirname, '..');
-const outputFile = path.join(projectRoot, 'lcov.info');
+const outputFile = path.join(projectRoot, 'src', 'source', 'tests', 'lcov.info');
 const debugLogFile = path.join(projectRoot, 'debug.log');
 
 // Flag to track if we're inside the coverage section
