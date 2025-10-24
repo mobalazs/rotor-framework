@@ -1,4 +1,4 @@
-# Rotor Framework v2.0.3
+# Rotor Framework v0.2.3
 
 [![Coverage Status](https://coveralls.io/repos/github/mobalazs/rotor-framework/badge.svg?branch=main)](https://coveralls.io/github/mobalazs/rotor-framework?branch=main)
 [![GitHub package.json version](https://img.shields.io/github/package-json/v/mobalazs/rotor-framework)](https://github.com/mobalazs/rotor-framework/packages)
