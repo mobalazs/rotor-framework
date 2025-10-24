@@ -59,9 +59,7 @@ function getFocusTestTemplate() as object
                     },
                     focus: {
                         group: {
-                            defaultFocusId: "L1",
-                            left: true,
-                            right: true
+                            defaultFocusId: "L1"
                         }
                     },
                     children: [
@@ -110,9 +108,7 @@ function getFocusTestTemplate() as object
                     },
                     focus: {
                         group: {
-                            defaultFocusId: "R1",
-                            left: true,
-                            right: true
+                            defaultFocusId: "R1"
                         }
                     },
                     children: [

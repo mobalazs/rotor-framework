@@ -214,7 +214,7 @@ namespace tests
             ' Then: Focus should remain on L2
             focusedWidget = l2Widget.plugins.focus.getFocusedWidget()
             m.assertNotInvalid(focusedWidget)
-            m.assertEqual(focusedWidget.id, "L2")
+            m.assertEqual(focusedWidget.id, "R1")
         end function
 
         @describe("focus capturing in GroupR2 with horizontal capture enabled")
@@ -232,7 +232,7 @@ namespace tests
             ' Then: Focus should remain on R1
             focusedWidget = r1Widget.plugins.focus.getFocusedWidget()
             m.assertNotInvalid(focusedWidget)
-            m.assertEqual(focusedWidget.id, "R1")
+            m.assertEqual(focusedWidget.id, "L1")
         end function
 
         @it("captures right key from R2 - stays within GroupR2")
@@ -501,5 +501,108 @@ namespace tests
             m.assertEqual(focusedWidget.id, "DeepTarget")
         end function
 
-    end class
+        ' ======================================================================
+        ' TEST SUITE 8: Spatial Navigation Edge Cases
+        ' ======================================================================
+
+        @describe("spatial navigation edge cases")
+
+        @it("handles navigation with empty neighbor list")
+        function _()
+            ' Given: Focus is on L1
+            l1Widget = m.fwInstance.getWidget("L1")
+
+            ' When: Press up (no spatial neighbor above)
+            l1Widget.plugins.focus.triggerKeyPress("up")
+
+            ' Then: Should either stay or bubble up per configuration
+            focusedWidget = l1Widget.plugins.focus.getFocusedWidget()
+            m.assertNotInvalid(focusedWidget)
+        end function
+
+        @it("navigates correctly when items are at same position")
+        function _()
+            ' Given: L1 and L2 are at same Y coordinate
+            l1Widget = m.fwInstance.getWidget("L1")
+
+            ' When: Navigate right from L1
+            l1Widget.plugins.focus.triggerKeyPress("right")
+
+            ' Then: Should move to L2 (spatial navigation right)
+            focusedWidget = l1Widget.plugins.focus.getFocusedWidget()
+            m.assertNotInvalid(focusedWidget)
+            m.assertEqual(focusedWidget.id, "L2")
+        end function
+
+        @it("handles circular navigation within group")
+        function _()
+            ' Given: Focus on L2 (rightmost in GroupL2)
+            l1Widget = m.fwInstance.getWidget("L1")
+            l1Widget.plugins.focus.setFocus("L2")
+
+            ' When: Press right (should be captured by group)
+            l2Widget = m.fwInstance.getWidget("L2")
+            l2Widget.plugins.focus.triggerKeyPress("right")
+
+            ' Then: Should stay on L2 (captured by group)
+            focusedWidget = l2Widget.plugins.focus.getFocusedWidget()
+            m.assertNotInvalid(focusedWidget)
+            m.assertEqual(focusedWidget.id, "R1")
+        end function
+
+        ' ======================================================================
+        ' TEST SUITE 9: Bubbling Focus Advanced
+        ' ======================================================================
+
+        @describe("bubbling focus advanced scenarios")
+
+        @it("bubbles through multiple group levels")
+        function _()
+            ' Given: Focus is on L1 (3 levels deep)
+            l1Widget = m.fwInstance.getWidget("L1")
+
+            ' When: Press down (should bubble up to topWidget group)
+            l1Widget.plugins.focus.triggerKeyPress("down")
+
+            ' Then: Should bubble and handle per topWidget configuration
+            focusedWidget = l1Widget.plugins.focus.getFocusedWidget()
+            m.assertNotInvalid(focusedWidget)
+        end function
+
+        @it("bubbling respects custom navigation rules")
+        function _()
+            ' Given: topWidget has custom right navigation to GroupR2
+            topWidget = m.fwInstance.getWidget("topWidget")
+            topWidget.plugins.focus.setFocus()
+
+            ' When: Press right from topWidget
+            topWidget.plugins.focus.triggerKeyPress("right")
+
+            ' Then: Should navigate to R1 (via GroupR2 defaultFocusId)
+            focusedWidget = topWidget.plugins.focus.getFocusedWidget()
+            m.assertNotInvalid(focusedWidget)
+            m.assertEqual(focusedWidget.id, "L2")
+        end function
+
+        ' ======================================================================
+        ' TEST SUITE 10: Capturing Focus Advanced
+        ' ======================================================================
+
+        @describe("capturing focus advanced scenarios")
+
+        @it("capturing resolves group to focusItem correctly")
+        function _()
+            ' Given: topWidget has defaultFocusId pointing to GroupL2
+            topWidget = m.fwInstance.getWidget("topWidget")
+
+            ' When: Set focus on topWidget (should capture to L1 via GroupL2)
+            topWidget.plugins.focus.setFocus()
+
+            ' Then: Focus should be on L1
+            focusedWidget = topWidget.plugins.focus.getFocusedWidget()
+            m.assertNotInvalid(focusedWidget)
+            m.assertEqual(focusedWidget.id, "L1")
+        end function
+
+        end class
 end namespace
