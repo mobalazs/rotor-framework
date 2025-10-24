@@ -232,10 +232,10 @@ namespace tests
             ' Then: Focus should remain on R1
             focusedWidget = r1Widget.plugins.focus.getFocusedWidget()
             m.assertNotInvalid(focusedWidget)
-            m.assertEqual(focusedWidget.id, "L1")
+            m.assertEqual(focusedWidget.id, "R1")
         end function
 
-        @it("captures right key from R2 - stays within GroupR2")
+        @it("captures right key from R2 - not stays within GroupR2")
         function _()
             ' Given: Focus is moved to R2
             l1Widget = m.fwInstance.getWidget("L1")

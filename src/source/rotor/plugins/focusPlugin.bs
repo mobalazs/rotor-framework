@@ -400,8 +400,8 @@ namespace Rotor
             if isGroup
                 m.setupGroup(HID, config, widget)
             else
-            ' Handle focus item configuration if applicable
-            ' if isFocusItem
+                ' Handle focus item configuration if applicable
+                ' if isFocusItem
                 m.setupFocusItem(HID, config, widget)
             end if
         end sub
@@ -804,11 +804,10 @@ namespace Rotor
 
                 ' Check if the current group is pointing to another group, which has a valid focusItem member - defined by defaultFocusId
                 nodeId = group.getStaticNodeIdInDirection(direction) ' Note that this is a nodeId
-
                 if Rotor.Utils.isBoolean(nodeId)
                     ' It means that focus is handled, and no need further action by plugin.
-                    if nodeId = true
-                        newHID = true ' Note that type changed, so loop will exit
+                    if nodeId = false ' prevent bubbling
+                        newHID = false ' Loop will exit and return false
                     else
                         newHID = ""
                     end if
@@ -886,10 +885,13 @@ namespace Rotor
 
                     ' (2) Try static direction, defined on the focusItem, among possible focusItems
                     nodeId = focused.getStaticNodeIdInDirection(direction) ' Note that this is a nodeId
-
-                    if Rotor.Utils.isBoolean(nodeId) and nodeId = true
-                        ' It means that focus is handled, and no need further action by plugin.
-                        return m.parseOnKeyEventResult(key, true, false)
+                    if Rotor.Utils.isBoolean(nodeId)
+                        if nodeId = false
+                            ' It means that focus is handled, and no need further action by plugin.
+                            return m.parseOnKeyEventResult(key, true, false)
+                        else
+                            nodeId = ""
+                        end if
                     end if
 
                     if nodeId <> ""
@@ -907,7 +909,7 @@ namespace Rotor
                     if newHID = "" and ancestorGroupsCount > 0 ' (5/2) If this focused has parent group, lets try bubbling focus on ancestors (groups)
                         newHID = m.bubblingFocus(parentGroupHID, direction)
                         if Rotor.Utils.isBoolean(newHID)
-                            if newHID = true
+                            if newHID = false
                                 ' It means that focus is handled, and no need further action by plugin.
                                 return m.parseOnKeyEventResult(key, true, false)
                             else

@@ -108,7 +108,8 @@ function getFocusTestTemplate() as object
                     },
                     focus: {
                         group: {
-                            defaultFocusId: "R1"
+                            defaultFocusId: "R1",
+                            left: false
                         }
                     },
                     children: [
@@ -209,10 +210,10 @@ function getFocusTestTemplate() as object
                 focus: {
                     group: {
                         defaultFocusId: "NestedTargetGroup",
-                        left: true,
-                        right: true,
-                        up: true,
-                        down: true
+                        left: false,
+                        right: false,
+                        up: false,
+                        down: false
                     }
                 },
                 children: {
@@ -230,10 +231,10 @@ function getFocusTestTemplate() as object
                         focus: {
                             group: {
                                 defaultFocusId: "FinalTarget",
-                                left: true,
-                                right: true,
-                                up: true,
-                                down: true
+                                left: false,
+                                right: false,
+                                up: false,
+                                down: false
                             }
                         },
                         children: [
