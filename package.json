@@ -4,7 +4,6 @@
 	"description": "A Roku toolkit library providing a ViewBuilder, full UI lifecycle with focus handling and many core features, plus MVI-based state management.",
 	"author": "Balázs Molnár",
 	"license": "MIT",
-	"main": "source/rotor/RotorFramework.bs",
 	"scripts": {
 		"build": "bsc  --project bsconfig.json --createPackage=false",
 		"build-tests": "bsc --project bsconfig-tests.json --createPackage=false",
@@ -15,7 +14,8 @@
 		"prepublishOnly": "npm run build && npm run lint"
 	},
 	"files": [
-		"source/rotor/**/*",
+		"src/source/rotor/**/*",
+		"!src/source/rotor/**/*.spec.bs",
 		"README.md",
 		"LICENSE"
 	],
