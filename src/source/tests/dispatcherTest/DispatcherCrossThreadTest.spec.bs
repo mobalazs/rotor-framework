@@ -24,11 +24,12 @@ namespace tests
     class dispatcherCrossThreadTest extends rooibos.BaseTestSuite
 
         fwInstance as Rotor.Framework
+        isFWReady = false
 
         protected override function setup()
             m.fwInstance = new Rotor.Framework({
                 tasks: ["DispatcherCrossThreadTest"],
-                readyFieldId: "isReady"
+                onReady: sub() m.testsuite.isFWReady = true : end sub
             })
         end function
 
@@ -47,8 +48,7 @@ namespace tests
         end function
 
         private sub waitForReady()
-            rootNode = m.fwInstance.getRootNode()
-            if rootNode?.isReady = true
+            if m.isFWReady = true
                 template = getDispatcherTestTemplate()
                 m.fwInstance.render(template)
                 m.done()
