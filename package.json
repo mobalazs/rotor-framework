@@ -47,6 +47,6 @@
 	"devDependencies": {
 		"@rokucommunity/bslint": "1.0.0-alpha.48",
 		"brighterscript": "1.0.0-alpha.48",
-		"rooibos-roku": "file:/Users/bmolnar/Developer/workspace/rooibos/rooibos-roku-6.0.0-alpha.48.tgz"
+		"rooibos-roku": "file:./vendor/rooibos-roku-6.0.0-alpha.48.tgz"
 	}
 }
