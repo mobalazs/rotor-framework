@@ -32,7 +32,7 @@
 
 	    "projectName": "Rotor Framework",
 		"collectCoverage": true,
-		"coverageReportType": "lcov",
+		"printLcov": true,
 
 		"coverageExcludedFiles": [
 			"**/*.const.bs",
