@@ -1,4 +1,4 @@
-name: Build, Test & Publish
+name: Build, Test & Coverage
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - 'v*.*.*'  # Trigger on version tags: v0.2.3, v1.0.0, etc.
 
 jobs:
-  build-test-publish:
+  build-test-coverage:
     runs-on: self-hosted  # Uses YOUR machine (has Roku device access)
 
     steps:
@@ -19,8 +19,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          registry-url: 'https://npm.pkg.github.com'
-          scope: '@mobalazs'
 
       # 3. Install dependencies
       - name: Install dependencies
@@ -47,9 +45,3 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           file: lcov.info
-
-      # 8. Publish to GitHub Packages
-      - name: Publish to GitHub Packages
-        run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
