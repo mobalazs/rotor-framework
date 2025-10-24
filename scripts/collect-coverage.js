@@ -6,7 +6,7 @@ const path = require('path');
 const net = require('net');
 const http = require('http');
 
-// Load environment variables from .env file
+// Load environment variables from .env file (fallback for local development)
 const envPath = path.join(__dirname, '..', '.env');
 const envVars = {};
 
@@ -20,12 +20,13 @@ if (fs.existsSync(envPath)) {
   });
 }
 
-const rokuHost = envVars.ROKU_DEV_TARGET;
-const rokuPassword = envVars.ROKU_DEV_PASS;
+// Use process.env first (for GitHub Actions), then fall back to .env file
+const rokuHost = process.env.ROKU_DEV_TARGET || envVars.ROKU_DEV_TARGET;
+const rokuPassword = process.env.ROKU_DEV_PASS || envVars.ROKU_DEV_PASS;
 const TELNET_PORT = 8085;
 
 if (!rokuHost || !rokuPassword) {
-  console.error('Error: ROKU_DEV_TARGET and ROKU_DEV_PASS must be set in .env file');
+  console.error('Error: ROKU_DEV_TARGET and ROKU_DEV_PASS must be set (either as environment variables or in .env file)');
   process.exit(1);
 }
 
