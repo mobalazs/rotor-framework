@@ -36,7 +36,7 @@ Let's walk through a complete example of loading and displaying home content usi
 First, we set up the task thread with our state management:
 
 ```brightscript
-// File: src/components/app/taskThread/appTask/appTask.bs
+// File: https://github.com/mobalazs/poc-rotor-framework/blob/main/src/components/app/taskThread/appTask/appTask.bs
 sub task()
     ' Create the home content dispatcher in task thread
     HomeContentModel = new Models.HomeContentModel()
@@ -53,7 +53,7 @@ end sub
 The Model holds our application state:
 
 ```brightscript
-// File: src/components/app/taskThread/appTask/homeContent/homeContentModel.bs
+// File: https://github.com/mobalazs/poc-rotor-framework/blob/main/src/components/app/taskThread/appTask/homeContent/homeContentModel.bs
 namespace Models
     class HomeContentModel extends Model
         state = {
@@ -69,7 +69,7 @@ end namespace
 The Reducer handles Intents and updates the state:
 
 ```brightscript
-// File: src/components/app/taskThread/appTask/homeContent/homeContentReducer.bs
+// File: https://github.com/mobalazs/poc-rotor-framework/blob/main/src/components/app/taskThread/appTask/homeContent/homeContentReducer.bs
 namespace Reducers
     class HomeContentReducer extends Reducer
         
@@ -135,7 +135,7 @@ end namespace
 The View component in the render thread displays the state:
 
 ```brightscript
-// File: src/components/app/renderThread/viewModels/pages/home/homePage.bs
+// File: https://github.com/mobalazs/poc-rotor-framework/blob/main/src/components/app/renderThread/viewModels/pages/home/homePage.bs
 namespace ViewModels
     class HomePage extends ViewModel
         

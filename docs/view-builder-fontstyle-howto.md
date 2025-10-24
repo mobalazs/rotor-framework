@@ -102,7 +102,7 @@ fontStyles: {
 ### 2. Button Component Font Styling
 
 ```brightscript
-// File: src/components/app/renderThread/viewModels/buttons/simpleButton.bs
+// File: https://github.com/mobalazs/poc-rotor-framework/blob/main/src/components/app/renderThread/viewModels/buttons/simpleButton.bs
 {
     id: "buttonLabel",
     nodeType: "Label",
@@ -119,7 +119,7 @@ fontStyles: {
 ### 3. Menu Item with Focus-Dependent Styling
 
 ```brightscript
-// File: src/components/app/renderThread/viewModels/layout/pageMenu/pageMenuItem.bs
+// File: https://github.com/mobalazs/poc-rotor-framework/blob/main/src/components/app/renderThread/viewModels/layout/pageMenu/pageMenuItem.bs
 {
     id: "itemLabel",
     nodeType: "Label",
@@ -140,7 +140,7 @@ fontStyles: {
 ### 4. Page Title with Subtitle
 
 ```brightscript
-// File: src/components/app/renderThread/viewModels/pages/homePage.bs
+// File: https://github.com/mobalazs/poc-rotor-framework/blob/main/src/components/app/renderThread/viewModels/pages/homePage.bs
 {
     id: "viewTitle",
     nodeType: "Label",

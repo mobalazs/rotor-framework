@@ -91,7 +91,7 @@ Monitor multiple fields using array configuration:
 ### 1. Video Player State Monitoring
 
 ```brightscript
-// File: src/components/app/renderThread/viewModels/faders/previewVideo.bs
+// File: https://github.com/mobalazs/poc-rotor-framework/blob/main/src/components/app/renderThread/viewModels/faders/previewVideo.bs
 {
     nodeType: "Video",
     observer: [
@@ -121,7 +121,7 @@ Monitor multiple fields using array configuration:
 ### 2. Auto-Sizing Button with Render Tracking
 
 ```brightscript
-// File: src/components/app/renderThread/viewModels/buttons/simpleButton.bs
+// File: https://github.com/mobalazs/poc-rotor-framework/blob/main/src/components/app/renderThread/viewModels/buttons/simpleButton.bs
 {
     id: "buttonLabel",
     nodeType: "Label",
@@ -145,7 +145,7 @@ Monitor multiple fields using array configuration:
 ### 3. Animation State Observer
 
 ```brightscript
-// File: src/components/app/renderThread/viewModels/pages/moviesPage.bs
+// File: https://github.com/mobalazs/poc-rotor-framework/blob/main/src/components/app/renderThread/viewModels/pages/moviesPage.bs
 {
     nodeType: "Group",
     observer: m.showPageAnimationObserver,

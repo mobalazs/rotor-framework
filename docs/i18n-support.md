@@ -101,7 +101,7 @@ module.exports = function () {
 The JavaScript translations are automatically compiled to BrightScript:
 
 ```brightscript
-// File: src/assets/generated/aaTranslation.brs (auto-generated)
+// File: https://github.com/mobalazs/poc-rotor-framework/blob/main/src/assets/generated/aaTranslation.brs (auto-generated)
 function get_aaTranslation() as Object
     return {
         "en_US": {
@@ -156,7 +156,7 @@ ViewModels automatically receive i18n support through configuration:
 ### 3. Accessing i18n Data in ViewModels
 
 ```brightscript
-// File: src/components/app/renderThread/viewModels/myLocalizedWidget.bs
+// File: https://github.com/mobalazs/poc-rotor-framework/blob/main/src/components/app/renderThread/viewModels/myLocalizedWidget.bs
 namespace ViewModels
     class MyLocalizedWidget extends ViewModel
         
@@ -201,7 +201,7 @@ end namespace
 The most powerful feature is using `@l10n` variable references in field values:
 
 ```brightscript
-// File: src/components/app/renderThread/viewModels/layout/pageMenu/pageMenuItem.bs
+// File: https://github.com/mobalazs/poc-rotor-framework/blob/main/src/components/app/renderThread/viewModels/layout/pageMenu/pageMenuItem.bs
 {
     id: "menuItemLabel",
     nodeType: "Label",
@@ -267,7 +267,7 @@ The most powerful feature is using `@l10n` variable references in field values:
 ### 1. Menu System Localization
 
 ```brightscript
-// File: src/components/app/renderThread/viewModels/layout/pageMenu/pageMenu.bs
+// File: https://github.com/mobalazs/poc-rotor-framework/blob/main/src/components/app/renderThread/viewModels/layout/pageMenu/pageMenu.bs
 namespace ViewModels
     class PageMenu extends ViewModel
         
@@ -430,7 +430,7 @@ i18nService.extendL10n(additionalTranslations)
 npm run precompiler
 
 # 3. Generated file appears at:
-# src/assets/generated/aaTranslation.brs
+# https://github.com/mobalazs/poc-rotor-framework/blob/main/src/assets/generated/aaTranslation.brs
 ```
 
 ### 2. Build Integration

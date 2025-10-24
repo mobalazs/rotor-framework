@@ -87,7 +87,7 @@ focus: {
 ### 1. Simple Button with Focus Styling
 
 ```brightscript
-// File: src/components/app/renderThread/viewModels/buttons/simpleButton.bs
+// File: https://github.com/mobalazs/poc-rotor-framework/blob/main/src/components/app/renderThread/viewModels/buttons/simpleButton.bs
 focus: {
     isEnabled: true,
     onFocusChanged: sub(isFocused as boolean)
@@ -112,7 +112,7 @@ focus: {
 ### 2. Card with Native Focus and Long Press
 
 ```brightscript
-// File: src/components/app/renderThread/viewModels/carousel/cards/defaultCard.bs
+// File: https://github.com/mobalazs/poc-rotor-framework/blob/main/src/components/app/renderThread/viewModels/carousel/cards/defaultCard.bs
 focus: {
     enableNativeFocus: true,
     enableSpatialNavigation: false,
@@ -140,7 +140,7 @@ focus: {
 ### 3. Menu Group with Static Navigation
 
 ```brightscript
-// File: src/components/app/renderThread/viewModels/layout/pageMenu/pageMenu.bs
+// File: https://github.com/mobalazs/poc-rotor-framework/blob/main/src/components/app/renderThread/viewModels/layout/pageMenu/pageMenu.bs
 focus: {
     group: {
         defaultFocusId: "homeMenuItem",
@@ -383,7 +383,7 @@ All injected methods work by:
 ### Usage in Navigation Logic
 
 ```brightscript
-' File: src/components/app/renderThread/viewModels/carousel/common/sdcNavigation.bs
+' File: https://github.com/mobalazs/poc-rotor-framework/blob/main/src/components/app/renderThread/viewModels/carousel/common/sdcNavigation.bs
 sub handleNavigationStart()
     ' Disable focus navigation during animation
     m.plugins.focus.enableFocusNavigation(false)

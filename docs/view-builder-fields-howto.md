@@ -83,7 +83,7 @@ Use functions to compute field values based on current state:
 ### 1. Button with Dynamic Styling
 
 ```brightscript
-// File: src/components/app/renderThread/viewModels/buttons/simpleButton.bs
+// File: https://github.com/mobalazs/poc-rotor-framework/blob/main/src/components/app/renderThread/viewModels/buttons/simpleButton.bs
 {
     id: "buttonLabel",
     nodeType: "Label",
@@ -104,7 +104,7 @@ Use functions to compute field values based on current state:
 ### 2. Menu Item with Focus-Dependent Fields
 
 ```brightscript
-// File: src/components/app/renderThread/viewModels/layout/pageMenu/pageMenuItem.bs
+// File: https://github.com/mobalazs/poc-rotor-framework/blob/main/src/components/app/renderThread/viewModels/layout/pageMenu/pageMenuItem.bs
 {
     id: "itemLabel",
     nodeType: "Label",
@@ -128,7 +128,7 @@ Use functions to compute field values based on current state:
 ### 3. Icon with Dynamic Translation
 
 ```brightscript
-// File: src/components/app/renderThread/viewModels/layout/pageMenu/pageMenuItem.bs
+// File: https://github.com/mobalazs/poc-rotor-framework/blob/main/src/components/app/renderThread/viewModels/layout/pageMenu/pageMenuItem.bs
 {
     id: "itemIcon",
     nodeType: "Poster",
@@ -153,7 +153,7 @@ Use functions to compute field values based on current state:
 ### 4. Page Title with Variable Interpolation
 
 ```brightscript
-// File: src/components/app/renderThread/viewModels/pages/home/homePage.bs
+// File: https://github.com/mobalazs/poc-rotor-framework/blob/main/src/components/app/renderThread/viewModels/pages/home/homePage.bs
 {
     id: "viewTitle",
     nodeType: "Label",
