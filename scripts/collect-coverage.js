@@ -33,12 +33,16 @@ if (!rokuHost || !rokuPassword) {
 // Paths
 const projectRoot = path.join(__dirname, '..');
 const outputFile = path.join(projectRoot, 'lcov.info');
+const debugLogFile = path.join(projectRoot, 'debug.log');
 
 // Flag to track if we're inside the coverage section
 let isCapturing = false;
 
 // Array to store coverage lines
 const coverageLines = [];
+
+// Array to store all terminal output for debug log
+const debugLog = [];
 
 console.log('Starting build and deploy to Roku device...');
 console.log(`Target: ${rokuHost}`);
@@ -86,6 +90,9 @@ buildProcess.on('close', (code) => {
   telnetClient.on('data', (data) => {
     const output = data.toString();
     telnetBuffer += output;
+
+    // Store all output for debug log
+    debugLog.push(output);
 
     // Split by lines and process each line
     const lines = output.split('\n');
@@ -187,12 +194,19 @@ function writeCoverageAndExit(telnetClient) {
     telnetClient.end();
   }
 
+  // Write full debug log to debug.log
+  if (debugLog.length > 0) {
+    const debugLogContent = debugLog.join('');
+    fs.writeFileSync(debugLogFile, debugLogContent, 'utf8');
+    console.log(`\nFull debug log written to: ${debugLogFile}`);
+  }
+
   // Write captured coverage lines to lcov.info
   if (coverageLines.length > 0) {
     const lcovContent = coverageLines.join('\n') + '\n';
 
     fs.writeFileSync(outputFile, lcovContent, 'utf8');
-    console.log(`\nCoverage data written to: ${outputFile}`);
+    console.log(`Coverage data written to: ${outputFile}`);
     console.log(`Total lines captured: ${coverageLines.length}`);
 
     // Send exit signal to device before exiting
