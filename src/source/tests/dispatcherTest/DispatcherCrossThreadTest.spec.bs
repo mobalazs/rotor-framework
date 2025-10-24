@@ -24,11 +24,12 @@ namespace tests
     class dispatcherCrossThreadTest extends rooibos.BaseTestSuite
 
         fwInstance as Rotor.Framework
+        isFWReady = false
 
         protected override function setup()
             m.fwInstance = new Rotor.Framework({
                 tasks: ["DispatcherCrossThreadTest"],
-                readyFieldId: "isReady"
+                onReady: sub() m.testsuite.isFWReady = true : end sub
             })
         end function
 
@@ -40,22 +41,21 @@ namespace tests
 
         @describe("task-thread dispatcher delivers state to render thread")
 
-        @async()
+        @async(8000)
         @it("awaits task-ready signal before assertions")
         function _()
             m.waitForReady()
         end function
 
         private sub waitForReady()
-            rootNode = m.fwInstance.getRootNode()
-            if rootNode?.isReady = true
+            if m.isFWReady = true
                 template = getDispatcherTestTemplate()
                 m.fwInstance.render(template)
                 m.done()
             else
                 rooibos_promises_internal_delay(function(ctx as dynamic)
                     ctx.waitForReady()
-                end function, m, 0.09)
+                end function, m, 2)
             end if
         end sub
 

@@ -41,7 +41,7 @@ namespace Rotor
     class Framework
 
         name = "Rotor Framework"
-        version = "0.2.2"
+        version = "0.2.3"
 
         config = {
             tasks: invalid, ' @array    (optional)

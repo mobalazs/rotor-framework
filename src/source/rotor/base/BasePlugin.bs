@@ -11,7 +11,7 @@ namespace Rotor
         isEnabled = true
 
         key as string ' property identifier
-        hooks as object ' widget lifecycle hooks
+        ' hooks as object ' widget lifecycle hooks
         scope as object ' plugin scope (plugin functions is available from `m`scope in plugin definitions)
         params as object ' plugin params
 
