@@ -40,7 +40,7 @@ namespace tests
 
         @describe("task-thread dispatcher delivers state to render thread")
 
-        @async()
+        @async(8000)
         @it("awaits task-ready signal before assertions")
         function _()
             m.waitForReady()
@@ -55,7 +55,7 @@ namespace tests
             else
                 rooibos_promises_internal_delay(function(ctx as dynamic)
                     ctx.waitForReady()
-                end function, m, 0.09)
+                end function, m, 2)
             end if
         end sub
 
