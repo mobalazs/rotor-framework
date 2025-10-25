@@ -2,6 +2,7 @@ name: Build, Lint, Coverage & Release
 
 on:
   push:
+    branches: [ main ]
     tags:
       - 'v*.*.*'  # Trigger on version tags: v0.2.3, v1.0.0, etc.
 
