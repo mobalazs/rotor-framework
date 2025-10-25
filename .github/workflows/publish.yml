@@ -1,4 +1,4 @@
-name: Build, Test & Coverage
+name: Build, Lint, Coverage & Release
 
 on:
   push:
@@ -6,8 +6,8 @@ on:
       - 'v*.*.*'  # Trigger on version tags: v0.2.3, v1.0.0, etc.
 
 jobs:
-  build-test-coverage:
-    runs-on: self-hosted  # Uses YOUR machine (has Roku device access)
+  build-and-release:
+    runs-on: self-hosted
 
     steps:
       # 1. Checkout code
@@ -24,27 +24,27 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # 4. Build project
-      - name: Build project
-        run: npm run build
-
-      # 5. Lint code
+      # 4. Lint code
       - name: Lint code
         run: npm run lint
 
-      # 6. Run tests with coverage on Roku device
+      # 5. Run tests and collect coverage
       - name: Run tests and collect coverage
         env:
           ROKU_DEV_TARGET: ${{ secrets.ROKU_DEV_TARGET }}
           ROKU_DEV_PASS: ${{ secrets.ROKU_DEV_PASS }}
         run: npm run collect-coverage
 
-      # 7. Upload coverage to Coveralls
+      # 6. Upload coverage to Coveralls
       - name: Upload coverage to Coveralls
         uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           file: lcov.info
+
+      # 7. Build and create Roku package (ZIP)
+      - name: Build and create Roku package
+        run: npx bsc --project bsconfig.json --createPackage=true
 
       # 8. Create GitHub Release and upload package
       - name: Create Release
