@@ -9,6 +9,8 @@
 		"build-tests": "bsc --project bsconfig-tests.json --createPackage=false",
 		"test": "bsc --project bsconfig-tests.json --createPackage=false",
 		"collect-coverage": "node scripts/collect-coverage.js",
+		"fix-coverage": "node scripts/fix-coverage-paths.js",
+		"coverage": "npm run collect-coverage && npm run fix-coverage",
 		"lint": "npx bslint --project bsconfig.json  --lintConfig bslint.json",
 		"linter": "bsc --create-package --copy-to-staging false",
 		"prepublishOnly": "npm run build && npm run lint"

@@ -35,12 +35,9 @@ jobs:
           ROKU_DEV_PASS: ${{ secrets.ROKU_DEV_PASS }}
         run: npm run collect-coverage
 
-      # 5b. Map .brs → .bs for source files and remove generated files
+      # 5b. Fix coverage file paths (.brs → .bs, remove generated files)
       - name: Fix coverage file paths
-        run: |
-          sed -i '' -E 's#^(SF:source/.+)\.brs$#\1.bs#' coverage.lcov
-          sed -i '' -E 's#^(SF:components/tests/.+)\.brs$#\1.bs#' coverage.lcov
-          sed -i '' '/^SF:components\/rooibos\/generated\//,/^end_of_record$/d' coverage.lcov
+        run: node scripts/fix-coverage-paths.js
 
       # 6. Upload coverage to Coveralls
       - name: Upload coverage to Coveralls
