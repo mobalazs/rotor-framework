@@ -41,6 +41,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           file: coverage.lcov
+          base-path: src
 
       # 7. Build and create Roku package (ZIP)
       - name: Build and create Roku package
