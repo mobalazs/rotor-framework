@@ -117,9 +117,8 @@ buildProcess.on('close', (code) => {
 
       // Capture lines between markers (skip unwanted lines)
       if (isCapturing && line.trim() !== '') {
-        // Skip Rooibos debug messages and markers
-        if (!line.includes('Generating lcov.info file') &&
-            !line.includes('end_of_record')) {
+        // Skip Rooibos debug messages
+        if (!line.includes('Generating lcov.info file')) {
           coverageLines.push(line);
         }
       }
