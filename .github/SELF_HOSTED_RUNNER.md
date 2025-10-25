@@ -107,7 +107,7 @@ Note: The GitHub Actions workflow will override these values with the secrets co
 
 ### Coverage Upload Fails
 - Ensure repository is added on coveralls.io
-- Check that `lcov.info` file was generated in the workspace
+- Check that `coverage.lcov` file was generated in the workspace
 - Verify the workflow has the correct repo path in the badge URL
 
 ### Tests Timeout

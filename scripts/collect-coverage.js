@@ -32,7 +32,7 @@ if (!rokuHost || !rokuPassword) {
 
 // Paths
 const projectRoot = path.join(__dirname, '..');
-const outputFile = path.join(projectRoot, 'src', 'source', 'tests', 'lcov.info');
+const outputFile = path.join(projectRoot, 'coverage.lcov');
 const debugLogFile = path.join(projectRoot, 'debug.log');
 
 // Flag to track if we're inside the coverage section
@@ -117,9 +117,8 @@ buildProcess.on('close', (code) => {
 
       // Capture lines between markers (skip unwanted lines)
       if (isCapturing && line.trim() !== '') {
-        // Skip Rooibos debug messages and markers
-        if (!line.includes('Generating lcov.info file') &&
-            !line.includes('end_of_record')) {
+        // Skip Rooibos debug messages
+        if (!line.includes('Generating')) {
           coverageLines.push(line);
         }
       }
@@ -201,7 +200,7 @@ function writeCoverageAndExit(telnetClient) {
     console.log(`\nFull debug log written to: ${debugLogFile}`);
   }
 
-  // Write captured coverage lines to lcov.info
+  // Write captured coverage lines to coverage.lcov
   if (coverageLines.length > 0) {
     const lcovContent = coverageLines.join('\n') + '\n';
 

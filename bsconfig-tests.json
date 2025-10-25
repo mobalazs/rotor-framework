@@ -43,10 +43,10 @@
 			"source/Main.brs",
 			"components/rooibos/CodeCoverage.brs",
 			"components/MainScene.bs",
-			"source/rotor/engine/constants.bs",
+			"source/rotor/engine/Constants.bs",
 			"**/roku_modules/**/*",
 			"source/rotor/libs/**/*",
-			"source/rotor/base/baseWidget.bs"
+			"source/rotor/base/BaseWidget.bs"
 		]
 	},
 
