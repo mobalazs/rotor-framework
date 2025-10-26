@@ -14,8 +14,7 @@ namespace Rotor
         ' hooks as object ' widget lifecycle hooks
         scope as object ' plugin scope (plugin functions is available from `m`scope in plugin definitions)
         params as object ' plugin params
-
-        widgetMethods as object ' methods will be available on widgets (only for FEATURE_PLUGIN type)
+        ' widgetMethods as object ' methods will be available on widgets (only for FEATURE_PLUGIN type)
 
     end class
 
