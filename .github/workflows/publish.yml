@@ -32,6 +32,10 @@ jobs:
       - name: Lint code
         run: npm run lint
 
+      # 4.5. Clean build artifacts
+      - name: Clean build artifacts
+        run: rm -rf out
+
       # 5. Run tests and collect coverage
       - name: Run tests and collect coverage
         env:
