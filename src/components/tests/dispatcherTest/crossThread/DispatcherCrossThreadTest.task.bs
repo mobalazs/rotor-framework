@@ -10,17 +10,14 @@ import "pkg:/components/tests/dispatcherTest/DispatcherTest.dispatcher.bs"
 
 sub init()
     m.top.functionName = "task"
-    m.appFw = new Rotor.FrameworkTask()
+    m.appFw = new Rotor.FrameworkTask({
+        ' tasks: ["AnotherTask1", "AnotherTask2"] ' optional
+    })
 
-    ' Note that you can add more Tasks here
-    ' m.appFw = new Rotor.FrameworkTask({
-    '     tasks: ["AnotherTask1", "AnotherTask2"] ' optional
-    ' })
 
 end sub
 
 sub task()
-
     ' Create Foo Dispatcher (Owned by this Task)
     m.fooDispatcher = test.createFooDispatcher()
 

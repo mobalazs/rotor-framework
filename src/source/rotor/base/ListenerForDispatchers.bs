@@ -5,7 +5,7 @@ end interface
 
 class ListenerForDispatchers
 
-    listeners as object
+    listeners = []
 
     sub notifyListeners(state as object)
 

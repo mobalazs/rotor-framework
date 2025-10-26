@@ -18,7 +18,6 @@ namespace Rotor
         taskNode as object
         threadType as string
         isExternal = true
-        listeners = []
         isStateObserved = false
 
         sub dispatch(intent as Intent)

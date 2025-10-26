@@ -31,6 +31,9 @@ namespace tests
                 tasks: ["DispatcherCrossThreadTest"],
                 onReady: sub() m.testsuite.isFWReady = true : end sub
             })
+            ' Template will be queued because framework prepared for deferred rendering until Task Ready state.
+            template = getDispatcherTestTemplate()
+            m.fwInstance.render(template)
         end function
 
         protected override function beforeEach()
@@ -49,8 +52,6 @@ namespace tests
 
         private sub waitForReady()
             if m.isFWReady = true
-                template = getDispatcherTestTemplate()
-                m.fwInstance.render(template)
                 m.done()
             else
                 rooibos_promises_internal_delay(function(ctx as dynamic)
