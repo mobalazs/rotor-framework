@@ -1,3 +1,12 @@
+'''''''''
+' ▗▄▄▖  ▗▄▖▗▄▄▄▖▗▄▖ ▗▄▄▖     ▗▄▄▄▖▗▄▄▖  ▗▄▖ ▗▖  ▗▖▗▄▄▄▖▗▖ ▗▖ ▗▄▖ ▗▄▄▖ ▗▖ ▗▖
+' ▐▌ ▐▌▐▌ ▐▌ █ ▐▌ ▐▌▐▌ ▐▌    ▐▌   ▐▌ ▐▌▐▌ ▐▌▐▛▚▞▜▌▐▌   ▐▌ ▐▌▐▌ ▐▌▐▌ ▐▌▐▌▗▞▘
+' ▐▛▀▚▖▐▌ ▐▌ █ ▐▌ ▐▌▐▛▀▚▖    ▐▛▀▀▘▐▛▀▚▖▐▛▀▜▌▐▌  ▐▌▐▛▀▀▘▐▌ ▐▌▐▌ ▐▌▐▛▀▚▖▐▛▚▖
+' ▐▌ ▐▌▝▚▄▞▘ █ ▝▚▄▞▘▐▌ ▐▌    ▐▌   ▐▌ ▐▌▐▌ ▐▌▐▌  ▐▌▐▙▄▄▖▐▙█▟▌▝▚▄▞▘▐▌ ▐▌▐▌ ▐▌
+' Rotor Framework™               © 2025 Balázs Molnár. All rights reserved.
+' Version 0.2.3
+'''''''''
+
 ' constants
 import "engine/Constants.bs"
 
@@ -18,14 +27,47 @@ import "utils/NodeUtils.bs"
 import "utils/ArrayUtils.bs"
 
 namespace Rotor
-
-    '''''''''
-    ' ▗▄▄▖  ▗▄▖▗▄▄▄▖▗▄▖ ▗▄▄▖     ▗▄▄▄▖▗▄▄▖  ▗▄▖ ▗▖  ▗▖▗▄▄▄▖▗▖ ▗▖ ▗▄▖ ▗▄▄▖ ▗▖ ▗▖
-    ' ▐▌ ▐▌▐▌ ▐▌ █ ▐▌ ▐▌▐▌ ▐▌    ▐▌   ▐▌ ▐▌▐▌ ▐▌▐▛▚▞▜▌▐▌   ▐▌ ▐▌▐▌ ▐▌▐▌ ▐▌▐▌▗▞▘
-    ' ▐▛▀▚▖▐▌ ▐▌ █ ▐▌ ▐▌▐▛▀▚▖    ▐▛▀▀▘▐▛▀▚▖▐▛▀▜▌▐▌  ▐▌▐▛▀▀▘▐▌ ▐▌▐▌ ▐▌▐▛▀▚▖▐▛▚▖
-    ' ▐▌ ▐▌▝▚▄▞▘ █ ▝▚▄▞▘▐▌ ▐▌    ▐▌   ▐▌ ▐▌▐▌ ▐▌▐▌  ▐▌▐▙▄▄▖▐▙█▟▌▝▚▄▞▘▐▌ ▐▌▐▌ ▐▌
-    ' Rotor Framework™               © 2025 Balázs Molnár. All rights reserved.
-    '''''''''
+    '--------------------------------------------------------------------------
+    ' @class FrameworkTask
+    ' @description Task thread version of the Rotor Framework that enables cross-thread MVI
+    '              (Model-View-Intent) architecture. This class manages state and dispatchers
+    '              on a separate task thread, allowing heavy computations and state management
+    '              to run off the render thread for better performance.
+    '
+    ' @config Configuration object with the following properties:
+    '   - tasks (Array, optional): List of additional task node names to synchronize with.
+    '                              Allows multiple task threads to communicate and share
+    '                              dispatchers across different threads.
+    '
+    ' @usage
+    '   The FrameworkTask must be instantiated in the task's init() function and the sync()
+    '   method MUST be called at the end of your task function to establish the message loop.
+    '
+    '   IMPORTANT: The sync() method creates an infinite loop that handles cross-thread
+    '              communication and dispatcher synchronization. This call should be the
+    '              LAST statement in your task function, after all dispatcher initialization.
+    '
+    ' @example
+    '   ' File: MyTask.task.bs
+    '   import "pkg:/source/rotor/RotorFrameworkTask.bs"
+    '   import "pkg:/source/MyDispatcher.bs"
+    '
+    '   sub init()
+    '       m.top.functionName = "task"
+    '       m.appFw = new Rotor.FrameworkTask({
+    '           tasks: ["AnotherTask"] ' optional - other tasks to sync with
+    '       })
+    '   end sub
+    '
+    '   sub task()
+    '       ' Initialize your dispatchers
+    '       m.fooDispatcher = createFooDispatcher()
+    '       m.barDispatcher = createBarDispatcher()
+    '
+    '       ' IMPORTANT: sync() must be the last call - it starts the message loop
+    '       m.appFw.sync()
+    '   end sub
+    '--------------------------------------------------------------------------
     class FrameworkTask
 
         name = "Rotor Framework"
