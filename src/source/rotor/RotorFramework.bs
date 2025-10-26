@@ -350,6 +350,7 @@ namespace Rotor
 
         ' Notify ready in 3 ways.
         sub isReady()
+            m.builder.renderQueueFlush()
 
             ' Notify ready state on rotorSync field
             m.getRootNode().setField("rotorSync", {
@@ -360,7 +361,6 @@ namespace Rotor
             if Rotor.Utils.isFunction(m.config.onReady)
                 Rotor.Utils.callbackScoped(m.config.onReady, GetGlobalAA())
             end if
-            m.builder.renderQueueFlush()
 
             ' Notify ready state on rotorSync field
             if m.config.readyFieldId <> invalid
