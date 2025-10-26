@@ -62,7 +62,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: out/*.zip
-          generate_release_notes: false
+          generate_release_notes: true
           draft: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
