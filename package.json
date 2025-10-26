@@ -1,19 +1,18 @@
 {
 	"name": "@mobalazs/rotor-framework",
-	"version": "0.2.3",
+	"version": "0.2.4",
 	"description": "A Roku toolkit library providing a ViewBuilder, full UI lifecycle with focus handling and many core features, plus MVI-based state management.",
 	"author": "Balázs Molnár",
 	"license": "MIT",
 	"scripts": {
 		"build": "bsc  --project bsconfig.json --createPackage=false",
 		"build-tests": "bsc --project bsconfig-tests.json --createPackage=false",
-		"test": "bsc --project bsconfig-tests.json --createPackage=false",
+		"coverage": "npm run collect-coverage && npm run fix-coverage",
 		"collect-coverage": "node scripts/collect-coverage.js",
 		"fix-coverage": "node scripts/fix-coverage-paths.js",
-		"coverage": "npm run collect-coverage && npm run fix-coverage",
 		"lint": "npx bslint --project bsconfig.json  --lintConfig bslint.json",
 		"linter": "bsc --create-package --copy-to-staging false",
-		"prepublishOnly": "npm run build && npm run lint"
+		"update-version": "node scripts/update-version.js"
 	},
 	"files": [
 		"src/source/rotor/**/*",

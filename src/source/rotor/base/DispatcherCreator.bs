@@ -1,6 +1,5 @@
 import "ListenerForDispatchers.bs"
 
-
 namespace Rotor
 
     function createDispatcher(customDispatcherId as string, modelInstance as Model, reducerInstance as Reducer) as Dispatcher

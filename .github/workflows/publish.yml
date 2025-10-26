@@ -2,7 +2,6 @@ name: Build, Lint, Coverage & Release
 
 on:
   push:
-    branches: [ main ]
     tags:
       - 'v*.*.*'  # Trigger on version tags: v0.2.3, v1.0.0, etc.
 
@@ -51,15 +50,18 @@ jobs:
           file: coverage.lcov
           base-path: src
 
-      # 7. Build and create Roku package (ZIP)
-      - name: Build and create Roku package
-        run: npx bsc --project bsconfig.json --createPackage=true
+      # 7. Create source package (ZIP with raw .bs files)
+      - name: Create source package
+        run: |
+          mkdir -p out
+          zip -r out/rotor-framework.zip README.md LICENCE.md src/source/rotor
 
       # 8. Create GitHub Release and upload package
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           files: out/*.zip
-          generate_release_notes: false
+          generate_release_notes: true
+          draft: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

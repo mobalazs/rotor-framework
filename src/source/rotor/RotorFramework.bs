@@ -1,3 +1,12 @@
+'''''''''
+' ▗▄▄▖  ▗▄▖▗▄▄▄▖▗▄▖ ▗▄▄▖     ▗▄▄▄▖▗▄▄▖  ▗▄▖ ▗▖  ▗▖▗▄▄▄▖▗▖ ▗▖ ▗▄▖ ▗▄▄▖ ▗▖ ▗▖
+' ▐▌ ▐▌▐▌ ▐▌ █ ▐▌ ▐▌▐▌ ▐▌    ▐▌   ▐▌ ▐▌▐▌ ▐▌▐▛▚▞▜▌▐▌   ▐▌ ▐▌▐▌ ▐▌▐▌ ▐▌▐▌▗▞▘
+' ▐▛▀▚▖▐▌ ▐▌ █ ▐▌ ▐▌▐▛▀▚▖    ▐▛▀▀▘▐▛▀▚▖▐▛▀▜▌▐▌  ▐▌▐▛▀▀▘▐▌ ▐▌▐▌ ▐▌▐▛▀▚▖▐▛▚▖
+' ▐▌ ▐▌▝▚▄▞▘ █ ▝▚▄▞▘▐▌ ▐▌    ▐▌   ▐▌ ▐▌▐▌ ▐▌▐▌  ▐▌▐▙▄▄▖▐▙█▟▌▝▚▄▞▘▐▌ ▐▌▐▌ ▐▌
+' Rotor Framework™               © 2025 Balázs Molnár. All rights reserved.
+' Version 0.2.4
+'''''''''
+
 ' constants
 import "engine/Constants.bs"
 
@@ -31,17 +40,56 @@ import "plugins/FocusPlugin.bs"
 
 namespace Rotor
 
-    '''''''''
-    ' ▗▄▄▖  ▗▄▖▗▄▄▄▖▗▄▖ ▗▄▄▖     ▗▄▄▄▖▗▄▄▖  ▗▄▖ ▗▖  ▗▖▗▄▄▄▖▗▖ ▗▖ ▗▄▖ ▗▄▄▖ ▗▖ ▗▖
-    ' ▐▌ ▐▌▐▌ ▐▌ █ ▐▌ ▐▌▐▌ ▐▌    ▐▌   ▐▌ ▐▌▐▌ ▐▌▐▛▚▞▜▌▐▌   ▐▌ ▐▌▐▌ ▐▌▐▌ ▐▌▐▌▗▞▘
-    ' ▐▛▀▚▖▐▌ ▐▌ █ ▐▌ ▐▌▐▛▀▚▖    ▐▛▀▀▘▐▛▀▚▖▐▛▀▜▌▐▌  ▐▌▐▛▀▀▘▐▌ ▐▌▐▌ ▐▌▐▛▀▚▖▐▛▚▖
-    ' ▐▌ ▐▌▝▚▄▞▘ █ ▝▚▄▞▘▐▌ ▐▌    ▐▌   ▐▌ ▐▌▐▌ ▐▌▐▌  ▐▌▐▙▄▄▖▐▙█▟▌▝▚▄▞▘▐▌ ▐▌▐▌ ▐▌
-    ' Rotor Framework™               © 2025 Balázs Molnár. All rights reserved.
-    '''''''''
+    '--------------------------------------------------------------------------
+    ' @class Framework
+    ' @description Main Rotor Framework class that orchestrates the entire framework ecosystem.
+    '              Provides a reactive, component-based architecture for building Roku applications
+    '              with unidirectional data flow, cross-thread state management, and plugin system.
+    '
+    ' @config Configuration object with the following properties:
+    '   - tasks (Array, optional): List of task node names to synchronize with the render thread.
+    '                              When specified, the framework waits for all tasks to initialize
+    '                              before enabling rendering and calling onReady.
+    '
+    '   - onReady (Function, optional): Callback function invoked when the framework is fully
+    '                                   initialized and all tasks are synced. Called in global scope.
+    '
+    '   - rootNode (roSGNode, optional): The root SceneGraph node for the framework. Defaults to
+    '                                    the global 'top' node if not specified.
+    '
+    '   - readyFieldId (String, optional): Field name to add to the root node that will be set to
+    '                                      true when the framework is ready. Useful for triggering
+    '                                      observers when initialization completes.
+    '
+    '   - nodePool (Array, optional): Array of node pool configurations for pre-instantiating
+    '                                 SceneGraph nodes to improve rendering performance.
+    '                                 Format: [{ nodeType: "Label", count: 10 }, ...]
+    '
+    '   - debug (Object): Debug configuration options
+    '       - autoSetNodeId (Boolean): Automatically set node IDs for debugging (default: false)
+    '
+    '   - plugins (Array): List of plugin instances to register with the framework.
+    '                      Default plugins include: FieldsPlugin, FontStylePlugin, FocusPlugin,
+    '                      DispatcherProviderPlugin, ObserverPlugin
+    '
+    ' @example
+    '     framework = new Rotor.Framework({
+    '         tasks: ["DataTask", "NetworkTask"],
+    '         rootNode: m.top,
+    '         readyFieldId: "appReady",
+    '         onReady: sub()
+    '             print "Framework ready!"
+    '         end sub,
+    '         nodePool: [
+    '             { nodeType: "Label", count: 20 },
+    '             { nodeType: "Rectangle", count: 10 }
+    '         ]
+    '     })
+    '--------------------------------------------------------------------------
     class Framework
 
         name = "Rotor Framework"
-        version = "0.2.3"
+        version = "0.2.4"
 
         config = {
             tasks: invalid, ' @array    (optional)
@@ -350,6 +398,7 @@ namespace Rotor
 
         ' Notify ready in 3 ways.
         sub isReady()
+            m.builder.renderQueueFlush()
 
             ' Notify ready state on rotorSync field
             m.getRootNode().setField("rotorSync", {
@@ -360,7 +409,6 @@ namespace Rotor
             if Rotor.Utils.isFunction(m.config.onReady)
                 Rotor.Utils.callbackScoped(m.config.onReady, GetGlobalAA())
             end if
-            m.builder.renderQueueFlush()
 
             ' Notify ready state on rotorSync field
             if m.config.readyFieldId <> invalid

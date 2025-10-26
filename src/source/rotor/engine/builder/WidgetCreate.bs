@@ -106,9 +106,9 @@ namespace Rotor.ViewBuilder
             return m.getFrameworkInstance().dispatcherProvider.getFacade(dispatcherId, m)
         end function
 
-        widget.createDispatcher = function(customDispatcherId as string, modelInstance as Model, reducerInstance as Reducer) as object
-            Rotor.createDispatcher(customDispatcherId, modelInstance, reducerInstance)
-            return m.getDispatcher(customDispatcherId)
+        widget.createDispatcher = function(dispatcherId as string, modelInstance as Model, reducerInstance as Reducer) as object
+            Rotor.createDispatcher(dispatcherId, modelInstance, reducerInstance)
+            return m.getDispatcher(dispatcherId)
         end function
 
         widget.animator = function(animatorId) as object

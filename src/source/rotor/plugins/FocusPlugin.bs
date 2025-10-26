@@ -67,8 +67,8 @@ namespace Rotor
     '** RULE #2: FocusItem Direction Values
     '**   - String (Node ID): Static navigation to that element
     '**   - Function: Dynamic, evaluated at runtime
-    '**   - true: Blocks the direction (nothing happens)
-    '**   - false/undefined: Spatial navigation attempts
+    '**   - false: Blocks the direction (nothing happens)
+    '**   - true/undefined/empty string: Spatial navigation attempts
     '**
     '** RULE #3: Navigation Priority (Decreasing Order)
     '**   1. FocusItem static direction (left: "button2")
@@ -541,10 +541,6 @@ namespace Rotor
                 return false ' Indicate focus change failed
             end if
 
-            ' #if debug
-            ' Rotor.Utils.BasicLogger(`[PLUGIN][FOCUS] Resolved focus request for ref "${ref}" to FocusItem ID: ${focusItem.id} (HID: ${focusItem.HID})`)
-            ' #end if
-
             ' Found a valid focusItem to target
             HID = focusItem.HID
 
@@ -553,7 +549,6 @@ namespace Rotor
             ' Note: Handling blur when already blurred might be needed depending on desired logic, currently allows blurring focused item.
 
             ' Cannot focus an invisible item.
-            ' TODO: future improvement: make this condition optional and also make also for opacity = 0
             if focusItem.node.visible = false and isFocused = true then return false
 
             ' Determine if native focus should be enabled (request or item default)
@@ -804,10 +799,11 @@ namespace Rotor
 
                 ' Check if the current group is pointing to another group, which has a valid focusItem member - defined by defaultFocusId
                 nodeId = group.getStaticNodeIdInDirection(direction) ' Note that this is a nodeId
+
                 if Rotor.Utils.isBoolean(nodeId)
                     ' It means that focus is handled, and no need further action by plugin.
-                    if nodeId = false ' prevent bubbling
-                        newHID = false ' Loop will exit and return false
+                    if nodeId = true
+                        newHID = true ' Note that type changed, so loop will exit
                     else
                         newHID = ""
                     end if
@@ -885,13 +881,10 @@ namespace Rotor
 
                     ' (2) Try static direction, defined on the focusItem, among possible focusItems
                     nodeId = focused.getStaticNodeIdInDirection(direction) ' Note that this is a nodeId
-                    if Rotor.Utils.isBoolean(nodeId)
-                        if nodeId = false
-                            ' It means that focus is handled, and no need further action by plugin.
-                            return m.parseOnKeyEventResult(key, true, false)
-                        else
-                            nodeId = ""
-                        end if
+
+                    if Rotor.Utils.isBoolean(nodeId) and nodeId = true
+                        ' It means that focus is handled, and no need further action by plugin.
+                        return m.parseOnKeyEventResult(key, true, false)
                     end if
 
                     if nodeId <> ""
@@ -909,7 +902,7 @@ namespace Rotor
                     if newHID = "" and ancestorGroupsCount > 0 ' (5/2) If this focused has parent group, lets try bubbling focus on ancestors (groups)
                         newHID = m.bubblingFocus(parentGroupHID, direction)
                         if Rotor.Utils.isBoolean(newHID)
-                            if newHID = false
+                            if newHID = true
                                 ' It means that focus is handled, and no need further action by plugin.
                                 return m.parseOnKeyEventResult(key, true, false)
                             else

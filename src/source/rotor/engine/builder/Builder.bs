@@ -81,8 +81,6 @@ namespace Rotor.ViewBuilder
                 params.delete("callbackScope")
             end if
 
-            ' print "[DEBUG][MEASUREMENT] Process took: " + m.timer.TotalMilliseconds().ToStr() + " ms"
-
             if (m.isRenderProcessing = true and isNextProcess = false) or m.frameworkInstance.enableRendering = false
                 m.renderQueue.push({
                     payload: payload,
@@ -94,10 +92,8 @@ namespace Rotor.ViewBuilder
 
             m.timer.Mark()
             m.processor.run(m.postProcessBuffer, "0", payload, params)
-            ' print "[VIEW_BUILDER MEASUREMENT] (1) PROCESSES took: " + m.timer.TotalMilliseconds().ToStr() + " ms"
             m.timer.Mark()
             m.postProcessor.run(m.postProcessBuffer)
-            ' print "[VIEW_BUILDER MEASUREMENT] (2) PostProcess took: " + m.timer.TotalMilliseconds().ToStr() + " ms"
             m.postProcessBuffer.clearLifeCycleBuffers()
 
             if m.renderQueue.Count() > 0
@@ -114,15 +110,6 @@ namespace Rotor.ViewBuilder
                 end while
 
             end if
-
-            ' #if debug
-            '     unParentedRootCount = GetGlobalAA().top.getRoots().Count()
-            '     ' print " [CUSTOM DEBUG] builder/builder.bs [104] :: unParentedRootCount : "; unParentedRootCount
-            '     if unParentedRootCount > 100
-            '         ' unParented = GetGlobalAA().top.getRootsMeta()
-            '         ' throw { message: `[WARNING] UnParented roots count = ${unParentedRootCount}` }
-            '     end if
-            ' #end if
 
         end sub
 

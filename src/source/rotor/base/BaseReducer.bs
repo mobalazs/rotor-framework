@@ -1,12 +1,26 @@
 
 ' namespace Reducers
 
+'--------------------------------------------------------------------------
+' @class Reducer
+' @description Base Reducer class that handles state transitions in the Rotor framework.
+'              Reducers are pure functions that compute the next state based on the current
+'              state and an intent (action). They work in conjunction with dispatchers and
+'              models to implement unidirectional data flow. Reducers can also apply
+'              middleware functions to intercept and transform intents before state computation.
+' @notes:
+' Override the reducer() method in derived classes to implement custom state logic.
+' Override the middlewares variable in derived classes to implement array of middleware functions.
+'--------------------------------------------------------------------------
 class Reducer
 
     model as object
-    middlewares = []
-    middlewareFnScoped as dynamic
 
+    ' Array of middleware functions with signature: function(intent as Intent, state as Object) as Dynamic
+    ' Each middleware can intercept/transform intents or return invalid to cancel state change
+    middlewares = []
+
+    middlewareFnScoped as dynamic
     getDispatcher as function
     dispatch as function
     ownerDispatcher as object
@@ -28,6 +42,13 @@ class Reducer
 
     end sub
 
+    '--------------------------------------------------------------------------
+    ' @method reducer
+    ' @description Pure function that computes the next state based on the current state and intent. Override this method in derived classes to implement custom state transitions.
+    ' @param {Object} state - The current state object
+    ' @param {Intent} intent - The intent object containing the action type and payload
+    ' @return {Object} The new state object (default implementation returns unchanged state)
+    '--------------------------------------------------------------------------
     public function reducer(state as object, intent as Intent)
         return state
     end function

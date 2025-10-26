@@ -1,5 +1,15 @@
 namespace Rotor
 
+    '--------------------------------------------------------------------------
+    ' @class Widget
+    ' @description Base Widget class that represents a UI component in the Rotor framework.
+    '              Widgets are the fundamental building blocks of the UI tree, providing
+    '              properties and methods for lifecycle management, navigation, state access,
+    '              and rendering. The framework automatically decorates widgets with additional
+    '              helper methods and plugin functionality at runtime.
+    ' @note Many properties and methods are injected/decorated by the builder and plugins
+    '       during widget instantiation and lifecycle execution.
+    '--------------------------------------------------------------------------
     class Widget
 
         ' Public properties

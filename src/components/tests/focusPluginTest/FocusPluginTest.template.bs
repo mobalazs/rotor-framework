@@ -109,7 +109,7 @@ function getFocusTestTemplate() as object
                     focus: {
                         group: {
                             defaultFocusId: "R1",
-                            left: false
+                            left: true ' means handled
                         }
                     },
                     children: [
