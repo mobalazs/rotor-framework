@@ -102,18 +102,18 @@ The Rotor framework boilerplate and POC also include a build system feature that
 ## 📚 Learn More
 
 ### Core Documentation
-* [ViewBuilder Guide](docs/view-builder.md) - Complete guide to the declarative UI system
-* [Cross-Thread MVI design pattern](docs/cross-thread-mvi.md) - State management across threads
+* [ViewBuilder Guide](https://github.com/mobalazs/rotor-framework/blob/main/docs/view-builder.md) - Complete guide to the declarative UI system
+* [Cross-Thread MVI design pattern](https://github.com/mobalazs/rotor-framework/blob/main/docs/cross-thread-mvi.md) - State management across threads
 
 ### ViewBuilder Deep Dives
-* [ViewBuilder Core How-to](docs/view-builder-core-howto.md) - Core concepts and usage patterns
-* [ViewBuilder Fields How-to](docs/view-builder-fields-howto.md) - Field management and binding
-* [ViewBuilder Focus How-to](docs/view-builder-focus-howto.md) - Focus management system
-* [ViewBuilder Observer How-to](docs/view-builder-observer-howto.md) - State observation patterns
-* [ViewBuilder FontStyle How-to](docs/view-builder-fontstyle-howto.md) - Typography and styling
+* [ViewBuilder Core How-to](https://github.com/mobalazs/rotor-framework/blob/main/docs/view-builder-core-howto.md) - Core concepts and usage patterns
+* [ViewBuilder Fields How-to](https://github.com/mobalazs/rotor-framework/blob/main/docs/view-builder-fields-howto.md) - Field management and binding
+* [ViewBuilder Focus How-to](https://github.com/mobalazs/rotor-framework/blob/main/docs/view-builder-focus-howto.md) - Focus management system
+* [ViewBuilder Observer How-to](https://github.com/mobalazs/rotor-framework/blob/main/docs/view-builder-observer-howto.md) - State observation patterns
+* [ViewBuilder FontStyle How-to](https://github.com/mobalazs/rotor-framework/blob/main/docs/view-builder-fontstyle-howto.md) - Typography and styling
 
 ### i18N Documentation
-* [Internationalization support](i18n-support.md) - Locale-aware interface implementation
+* [Internationalization support](https://github.com/mobalazs/rotor-framework/blob/main/docs/i18n-support.md) - Locale-aware interface implementation
 
 ---
 

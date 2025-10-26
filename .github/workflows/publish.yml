@@ -51,9 +51,11 @@ jobs:
           file: coverage.lcov
           base-path: src
 
-      # 7. Build and create Roku package (ZIP)
-      - name: Build and create Roku package
-        run: npx bsc --project bsconfig.json --createPackage=true
+      # 7. Create source package (ZIP with raw .bs files)
+      - name: Create source package
+        run: |
+          mkdir -p out
+          zip -r out/rotor-framework.zip README.md LICENCE.md src/source/rotor
 
       # 8. Create GitHub Release and upload package
       - name: Create Release
