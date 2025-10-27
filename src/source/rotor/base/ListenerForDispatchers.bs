@@ -108,7 +108,7 @@ class ListenerForDispatchers
                 mapStateToProps(callerScope.props, state)
             else
                 #if debug
-                    throw { message: "props does not exist in caller scope. `mapStateToProps` can be sued in Widgets and ViewModels only." }
+                    throw { message: "Props does not exist in caller scope. `mapStateToProps` can only be used in Widgets and ViewModels (render thread). In task threads, use `getState()` without mapStateToProps and access state directly." }
                 #end if
             end if
         end if

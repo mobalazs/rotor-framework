@@ -18,7 +18,7 @@ class Reducer
 
     ' Array of middleware functions with signature: function(intent as Intent, state as Object) as Dynamic
     ' Each middleware can intercept/transform intents or return invalid to cancel state change
-    middlewares = []
+    middlewares as function[]
 
     middlewareFnScoped as dynamic
     getDispatcher as function
@@ -44,7 +44,9 @@ class Reducer
 
     '--------------------------------------------------------------------------
     ' @method reducer
-    ' @description Pure function that computes the next state based on the current state and intent. Override this method in derived classes to implement custom state transitions.
+    ' @description Pure function that computes the next state based on the current
+    '              state and intent. Override this method in derived classes to
+    '              implement custom state transitions.
     ' @param {Object} state - The current state object
     ' @param {Intent} intent - The intent object containing the action type and payload
     ' @return {Object} The new state object (default implementation returns unchanged state)
@@ -53,7 +55,18 @@ class Reducer
         return state
     end function
 
-    public function applyMiddlewares() as object
+    '--------------------------------------------------------------------------
+    ' @method applyMiddlewares
+    ' @description Returns an array of middleware functions to process intents before
+    '              they reach the reducer. Override this method in derived classes to
+    '              implement custom middleware logic for async operations, logging,
+    '              validation, or intent transformation.
+    ' @return {Array} Array of middleware functions. Each middleware has signature:
+    '                function(intent as Intent, state as Object) as Dynamic.
+    '                Middlewares can return the intent (to continue), transform it,
+    '                or return invalid (to stop reducer execution).
+    '--------------------------------------------------------------------------
+    public function applyMiddlewares() as function[]
         return []
     end function
 

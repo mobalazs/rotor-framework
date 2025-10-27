@@ -1,406 +1,290 @@
-# Rotor Framework Cross-Thread MVI Pattern - Complete Guide
+# Cross-Thread MVI Pattern
 
 ← [Back to Documentation](../README.md#-learn-more)
 
-
 ## Overview
 
-The Cross-Thread MVI (Model-View-Intent) pattern is the heart of the Rotor Framework's state management system. It enables thread-safe communication between the render thread (UI) and task threads (business logic) using a dispatcher-based architecture. This pattern ensures that heavy operations don't block the UI while maintaining synchronized state across threads.
+The Cross-Thread MVI pattern enables thread-safe state management across render and task threads. The pattern consists of three core components: **Model** (state container), **Reducer** (state transformation logic), and **Dispatcher** (thread-safe communication bridge).
 
-The framework implementation follows the classic structure of the dispatcher, which consists of **model and reducer**, and also implements the classic structure of the reducer, which consists of **middleware and reducer function**.
+![Rotor Framework Cross-Thread MVI](images/Rotor_Framework_cross-thread_MVI.jpeg)
 
-## The MVI Pattern
+## Core Components
 
-### Core Components
+### Model
 
-1. **Model**: Holds the application state
-2. **View**: UI components that display the state (render thread)
-3. **Intent**: Actions that describe what should happen
-4. **Dispatcher**: Thread-safe communication bridge between render and task threads
-
-![Rotor Framework Cross-Thread MVI](images/cross-thread_MVI.jpeg)
-
-
-### Thread Architecture
-
-- **Render Thread**: UI components, ViewModels, user interactions
-- **Task Thread**: Business logic, API calls, data processing, state mutations
-- **Dispatcher**: Synchronizes state between threads safely
-
-## Simple Example: Home Content Loading
-
-Let's walk through a complete example of loading and displaying home content using the Cross-Thread MVI pattern.
-
-### 1. Task Thread Setup
-
-First, we set up the task thread with our state management:
+The Model holds application state. It extends the `Model` base class and defines the initial state structure.
 
 ```brightscript
-// File: https://github.com/mobalazs/poc-rotor-framework/blob/main/src/components/app/taskThread/appTask/appTask.bs
+class CounterModel extends Model
+    state = {
+        count: 0,
+        lastUpdated: invalid
+    }
+end class
+```
+
+### Reducer
+
+The Reducer transforms state in response to Intents. It consists of two parts: **middleware** (for async operations) and **reducer function** (for state updates).
+
+```brightscript
+class CounterReducer extends Reducer
+
+    ' Middleware runs before reducer - useful for async operations
+    override function applyMiddlewares()
+        return [
+
+            ' Logger middleware
+            function(intent, state) as Intent
+                ' Log
+                return intent ' NEXT
+            end function,
+
+            function(intent, state) as Intent
+                if intent.type = "LOAD_COUNT"
+                    ' Async operation
+                    return invalid  ' Stop reducer execution
+                end if
+
+                return intent ' NEXT
+            end function
+        ]
+    end function
+
+    ' Reducer updates state based on intent
+    override function reducer(state, intent)
+        if intent.type = "INCREMENT"
+            state.count = state.count + 1
+            state.lastUpdated = createObject("roDateTime").toISOString()
+        else if intent.type = "COUNT_LOADED"
+            state.count = intent.payload.value
+            state.lastUpdated = createObject("roDateTime").toISOString()
+        end if
+
+        return state
+    end function
+end class
+```
+
+### Dispatcher
+
+The Dispatcher connects Model and Reducer, providing thread-safe communication through three key methods:
+
+#### createDispatcher
+
+Creates a dispatcher instance on the task thread:
+
+```brightscript
+' Initialization
+
+model = new Models.CounterModel()
+reducer = new Reducers.CounterReducer()
+
+' Register dispatcher with name, model, and reducer (name is globally unique)
+Rotor.createDispatcher("counter", model, reducer)
+
+```
+
+#### dispatch
+
+Sends intents to trigger state changes. Can be called from any thread:
+
+```brightscript
+dispatcher = m.getDispatcher("counter")
+
+' Dispatch intent
+dispatcher.dispatch({
+    type: "INCREMENT",
+    payload: { foo: "bar" }
+})
+```
+
+#### getState
+
+Retrieves current state. Executes callback with current state:
+
+```brightscript
+' Get state once
+m.dispatcher.getState(sub(props, state)
+    props.count = state.count
+    props.lastUpdated = state.lastUpdated
+end sub)
+```
+
+#### addListener
+
+Subscribes to state changes. Listener fires whenever state updates:
+
+```brightscript
+' Listen for state changes
+m.dispatcher.addListener({
+    ' Optional: Map state to local props
+    mapStateToProps: sub(props, state)
+        props.count = state.count
+    end sub,
+
+    ' Optional: filter when to trigger callback
+    allowUpdate: sub(state)
+        return state.count > 0
+    end sub,
+
+    ' Optional: Callback when state changes
+    callback: sub()
+        return state.count > 0
+    end sub,
+
+    ' Optional: CallbackWithState when state changes
+    callback: sub(state)
+        return state.count > 0
+    end sub,
+
+    ' Optional: remove after first trigger
+    once: false
+})
+```
+
+## Complete Example
+
+### Task Thread Setup
+
+```brightscript
 sub task()
-    ' Create the home content dispatcher in task thread
-    HomeContentModel = new Models.HomeContentModel()
-    HomeContentReducer = new Reducers.HomeContentReducer()
-    Rotor.createDispatcher("homeContent", HomeContentModel, HomeContentReducer)
-    
-    ' Start the framework sync loop
-    m.appFw.sync() ' Enables thread communication
+    ' Create model and reducer
+    counterModel = new Models.CounterModel()
+    counterReducer = new Reducers.CounterReducer()
+
+    ' Create dispatcher
+    Rotor.createDispatcher("counter", counterModel, counterReducer)
+
+    ' Start sync
+    m.appFw.sync()
 end sub
 ```
 
-### 2. Model Definition (Task Thread)
-
-The Model holds our application state:
+### Render Thread Usage
 
 ```brightscript
-// File: https://github.com/mobalazs/poc-rotor-framework/blob/main/src/components/app/taskThread/appTask/homeContent/homeContentModel.bs
-namespace Models
-    class HomeContentModel extends Model
-        state = {
-            contentList: [],    ' List of content items
-            cardCount: 0       ' Number of cards to display
-        }
-    end class
-end namespace
-```
-
-### 3. Reducer Definition (Task Thread)
-
-The Reducer handles Intents and updates the state:
-
-```brightscript
-// File: https://github.com/mobalazs/poc-rotor-framework/blob/main/src/components/app/taskThread/appTask/homeContent/homeContentReducer.bs
-namespace Reducers
-    class HomeContentReducer extends Reducer
-        
-        override function applyMiddlewares()
-            return [
-                ' Middleware for async content loading
-                function(intent, state) as Intent
-                    if intent.type = IntentTypes.ContentReader.LOAD_CONTENT
-                        
-                        ' Get fetch pool dispatcher for API calls
-                        fetchPool = m.getDispatcher("fetchPool")
-                        
-                        ' Listen for API response
-                        fetchPool.addListener({
-                            allowUpdate: function(state)
-                                return state.requestKey = "home:feed"
-                            end function,
-                            callbackWithState: sub(state)
-                                ' When API responds, dispatch content loaded
-                                m.getDispatcher("homeContent").dispatch({
-                                    type: IntentTypes.ContentReader.CONTENT_LOADED,
-                                    payload: {
-                                        response: state.response
-                                    }
-                                })
-                            end sub,
-                            once: true  ' Remove listener after first call
-                        })
-                        
-                        ' Trigger API call
-                        fetchPool.dispatch({
-                            type: IntentTypes.FetchPool.FETCH,
-                            payload: {
-                                endpoint: "/api/home-feed",
-                                requestKey: "home:feed",
-                                params: {}
-                            }
-                        })
-                        
-                        return invalid  ' Don't continue to reducer
-                    end if
-                    
-                    return intent  ' Continue to reducer
-                end function
-            ]
-        end function
-        
-        override function reducer(state, intent)
-            ' Handle content loaded intent
-            if intent.type = IntentTypes.ContentReader.CONTENT_LOADED
-                state.contentList = intent.payload.response.contentList
-                state.cardCount = intent.payload.response.cardCount
-            end if
-            
-            return state
-        end function
-    end class
-end namespace
-```
-
-### 4. View Component (Render Thread)
-
-The View component in the render thread displays the state:
-
-```brightscript
-// File: https://github.com/mobalazs/poc-rotor-framework/blob/main/src/components/app/renderThread/viewModels/pages/home/homePage.bs
 namespace ViewModels
-    class HomePage extends ViewModel
-        
+    class CounterView extends ViewModel
+
         override sub onCreateView()
-            ' Get the dispatcher that connects to task thread
-            m.homeContentDispatcher = m.getDispatcher("homeContent")
-            
-            ' Get initial state immediately
-            m.homeContentDispatcher.getState(sub(props, state)
-                props.contentList = state.contentList
-                props.cardCount = state.cardCount
+            m.dispatcher = m.getDispatcher("counter")
+
+            ' Get initial state
+            m.dispatcher.getState(sub(props, state)
+                props.count = state.count
             end sub)
-            
-            ' Listen for state changes
-            m.homeContentDispatcher.addListener({
+
+            ' Listen for changes
+            m.dispatcher.addListener({
                 mapStateToProps: sub(props, state)
-                    props.contentList = state.contentList
-                    props.cardCount = state.cardCount
+                    props.count = state.count
                 end sub,
-                callback: m.updateHomeCarousel  ' Update UI when state changes
+                callback: m.updateCounter
             })
         end sub
-        
+
         override function template() as object
             return {
-                nodeType: "Group",
-                children: [
-                    {
-                        id: "viewTitle",
-                        nodeType: "Label",
-                        fontStyle: UI.fontStyles.H2_aa,
-                        fields: {
-                            color: UI.colors.white,
-                            text: `Home Content (${m.props.cardCount} items)`
-                        }
-                    },
-                    {
-                        id: "homeCarousel",
-                        viewModel: ViewModels.HomeCarousel,
-                        props: {
-                            contentList: m.props.contentList
-                        }
-                    }
-                ]
+                nodeType: "Label",
+                id: "counterLabel",
+                fields: {
+                    text: `Count: ${m.props.count}`
+                }
             }
         end function
-        
-        ' Called when state changes
-        sub updateHomeCarousel()
-            ' Re-render with new content
+
+        sub updateCounter()
+            ' Re-render on state change
             m.render({
-                id: "homeCarousel",
-                props: {
-                    contentList: m.props.contentList
+                id: "counterLabel",
+                fields: {
+                    text: `Count: ${m.props.count}`
                 }
             })
         end sub
+
+        sub onIncrementPress()
+            ' Dispatch intent
+            m.dispatcher.dispatch({
+                type: "INCREMENT"
+            })
+        end sub
     end class
 end namespace
 ```
 
-### 5. Triggering the Flow
+## Thread Flow
 
-The flow starts when a user action dispatches an intent:
+```
+[Render Thread]           [Task Thread]
+     |                         |
+     | dispatch(intent)        |
+     |------------------------>|
+     |                         | middleware
+     |                         | reducer
+     |                         | state update
+     | listener callback       |
+     |<------------------------|
+     | UI update               |
+```
+
+## Dispatcher Accessibility
+
+### Task Thread Dispatchers
+
+Dispatchers created in a task thread using `Rotor.createDispatcher()` are globally accessible:
+- Accessible from the render thread via `m.getDispatcher(name)`
+- Accessible from any other task thread via `m.getDispatcher(name)`
+- Enable true cross-thread communication and state synchronization
+
+### Render Thread Dispatchers
+
+Dispatchers can also be created in the render thread using the exactly same pattern (Model + Reducer + createDispatcher):
 
 ```brightscript
-// Somewhere in the UI (like a button press or page load)
-sub loadHomeContent()
-    ' Dispatch intent from render thread
-    homeDispatcher = m.getDispatcher("homeContent")
-    homeDispatcher.dispatch({
-        type: IntentTypes.ContentReader.LOAD_CONTENT
-    })
-end sub
+' In render thread - for complex component internal state
+class MyViewModel extends viewModel
+    override sub onCreateView()
+        model = new Models.ComponentStateModel()
+        reducer = new Reducers.ComponentStateReducer()
+
+        ' Create dispatcher
+        Rotor.createDispatcher("localComponent", model, reducer)
+    end sub
+    ...
+end class
 ```
 
-## Flow Walkthrough
+**Important**: Render thread dispatchers are technically accessible from task threads (via the same dispatcher pattern), but this is **rarely recommended**. The standard pattern is task thread dispatchers accessed by render thread, not the reverse.
 
-Let's trace through what happens when `loadHomeContent()` is called:
+Use render thread owned dispatchers for:
+- Complex component internal state management
+- Cross-component UI state coordination
+- Local UI state that never needs task thread processing
 
-### Step 1: Intent Dispatch (Render Thread)
-```brightscript
-homeDispatcher.dispatch({
-    type: IntentTypes.ContentReader.LOAD_CONTENT
-})
-```
-- Intent is sent from render thread to task thread
-- Dispatcher queues the intent for processing
+## Key Principles
 
-### Step 2: Middleware Processing (Task Thread)
-```brightscript
-// In HomeContentReducer middleware
-if intent.type = IntentTypes.ContentReader.LOAD_CONTENT
-    // Setup API call listener
-    fetchPool.addListener({ ... })
-    
-    // Trigger API call
-    fetchPool.dispatch({
-        type: IntentTypes.FetchPool.FETCH,
-        payload: { endpoint: "/api/home-feed" }
-    })
-    
-    return invalid  // Don't continue to reducer yet
-end if
-```
-- Middleware intercepts the LOAD_CONTENT intent
-- Sets up listener for API response
-- Triggers API call through fetchPool
-- Returns `invalid` to prevent reducer execution
+### State Mutations in Task Thread
 
-### Step 3: API Response (Task Thread)
-```brightscript
-// When API responds, fetchPool listener fires
-callbackWithState: sub(state)
-    m.getDispatcher("homeContent").dispatch({
-        type: IntentTypes.ContentReader.CONTENT_LOADED,
-        payload: {
-            response: state.response
-        }
-    })
-end sub
-```
-- API completes and fetchPool state updates
-- Listener detects the response
-- Dispatches CONTENT_LOADED intent with API data
+All state changes occur in the task thread through the reducer. The render thread never modifies state directly.
 
-### Step 4: State Update (Task Thread)
-```brightscript
-// In HomeContentReducer reducer function
-if intent.type = IntentTypes.ContentReader.CONTENT_LOADED
-    state.contentList = intent.payload.response.contentList
-    state.cardCount = intent.payload.response.cardCount
-end if
-```
-- Reducer updates the model state with API data
-- State is now synchronized across threads
+### Middleware for Async Operations
 
-### Step 5: UI Update (Render Thread)
-```brightscript
-// State listener in HomePage ViewModel fires
-m.homeContentDispatcher.addListener({
-    mapStateToProps: sub(props, state)
-        props.contentList = state.contentList
-        props.cardCount = state.cardCount
-    end sub,
-    callback: m.updateHomeCarousel
-})
-```
-- Render thread listener detects state change
-- Props are updated with new state values
-- Callback triggers UI re-render
+Use middleware for API calls, timers, or complex logic. Return `invalid` to prevent reducer execution, or return the intent to continue.
 
-### Step 6: Visual Update (Render Thread)
-```brightscript
-sub updateHomeCarousel()
-    m.render({
-        id: "homeCarousel",
-        props: {
-            contentList: m.props.contentList
-        }
-    })
-end sub
-```
-- UI components re-render with new data
-- User sees updated content
+### Listeners for UI Updates
 
-## Key Concepts
+Use listeners to react to state changes. Filter updates with `allowUpdate` for efficiency.
 
-### Thread Safety
-- **All state mutations happen in task thread**: UI never directly modifies state
-- **Dispatchers handle synchronization**: Thread-safe communication bridge
-- **Immutable state updates**: Each state change creates new state object
+### Single Source of Truth
 
-### Middleware Pattern
-- **Intercept intents**: Middleware can process intents before they reach reducer
-- **Async operations**: Perfect for API calls, timers, complex logic
-- **Return invalid**: Prevents reducer execution when needed
-- **Chain processing**: Multiple middlewares can process same intent
-
-### Listener Pattern
-- **mapStateToProps**: Extract relevant data from state
-- **allowUpdate**: Filter when listener should fire
-- **callback**: Function to call when state changes
-- **once**: Remove listener after first execution
-
-### State Flow Direction
-```
-[Render Thread] � Intent � [Task Thread] � State Update � [Render Thread]
-     UI Event              Middleware      Reducer        UI Update
-```
+Each dispatcher maintains one model as the single source of truth for its domain. Multiple components can subscribe to the same dispatcher.
 
 ## Best Practices
 
-### 1. Keep State in Task Thread
-```brightscript
-// Good: State mutations in task thread
-override function reducer(state, intent)
-    if intent.type = "UPDATE_USER"
-        state.user = intent.payload.user
-    end if
-    return state
-end function
-
-// Bad: Direct state modification in render thread
-// DON'T DO THIS
-m.props.user = newUser  // This won't sync across threads
-```
-
-### 2. Use Middleware for Async Operations
-```brightscript
-// Good: Async operations in middleware
-function(intent, state) as Intent
-    if intent.type = "LOAD_DATA"
-        m.apiCall(function(response)
-            m.getDispatcher("myData").dispatch({
-                type: "DATA_LOADED",
-                payload: response
-            })
-        end function)
-        return invalid  // Prevent reducer execution
-    end if
-    return intent
-end function
-```
-
-### 3. Efficient State Listeners
-```brightscript
-// Good: Filter updates with allowUpdate
-m.dispatcher.addListener({
-    allowUpdate: function(state)
-        return state.userId = m.currentUserId  // Only update for relevant user
-    end function,
-    mapStateToProps: sub(props, state)
-        props.userData = state.users[m.currentUserId]
-    end sub
-})
-```
-
-### 4. Clean Intent Types
-```brightscript
-// Good: Clear, descriptive intent types
-IntentTypes = {
-    User: {
-        LOAD_PROFILE: "USER_LOAD_PROFILE",
-        PROFILE_LOADED: "USER_PROFILE_LOADED",
-        UPDATE_SETTINGS: "USER_UPDATE_SETTINGS"
-    }
-}
-```
-
-## Threading Benefits
-
-### UI Responsiveness
-- Heavy operations run in task thread
-- UI thread remains responsive
-- Smooth animations and interactions
-
-### Scalability
-- Multiple task threads can be created
-- Parallel processing of different concerns
-- Isolated state management per domain
-
-### Maintainability
-- Clear separation of concerns
-- Predictable state flow
-- Easy to test and debug
-
-The Cross-Thread MVI pattern provides a robust foundation for building complex, responsive Roku applications while maintaining clean architecture and thread safety.
+- Keep models focused on specific domains (e.g., user, content, settings)
+- Use clear, descriptive intent types
+- Filter listener updates with `allowUpdate` when needed
+- Remove listeners with `once: true` for one-time operations
+- Handle all state mutations in the reducer, never in middleware
