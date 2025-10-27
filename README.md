@@ -51,11 +51,7 @@ frameworkInstance.render([
 
 ```
 
-This minimalist example initializes the framework and displays a green rectangle on screen. This minimal setup fully initializes the ViewBuilder and demonstrates its core rendering capabilities. You can find many more examples and capabilities in the detailed documentation.
-
-</details>
-<br>
-The Rotor framework boilerplate and POC also include a build system feature that processes a `theme.js` file. This file allows you to define complex UI design in JavaScript, and automatically converts them into a BrighterScript-compatible file during the build. This makes it easy to manage large design systems in a clean, maintainable way.
+This minimalist example initializes the framework and displays a label on screen. This minimal setup fully initializes the ViewBuilder and demonstrates its core rendering capabilities. You can find many more examples and capabilities in the detailed documentation.
 
 ---
 
