@@ -148,7 +148,7 @@ m.dispatcher.addListener({
 ### Task Thread Setup
 
 ```brightscript
-sub task()
+sub taskFunction()
     ' Create model and reducer
     counterModel = new Models.CounterModel()
     counterReducer = new Reducers.CounterReducer()
