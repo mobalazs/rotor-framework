@@ -33,10 +33,10 @@ namespace Rotor
 
         ' Public methods
 
-        getWidget as Function ' decorated by widget
-        findWidgets as Function ' decorated by widget
-        getChildrenWidgets as Function ' decorated by widget
-        getSubtreeClone as Function ' decorated by widget
+        getWidget as Function ' decorated by widget - find widget by ID (any depth) or path
+        findWidgets as Function ' decorated by widget - find widgets by glob pattern
+        getChildrenWidgets as Function ' decorated by widget - get direct children (optionally filtered by ID pattern)
+        getSubtreeClone as Function ' decorated by widget - clone widget subtree
         render as Function ' decorated by widget
         refresh as Function ' decorated by widget
         getDispatcher as Function ' decorated by widget
