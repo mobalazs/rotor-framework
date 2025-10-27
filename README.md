@@ -64,9 +64,9 @@ This minimalist example initializes the framework and displays a label on screen
 ### ViewBuilder Deep Dives
 * [ViewBuilder Core How-to](https://github.com/mobalazs/rotor-framework/blob/main/docs/view-builder-core-howto.md) - Core concepts and usage patterns
 * [ViewBuilder Fields How-to](https://github.com/mobalazs/rotor-framework/blob/main/docs/view-builder-fields-howto.md) - Field management and binding
-* [ViewBuilder Focus How-to](https://github.com/mobalazs/rotor-framework/blob/main/docs/view-builder-focus-howto.md) - Focus management system
-* [ViewBuilder Observer How-to](https://github.com/mobalazs/rotor-framework/blob/main/docs/view-builder-observer-howto.md) - State observation patterns
 * [ViewBuilder FontStyle How-to](https://github.com/mobalazs/rotor-framework/blob/main/docs/view-builder-fontstyle-howto.md) - Typography and styling
+* [ViewBuilder Observer How-to](https://github.com/mobalazs/rotor-framework/blob/main/docs/view-builder-observer-howto.md) - State observation patterns
+* [ViewBuilder Focus How-to](https://github.com/mobalazs/rotor-framework/blob/main/docs/view-builder-focus-howto.md) - Focus management system
 
 ### i18N Documentation
 * [Internationalization support](https://github.com/mobalazs/rotor-framework/blob/main/docs/i18n-support.md) - Locale-aware interface implementation

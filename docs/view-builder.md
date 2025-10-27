@@ -161,9 +161,9 @@ frameworkInstance.render({
 
 Continue reading about:
 
-- 📚 [Core keys](./view-builder-core-howto.md)
-- 📚 [Font Style Plugin](./view-builder-fontstyle-howto.md)
-- 📚 [Fields Plugin](./view-builder-fields-howto.md)
-- 📚 [Observer Plugin](./view-builder-observer-howto.md)
-- 📚 [Focus Plugin](./view-builder-focus-howto.md)
+* [ViewBuilder Core How-to](https://github.com/mobalazs/rotor-framework/blob/main/docs/view-builder-core-howto.md) - Core concepts and usage patterns
+* [ViewBuilder Fields How-to](https://github.com/mobalazs/rotor-framework/blob/main/docs/view-builder-fields-howto.md) - Field management and binding
+* [ViewBuilder FontStyle How-to](https://github.com/mobalazs/rotor-framework/blob/main/docs/view-builder-fontstyle-howto.md) - Typography and styling
+* [ViewBuilder Observer How-to](https://github.com/mobalazs/rotor-framework/blob/main/docs/view-builder-observer-howto.md) - State observation patterns
+* [ViewBuilder Focus How-to](https://github.com/mobalazs/rotor-framework/blob/main/docs/view-builder-focus-howto.md) - Focus management system
 

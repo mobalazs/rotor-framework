@@ -12,14 +12,19 @@ Every widget in the Rotor Framework automatically receives core configuration pr
 
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
-| `id` | string | Yes | Unique widget identifier |
+| `id` | string | No | Unique widget identifier
 | `nodeType` | string | No | SceneGraph node type (default: "Group") |
 | `viewModel` | class | No | ViewModel class reference |
 | `props` | object | No | Properties passed to ViewModels |
 | `viewModelState` | object | No | Initial ViewModel state |
 | `children` | array/object | No | Child widget configurations |
-| `fields` | object | No | SceneGraph node field values |
 | `zIndex` | integer | No | Rendering z-order |
+
+Notes:
+* `id` is auto-generated if omitted, guaranteed unique among siblings.
+* `nodeType` accepts both built-in SceneGraph node types (e.g., "Label", "Group") and custom component names.
+* `zIndex` controls rendering order among node siblings - higher values render on top (default: order of creation).
+* `props` and `viewModelState` are shared across all widgets within the same ViewModel. Reminder: Widgets are individual components as the smallest unit of the virtual widget tree; ViewModels group multiple widgets with shared state and props.
 
 ### Lifecycle Hooks
 
@@ -580,11 +585,11 @@ end if
 ### Lifecycle Issues
 
 - **Hook not firing**: Check function assignment in configuration
-- **Context errors**: Verify `m` refers to correct widget instance
+- **Context errors**: Verify `m` refers to correct widget instance (use typecast statement)
 - **Timing problems**: Understand hook execution order
 
 ### State Management Issues
 
 - **Dispatcher not found**: Ensure dispatcher exists before access
 - **State not updating**: Verify listener configuration
-- **Memory leaks**: Remove listeners in onDestroyWidget
+- **Memory leaks**: Invalidate references created by you in destroy lifecycle hooks

@@ -1,267 +1,242 @@
-# Rotor Framework Fields Plugin - How-To Guide
+# Widget Fields Configuration
 
 ← [Back to Documentation](../README.md#-learn-more)
 
 ## Overview
 
-The Fields Plugin is a fundamental component of the Rotor Framework that provides declarative field management for SceneGraph nodes. It enables setting and updating node properties through a declarative `fields` configuration, supporting static values, dynamic functions, and variable interpolation from the widget's state. This plugin forms the backbone of reactive UI updates in the Rotor Framework.
+The Fields Plugin provides declarative field management for SceneGraph nodes. It enables setting and updating node properties through a `fields` configuration, supporting static values, function expressions, and dynamic values (using `@` operator and string interpolation).
 
-## Key Features
-
-- **Declarative Field Setting**: Set SceneGraph node properties through declarative configuration
-- **Dynamic Functions**: Support for functions that compute field values dynamically
-- **Variable Interpolation**: Reference widget state and props using `@variable` syntax
-- **Automatic Updates**: Fields are automatically updated when widget state changes
-- **Lifecycle Integration**: Automatic field management through widget mount/update/destroy cycles
-- **Expression Support**: Complex expressions and computed values for responsive UIs
-- **State Binding**: Direct binding to `viewModelState` and widget properties
-
-## Basic Usage
-
-### 1. Static Field Values
-
-Set static values directly on SceneGraph node fields:
-
-```brightscript
-// Basic static field configuration
-{
-    nodeType: "Label",
-    fields: {
-        text: "Hello World",
-        color: "#FFFFFF",
-        width: 200,
-        height: 50
-    }
-}
-```
-
-### 2. Dynamic Field Values with Functions
-
-Use functions to compute field values based on current state:
-
-```brightscript
-// Dynamic field values using functions
-{
-    nodeType: "Rectangle",
-    fields: {
-        width: function() as integer
-            return m.props.isExpanded ? 400 : 200
-        end function,
-        color: function() as string
-            if m.viewModelState.isFocused
-                return "#FF0000"
-            else
-                return "#FFFFFF"
-            end if
-        end function
-    }
-}
-```
-
-## Configuration Properties
-
-### Field Value Types
+## Field Value Types
 
 | Type | Description | Example |
 |------|-------------|---------|
 | Static Value | Direct assignment to node field | `text: "Hello World"` |
-| Function | Dynamic computation based on state | `function() as string` |
-| Variable Reference | Reference to widget state using `@` | `text: "@currentTitle"` |
-| Template String | String interpolation with variables | `text: \`@l10n.menuItems.${m.props.pageKey}.text\`` |
+| Function Expression | Dynamic expression computed from state | `function() as string` |
+| Dynamic Value | String with `@` operator, interpolation, or both | See examples below |
 
-### Field Processing Rules
-
-| Pattern | Source | Description | Example |
-|---------|--------|-------------|---------|
-| Static | Direct value | Assigns value directly to node field | `width: 100` |
-| Function | Function execution | Executes function in widget scope | `function() as integer` |
-| `@variable` | `viewModelState` | References widget's viewModelState property | `@currentText` |
-| Template | String interpolation | Processes template literals with variables | `\`${m.props.count} items\`` |
-
-## Common Usage Patterns
-
-### 1. Button with Dynamic Styling
+### Dynamic Value Examples
 
 ```brightscript
-// File: https://github.com/mobalazs/poc-rotor-framework/blob/main/src/components/app/renderThread/viewModels/buttons/simpleButton.bs
-{
-    id: "buttonLabel",
-    nodeType: "Label",
-    fontStyle: UI.components.buttons.simpleButton.fontStyle_aa,
-    fields: {
-        enableRenderTracking: true,
-        text: m.props.text ?? m.getViewModel().id,
-        color: UI.components.buttons.simpleButton.textColor,
-        horizAlign: m.props.horizAlign ?? "center",
-        vertAlign: m.props.vertAlign ?? "center",
-        width: m.props.autoWidth ? 0 : m.props.width - 2 * m.props.paddingX,
-        height: m.props.height,
-        translation: [m.props.paddingX, 0]
-    }
+fields: {
+    ' @ operator - reference viewModelState property
+    title: "@currentTitle",
+    status: "@userStatus",
+
+    ' String interpolation - embed expressions
+    count: `${m.props.itemCount} items`,
+    message: `Score: ${m.props.score} points`,
+
+    ' Combined - mix @ operator and interpolation
+    greeting: `Hello @userName, you have ${m.props.unreadCount} messages`,
+    path: `@l10n.menu.${m.props.pageKey}.title`,
+    display: `@currentUser - Level ${m.props.level} - @statusMessage`
 }
 ```
 
-### 2. Menu Item with Focus-Dependent Fields
+## Static Fields
+
+Set static values directly on SceneGraph node fields:
 
 ```brightscript
-// File: https://github.com/mobalazs/poc-rotor-framework/blob/main/src/components/app/renderThread/viewModels/layout/pageMenu/pageMenuItem.bs
 {
-    id: "itemLabel",
+    id: "title",
     nodeType: "Label",
-    fontStyle: UI.components.pageMenu.fontStyle_aa,
     fields: {
-        color: function() as string
-            if m.viewModelState.isFocused
-                return UI.components.pageMenu.textColor.focused
-            else
-                return m.props.isActive ? UI.components.pageMenu.textColor.active : UI.components.pageMenu.textColor.default
-            end if
-        end function,
-        text: `@l10n.menuItems.${m.props.optionKey}.text`,
-        width: m.props.width ?? UI.components.pageMenu.labelWidth,
-        height: UI.components.pageMenu.labelHeight,
+        text: "Welcome",
+        color: "#FFFFFF",
+        width: 300,
+        height: 60,
+        horizAlign: "center",
         vertAlign: "center"
     }
 }
 ```
 
-### 3. Icon with Dynamic Translation
+## Dynamic Fields with Function Expressions
+
+Use function expressions to compute field values based on widget state:
 
 ```brightscript
-// File: https://github.com/mobalazs/poc-rotor-framework/blob/main/src/components/app/renderThread/viewModels/layout/pageMenu/pageMenuItem.bs
 {
-    id: "itemIcon",
-    nodeType: "Poster",
+    id: "statusLabel",
+    nodeType: "Label",
     fields: {
-        blendColor: function() as string
-            if m.viewModelState.isFocused
-                return UI.components.pageMenu.textColor.focused
+        text: function() as string typecast m as Rotor.Widget
+            if m.viewModelState.isLoading
+                return "Loading..."
+            else if m.viewModelState.hasError
+                return "Error occurred"
             else
-                return m.props.isActive ? UI.components.pageMenu.textColor.active : UI.components.pageMenu.textColor.default
+                return "Ready"
             end if
         end function,
-        width: UI.components.pageMenu.icon.size.width,
-        height: UI.components.pageMenu.icon.size.height,
-        uri: (UI.components.pageMenu.menuIcons_aa)[m.props.optionKey].url,
-        translation: function() as object
-            return [UI.components.pageMenu.labelWidth + UI.components.pageMenu.marginRight, 0]
+        color: function() as string
+            return m.viewModelState.hasError ? "#FF0000" : "#00FF00"
         end function
     }
 }
 ```
 
-### 4. Page Title with Variable Interpolation
+**Function expressions have access to:**
+- `m.viewModelState` - Shared state across ViewModel's widgets
+- `m.props` - Shared props across ViewModel's widgets
+- `m.*` - All widget instance properties and methods
 
-```brightscript
-// File: https://github.com/mobalazs/poc-rotor-framework/blob/main/src/components/app/renderThread/viewModels/pages/home/homePage.bs
-{
-    id: "viewTitle",
-    nodeType: "Label",
-    fontStyle: UI.fontStyles.H2_aa,
-    fields: {
-        color: UI.colors.white,
-        text: `@l10n.menuItems.${m.props.pageKey}.text`
-    }
-}, {
-    nodeType: "Label",
-    fontStyle: UI.fontStyles.hintText_aa,
-    fields: {
-        color: UI.colors.primary_2,
-        text: `${m.props.cardCount} Titles to Browse`
-    }
-}
-```
+## Variable Interpolation with @ Operator
 
-## Advanced Features
-
-### 1. Complex Function-Based Fields
-
-Use functions for complex computed values:
-
-```brightscript
-{
-    nodeType: "LayoutGroup",
-    fields: {
-        translation: function() as object
-            if Rotor.Utils.isArray(m.props.translation)
-                return m.props.translation
-            else
-                marginBottom = UI.components.pageMenu.marginBottom
-                return [0, m.props.optionIndex * (UI.components.pageMenu.labelHeight + (marginBottom ?? 0))]
-            end if
-        end function,
-        itemSpacings: function() as object
-            return m.props.isVertical ? [0, 10] : [10, 0]
-        end function
-    }
-}
-```
-
-### 2. Variable Interpolation with State
-
-Reference viewModelState properties using `@` syntax:
+Reference viewModelState properties using the `@` operator:
 
 ```brightscript
 // In ViewModel
 override sub onCreateView()
-    m.viewModelState.currentTitle = "Home Page"
-    m.viewModelState.itemCount = 5
-    m.viewModelState.isLoading = false
+    m.viewModelState.userName = "John Doe"
+    m.viewModelState.score = 1250
+    m.viewModelState.isOnline = true
 end sub
 
 // In widget template
 {
     nodeType: "Label",
     fields: {
-        text: "@currentTitle",  // References viewModelState.currentTitle
-        visible: function() as boolean
-            return not m.viewModelState.isLoading
-        end function
+        text: "@userName",           ' References viewModelState.userName
+        visible: "@isOnline"          ' References viewModelState.isOnline
     }
 }
 ```
 
-### 3. Template String Interpolation
+## String Interpolation
 
-Combine variables and expressions in string templates:
+Combine variables and expressions in strings:
 
 ```brightscript
 {
     nodeType: "Label",
     fields: {
-        text: `@l10n.menuItems.${m.props.optionKey}.text`,  // i18n with dynamic key
-        description: `Loading ${m.props.itemCount} items...`,  // Dynamic count
-        status: `@currentUser.name - @currentUser.role`  // Multiple variables
+        ' Dynamic property access
+        text: `@l10n.menu.${m.props.pageKey}`,
+
+        ' Combining props
+        description: `Score: ${m.props.score} points`,
+
+        ' Multiple variable references
+        status: `@userName - Level @currentLevel`
     }
 }
 ```
 
-### 4. Conditional Field Values
+## Common Patterns
 
-Use conditional logic within field functions:
+### Button with Focus State
 
 ```brightscript
 {
+    id: "menuButton",
+    nodeType: "Rectangle",
+    fields: {
+        width: 200,
+        height: 60,
+        color: function() as string
+            if m.viewModelState.isFocused
+                return "#FF5500"  ' Orange when focused
+            else if m.props.isSelected
+                return "#0055FF"  ' Blue when selected
+            else
+                return "#CCCCCC"  ' Gray default
+            end if
+        end function
+    },
+    children: [{
+        nodeType: "Label",
+        fields: {
+            text: m.props.label,
+            color: function() as string
+                return m.viewModelState.isFocused ? "#FFFFFF" : "#000000"
+            end function,
+            horizAlign: "center",
+            vertAlign: "center",
+            width: 200,
+            height: 60
+        }
+    }]
+}
+```
+
+### List Item with Dynamic Content
+
+```brightscript
+{
+    id: "listItem",
+    nodeType: "Group",
+    fields: {
+        translation: function() as object
+            ' Position based on index
+            itemHeight = 80
+            return [0, m.props.index * itemHeight]
+        end function
+    },
+    children: [{
+        nodeType: "Label",
+        fields: {
+            text: m.props.title,
+            color: "#FFFFFF",
+            width: 400,
+            height: 60
+        }
+    }, {
+        nodeType: "Label",
+        fields: {
+            text: function() as string
+                return m.props.itemCount.toStr() + " items"
+            end function,
+            color: "#AAAAAA",
+            width: 200,
+            translation: [400, 0]
+        }
+    }]
+}
+```
+
+### Image with Fallback
+
+```brightscript
+{
+    id: "thumbnail",
     nodeType: "Poster",
     fields: {
         uri: function() as string
-            if m.props.imageUrl <> ""
+            if m.props.imageUrl <> invalid and m.props.imageUrl <> ""
                 return m.props.imageUrl
             else
                 return "pkg:/images/placeholder.png"
             end if
         end function,
-        blendColor: function() as string
-            return m.viewModelState.isSelected ? "#FF0000FF" : "#FFFFFFFF"
-        end function,
+        width: 300,
+        height: 200,
+        loadDisplayMode: "scaleToFit",
         opacity: function() as float
-            return m.props.isEnabled ? 1.0 : 0.5
+            return m.viewModelState.isLoading ? 0.5 : 1.0
         end function
     }
 }
 ```
 
-### 5. Array and Object Field Values
+### Conditional Visibility
+
+```brightscript
+{
+    id: "errorMessage",
+    nodeType: "Label",
+    fields: {
+        text: "@errorText",
+        color: "#FF0000",
+        visible: function() as boolean
+            return m.viewModelState.hasError = true
+        end function
+    }
+}
+```
+
+## Array and Object Fields
 
 Set complex data structures as field values:
 
@@ -269,71 +244,69 @@ Set complex data structures as field values:
 {
     nodeType: "LayoutGroup",
     fields: {
-        translation: [100, 200],  // Static array
+        ' Static array
+        translation: [100, 200],
+
+        ' Dynamic array from function
         itemSpacings: function() as object
-            spacings = []
-            for i = 0 to m.props.itemCount - 1
-                spacings.push(i * 10)
-            end for
-            return spacings
+            return m.props.isVertical ? [0, 20] : [20, 0]
+        end function,
+
+        ' Dynamic layout direction
+        layoutDirection: function() as string
+            return m.props.isVertical ? "vert" : "horiz"
         end function
     }
 }
 ```
 
-## Plugin Methods
+## Lifecycle Integration
 
-The Fields Plugin operates automatically through the widget lifecycle - no manual methods are required for basic usage.
+The Fields Plugin operates automatically through widget lifecycle:
 
-### Plugin Lifecycle Integration
-
-| Lifecycle Hook | When Called | Purpose |
-|----------------|-------------|---------|
-| `beforeMount` | Before widget is mounted | Parse and apply initial field values |
-| `beforeUpdate` | Before widget updates | Extend existing fields with new values and reapply |
-| `beforeDestroy` | Before widget is destroyed | Clear field references to prevent memory leaks |
+| Lifecycle Hook | Purpose |
+|----------------|---------|
+| `beforeMount` | Parse and apply initial field values |
+| `beforeUpdate` | Extend existing fields with new values and reapply |
+| `beforeDestroy` | Clear field references to prevent memory leaks |
 
 ### Field Processing Pipeline
 
 1. **Field Collection**: Plugin processes all fields from widget configuration
-2. **Value Resolution**: For each field, determines if value is static, function, or variable reference
-3. **Function Execution**: Functions are executed in widget scope context with access to `m`
-4. **Variable Interpolation**: `@variable` patterns are resolved from `viewModelState`
-5. **Template Processing**: String templates are processed with variable substitution
-6. **Field Application**: Final values are applied to the SceneGraph node using `setCustomFields`
-7. **Update Handling**: Fields are re-evaluated when widget updates occur
+2. **Value Resolution**: Determines if value is static, function expression, or @ operator
+3. **Expression Execution**: Function expressions executed in widget scope with access to `m`
+4. **Variable Interpolation**: `@` operator patterns resolved from `viewModelState`
+5. **String Interpolation**: Interpolated strings processed with variable substitution
+6. **Field Application**: Final values applied to SceneGraph node
+7. **Update Handling**: Fields re-evaluated when widget updates occur
 
 ## Best Practices
 
-### 1. Use Functions for Dynamic Values
-
-Prefer functions over static values when fields depend on state:
+### Use Function Expressions for Dynamic Values
 
 ```brightscript
-// Good: Dynamic based on state
+' Good: Dynamic based on state
 fields: {
     color: function() as string
         return m.viewModelState.isActive ? "#FF0000" : "#FFFFFF"
     end function
 }
 
-// Avoid: Static values that should be dynamic
+' Avoid: Static value that should be dynamic
 fields: {
-    color: "#FFFFFF"  // Won't update when state changes
+    color: "#FFFFFF"  ' Won't update when state changes
 }
 ```
 
-### 2. Leverage Variable Interpolation
-
-Use `@` syntax for clean state references:
+### Prefer @ Operator for Simple References
 
 ```brightscript
-// Good: Clean variable reference
+' Good: Clean reference with @ operator
 fields: {
     text: "@currentMessage"
 }
 
-// Less clean: Function for simple variable access
+' Less clean: Function expression for simple access
 fields: {
     text: function() as string
         return m.viewModelState.currentMessage
@@ -341,226 +314,140 @@ fields: {
 }
 ```
 
-### 3. Keep Functions Lightweight
-
-Field functions are called during rendering - keep them fast:
+### Keep Function Expressions Lightweight
 
 ```brightscript
-// Good: Simple, fast computation
+' Good: Simple, fast computation
 fields: {
     width: function() as integer
         return m.props.isExpanded ? 400 : 200
     end function
 }
 
-// Avoid: Heavy computation in field functions
+' Avoid: Heavy computation in function expressions
 fields: {
     complexValue: function() as object
-        ' Avoid expensive operations here
-        result = performComplexCalculation()  // Bad
+        ' Don't perform expensive operations during field evaluation
+        result = performComplexCalculation()  ' Bad
         return result
     end function
 }
 ```
 
-### 4. Handle State Dependencies
+## Integration with Other Plugins
 
-Ensure viewModelState properties exist before referencing:
+### With Focus Plugin
 
 ```brightscript
-// In ViewModel - Initialize state
-override sub onCreateView()
-    m.viewModelState.title = "Default Title"
-    m.viewModelState.isVisible = true
-end sub
+{
+    nodeType: "Rectangle",
+    focus: {
+        onFocusChanged: sub(isFocused)
+            ' Focus plugin auto-updates viewModelState.isFocused
+        end sub
+    },
+    fields: {
+        color: function() as string
+            ' React to focus state changes
+            return m.viewModelState.isFocused ? "#FF5500" : "#CCCCCC"
+        end function
+    }
+}
+```
 
-// In template - Safe to reference
-fields: {
-    text: "@title",
-    visible: "@isVisible"
+### With i18n
+
+```brightscript
+{
+    nodeType: "Label",
+    fields: {
+        ' Direct translation reference
+        text: "@l10n.welcomeMessage",
+
+        ' Dynamic translation with template
+        description: `@l10n.items.${m.props.itemType}.name`
+    }
 }
 ```
 
 ## Common Pitfalls
 
-1. **Undefined Variable References**: Referencing `@variables` that don't exist in viewModelState
-2. **Heavy Field Functions**: Expensive computations in field functions cause performance issues
-3. **Circular Dependencies**: Functions that depend on the field they're setting
-4. **Context Issues**: Functions not having proper access to widget scope (`m`)
-5. **Type Mismatches**: Returning wrong data types from field functions
-6. **Memory Leaks**: Storing references to large objects in field closures
+1. **Undefined Variable References**
+   - Referencing `@variables` that don't exist in viewModelState
+   - Solution: Initialize all state variables in `onCreateView()`
+
+2. **Heavy Function Expressions**
+   - Expensive computations in function expressions cause performance issues
+   - Solution: Precompute values in state, reference with `@` operator
+
+3. **Circular Dependencies**
+   - Expressions that depend on the field they're setting
+   - Solution: Carefully review expression dependencies
+
+4. **Type Mismatches**
+   - Returning wrong data types from function expressions
+   - Solution: Use proper type annotations and validate return values
+
+5. **Memory Leaks**
+   - Storing references to large objects in expression closures
+   - Solution: Keep expressions stateless, reference state via `m`
 
 ## Troubleshooting
 
 ### Fields Not Updating
 
 ```brightscript
-// Debug field application
-sub debugFields(widget as object)
-    print "Widget ID: " + widget.id
-    print "Node Type: " + widget.nodeType
-    print "Fields Config: " + FormatJson(widget.fields)
-    
-    // Check if node exists
-    if widget.node <> invalid
-        print "Node fields applied successfully"
-        // Check specific field values
-        if widget.node.hasField("text")
-            print "Text field value: " + widget.node.text
-        end if
-    else
-        print "ERROR: Widget node is invalid"
+' Debug field application
+print "Widget ID: " + m.id
+print "Node Type: " + m.nodeType
+
+' Check if node exists
+if m.node <> invalid
+    ' Check specific field value
+    if m.node.hasField("text")
+        print "Text field value: " + m.node.text
     end if
-end sub
+else
+    print "ERROR: Widget node is invalid"
+end if
+
+' Check viewModelState
+print "viewModelState: " + FormatJson(m.viewModelState)
 ```
 
-### Variable Interpolation Issues
+### @ Operator Issues
 
-- **Check viewModelState**: Ensure variables exist in `viewModelState`
+- **Check viewModelState**: Ensure variables exist
 - **Verify syntax**: Use `@variableName` format correctly
-- **Check scope**: Variables are resolved from widget's `viewModelState` only
-- **Debug variable resolution**: Print viewModelState contents to verify structure
+- **Check scope**: `@` operator resolves from widget's `viewModelState` only
+- **Debug resolution**: Print viewModelState to verify structure
 
-### Function Execution Problems
+### Expression Execution Problems
 
-- **Check function signature**: Ensure functions return correct types
-- **Verify scope access**: Functions should have access to widget context (`m`)
+- **Check function signature**: Ensure correct return types
+- **Verify scope access**: Expressions have access to widget context (`m`). You should use `typecast m as <Type>` statement.
 - **Handle edge cases**: Check for invalid or undefined values
-- **Test function isolation**: Test field functions independently
+- **Test isolation**: Test function expressions independently
 
-## Field Integration Patterns
+## Advanced Patterns
 
-### With Focus Plugin
-
-```brightscript
-{
-    nodeType: "Button",
-    focus: {
-        onFocusChanged: sub(isFocused)
-            // Focus plugin updates viewModelState.isFocused
-        end sub
-    },
-    fields: {
-        color: function() as string
-            // React to focus state changes
-            if m.viewModelState.isFocused
-                return UI.colors.focused
-            else
-                return UI.colors.default
-            end if
-        end function
-    }
-}
-```
-
-### With Observer Plugin
+### Computed Properties
 
 ```brightscript
-{
-    nodeType: "Label",
-    fields: {
-        text: function() as string
-            return m.props.dynamicText
-        end function
-    },
-    observer: {
-        fieldId: "text",
-        callback: sub(payload)
-            // Respond to field changes applied by fields plugin
-            print "Text field updated to: " + payload.text
-        end sub
-    }
-}
-```
-
-### With FontStyle Plugin
-
-```brightscript
-{
-    nodeType: "Label",
-    fontStyle: UI.fontStyles.H2_aa,
-    fields: {
-        text: "@currentTitle",
-        color: function() as string
-            if m.viewModelState.isHighlighted
-                return UI.colors.highlight
-            else
-                return UI.colors.text
-            end if
-        end function
-    }
-}
-```
-
-## Advanced Field Patterns
-
-### 1. Computed Properties Pattern
-
-```brightscript
-// ViewModel with computed properties
+' In ViewModel
 override sub onCreateView()
-    ' Set up computed properties
     m.viewModelState.itemCount = 10
     m.viewModelState.pageSize = 5
-    
-    ' Computed property function
-    m.computedProps = {
-        pageCount: function() as integer
-            return Int(m.viewModelState.itemCount / m.viewModelState.pageSize)
-        end function
-    }
 end sub
 
-// Widget using computed properties
+' In widget
 {
     nodeType: "Label",
     fields: {
         text: function() as string
-            return "Page 1 of " + m.computedProps.pageCount().toStr()
+            totalPages = Int(m.viewModelState.itemCount / m.viewModelState.pageSize)
+            return "Page 1 of " + totalPages.toStr()
         end function
     }
 }
 ```
-
-### 2. State Machine Fields
-
-```brightscript
-// State-driven field values
-{
-    nodeType: "Group",
-    fields: {
-        visible: function() as boolean
-            return m.viewModelState.currentState = "visible"
-        end function,
-        opacity: function() as float
-            states = {
-                hidden: 0.0,
-                loading: 0.5,
-                visible: 1.0
-            }
-            return states[m.viewModelState.currentState] ?? 1.0
-        end function
-    }
-}
-```
-
-### 3. Responsive Layout Fields
-
-```brightscript
-// Responsive field values based on screen size
-{
-    nodeType: "LayoutGroup",
-    fields: {
-        layoutDirection: function() as string
-            screenWidth = m.getFramework().getInfo().device.screenSize.width
-            return screenWidth > 1280 ? "horizontal" : "vertical"
-        end function,
-        itemSpacings: function() as object
-            screenWidth = m.getFramework().getInfo().device.screenSize.width
-            spacing = screenWidth > 1280 ? 20 : 10
-            return [spacing, spacing]
-        end function
-    }
-}
-```
-
