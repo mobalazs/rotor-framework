@@ -1,6 +1,6 @@
 # Rotor Framework
 
-[![Coverage Status](https://coveralls.io/repos/github/mobalazs/rotor-framework/badge.svg)](https://coveralls.io/github/mobalazs/rotor-framework)
+[![Coverage Status](https://coveralls.io/repos/github/mobalazs/rotor-framework/badge.svg?branch=main)](https://coveralls.io/github/mobalazs/rotor-framework?branch=main)
 [![GitHub package.json version](https://img.shields.io/github/package-json/v/mobalazs/rotor-framework)](https://github.com/mobalazs/rotor-framework/packages)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Slack](https://img.shields.io/badge/Slack-RokuDevelopers-4A154B?logo=slack)](https://rokudevelopers.slack.com)
