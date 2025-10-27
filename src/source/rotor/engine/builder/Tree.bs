@@ -106,11 +106,11 @@ namespace Rotor.ViewBuilder
             return widget
         end function
 
-        function getChildrenWidgets(searchPattern as string, HID = "0" as string) as object
+        function getChildrenWidgets(parentWidget as object, matchingPattern = "" as string) as object
 
-            parentWidget = m.get(searchPattern, HID)
             if parentWidget = invalid then return invalid
 
+            ' Get all children in node order
             childrenWidgets = parentWidget.children.items()
 
             childrenWidgetsCount = childrenWidgets.Count()
@@ -123,7 +123,10 @@ namespace Rotor.ViewBuilder
                 while isFound = false and itemIndex < childrenWidgetsCount
                     widget = childrenWidgets[itemIndex].value
                     if widget.node.isSameNode(node)
-                        orderedWidgets.push(widget)
+                        ' Apply ID filtering if pattern is provided
+                        if matchingPattern = "" or m.matchesPattern(LCase(widget.id), LCase(matchingPattern))
+                            orderedWidgets.push(widget)
+                        end if
                         isFound = true
                     else
                         itemIndex++

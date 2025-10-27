@@ -220,8 +220,8 @@ namespace Rotor
             return m.builder.widgetTree.get(searchPattern, HID)
         end function
 
-        public function getChildrenWidgets(searchPattern as string, HID = "0" as string) as object
-            return m.builder.widgetTree.getChildrenWidgets(searchPattern, HID)
+        public function getTopWidgets(matchingPattern = "" as string) as object
+            return m.builder.widgetTree.getChildrenWidgets(m.builder.widgetTree.tree, matchingPattern)
         end function
 
         public function getWidgetByHID(HID = "0" as string) as object
