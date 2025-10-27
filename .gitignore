@@ -8,6 +8,7 @@ node_modules
 ./dist/tests.xml
 coverage.lcov
 debug.log
+.claude
 
 # IDE specific
 
