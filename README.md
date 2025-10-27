@@ -35,63 +35,23 @@ import "pkg:/source/rotor/RotorFramework.bs"
 ## ⚡ Quick Start
 
 ```vb
-sub initApplication()
 
-    frameworkInstance = new Rotor.Framework()
+frameworkInstance = new Rotor.Framework()
 
-    frameworkInstance.render([
-        {
-            nodeType: "Rectangle",
-            fields: {
-                width: UI.testRectangle.width,
-                height: UI.testRectangle.height,
-                translation: [UI.safeAreaOffsets.x, UI.safeAreaOffsets.y],
-                color: UI.testRectangle.color
-            }
+frameworkInstance.render([
+    {
+        id: "helloLabel", ' optional
+        nodeType: "Label",
+        fields: {
+            text: "Hello World!",
+            color: "#CCCCCC"
         }
-    ])
+    }
+])
 
-end sub
 ```
 
 This minimalist example initializes the framework and displays a green rectangle on screen. This minimal setup fully initializes the ViewBuilder and demonstrates its core rendering capabilities. You can find many more examples and capabilities in the detailed documentation.
-
-### 🧩 Build tool for generating UI constants and enums
-
-```js
-// theme.js
-export const UI = {
-  safeAreaOffsets: {
-    x: 90,
-    y: 60,
-  },
-  testRectangle: {
-    width: 150,
-    height: 100,
-    color: "0x3E6641FF"
-  }
-}
-```
-
-<details>
-<summary>BrightScript version</summary>
-
-```vb
-namespace UI
-
-    enum safeAreaOffsets
-        x = 90
-        y = 60
-    end enum
-
-    enum testRectangle
-        width = 150
-        height = 100
-        color = "0x3E6641FF"
-    end enum
-
-end namespace
-```
 
 </details>
 <br>

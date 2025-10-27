@@ -1,0 +1,34 @@
+import "pkg:/source/rotor/base/BaseModel.bs"
+
+namespace tests
+
+    @suite("BaseModel tests")
+    class BaseModelTestSuite extends rooibos.BaseTestSuite
+
+        @describe("BaseModel initialization")
+
+        @it("creates model with initial state")
+        function _()
+            initialState = { count: 5 }
+            testModel = new Model(initialState)
+
+            m.assertNotEqual(testModel, invalid)
+            m.assertEqual(testModel.state.count, 5)
+        end function
+
+        @it("creates model without state")
+        function _()
+            testModel = new Model()
+            m.assertNotEqual(testModel, invalid)
+        end function
+
+        @it("destroys model properly")
+        function _()
+            testModel = new Model({ value: 10 })
+            testModel.destroy()
+
+            m.assertEqual(testModel.state, invalid)
+        end function
+
+    end class
+end namespace

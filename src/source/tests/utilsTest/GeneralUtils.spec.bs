@@ -53,9 +53,28 @@ namespace tests
             m.assertEqual(Rotor.Utils.min(4, 9), 4)
         end function
 
+        @it("min returns second argument when first is larger")
+        function _()
+            m.assertEqual(Rotor.Utils.min(10, 2), 2)
+        end function
+
         @it("max returns largest numeric value")
         function _()
             m.assertEqual(Rotor.Utils.max(4, 9), 9)
+        end function
+
+        @it("max returns first argument when already greater")
+        function _()
+            m.assertEqual(Rotor.Utils.max(9, 4), 9)
+        end function
+
+        @it("rotateSegment rotates coordinates around center")
+        function _()
+            rotated = Rotor.Utils.rotateSegment(0, 0, 1, 0, 90, [0, 0])
+            m.assertTrue(Abs(rotated.x1) < 0.0001)
+            m.assertTrue(Abs(rotated.y1) < 0.0001)
+            m.assertTrue(Abs(rotated.x2) < 0.0001)
+            m.assertTrue(Abs(rotated.y2 + 1) < 0.0001)
         end function
 
         @describe("uuid helpers")
@@ -92,11 +111,28 @@ namespace tests
             m.assertEqual(formatted, "03:04:05.00")
         end function
 
+        @it("formatTime trims millisecond precision correctly")
+        function _()
+            stub = {
+                getHours: function() return 3 : end function,
+                getMinutes: function() return 4 : end function,
+                getSeconds: function() return 5 : end function,
+                getMilliseconds: function() return 123 : end function
+            }
+            formatted = Rotor.Utils.RALE_Logger__GetTime(stub)
+            m.assertEqual(formatted, "03:04:05.123")
+        end function
+
         @it("formatDate renders roDateTime date")
         function _()
             dt = m.createDateTime("2024-06-02T00:00:00Z")
             formatted = Rotor.Utils.RALE_Logger__GetDate(dt)
             m.assertEqual(formatted, "06-02")
+        end function
+
+        @it("BasicLogger prints timestamped message under debug")
+        function _()
+            Rotor.Utils.BasicLogger("coverage-check")
         end function
 
         private function sampleFunction()

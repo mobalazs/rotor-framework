@@ -1,0 +1,273 @@
+import "pkg:/source/rotor/engine/builder/PostProcessor.bs"
+import "pkg:/source/rotor/engine/Constants.bs"
+import "pkg:/source/rotor/utils/GeneralUtils.bs"
+
+namespace tests
+
+    @suite("PostProcessor lifecycle routing")
+    class PostProcessorSuite extends rooibos.BaseTestSuite
+
+        postBuffer as Rotor.ViewBuilder.postProcessBuffer
+        postProcessor as Rotor.ViewBuilder.PostProcessor
+        frameworkStub as object
+        parentNode as object
+
+        protected override function beforeEach()
+            m.postBuffer = new Rotor.ViewBuilder.postProcessBuffer()
+            m.postProcessor = new Rotor.ViewBuilder.PostProcessor()
+
+            m.frameworkStub = m.createFrameworkStub()
+            m.postBuffer.init(m.frameworkStub)
+            m.postProcessor.frameworkInstance = m.frameworkStub
+
+            m.parentNode = CreateObject("roSGNode", "Group")
+            m.setupExistingChildren()
+        end function
+
+        private function createFrameworkStub() as object
+            widgetLookup = {}
+            builderStub = {
+                widgetTree: invalid,
+                pluginAdapter: invalid,
+                nodePool: invalid,
+                renderQueueFlush: sub()
+                    m.flushed = true
+                end sub
+            }
+
+            widgetTreeStub = {
+                lookup: widgetLookup,
+                removed: invalid,
+                isBranchOfAppend: function(widget)
+                    return widget?.markedToAppend = true
+                end function,
+                isBranchOfRemove: function(widget)
+                    return widget?.markedForRemove = true
+                end function,
+                get: function(HID)
+                    return m.lookup[HID]
+                end function,
+                remove: sub(HID)
+                    m.removed = HID
+                end sub
+            }
+
+            pluginScope = {
+                isEnabled: true,
+                lastBefore: invalid,
+                lastAfter: invalid
+            }
+
+            pluginHooks = {
+                beforeUpdate: {
+                    focus: {
+                        pluginKey: "focus",
+                        handlerFn: sub(scope, widget, newValue, oldValue)
+                            scope.lastBefore = {
+                                widget: widget,
+                                newValue: newValue,
+                                oldValue: oldValue
+                            }
+                        end sub
+                    }
+                },
+                afterUpdated: {
+                    focus: {
+                        pluginKey: "focus",
+                        handlerFn: sub(scope, widget)
+                            scope.lastAfter = widget
+                        end sub
+                    }
+                }
+            }
+
+            nodePoolStub = {
+                releasedNodes: [],
+                releaseNodeBranch: function(node)
+                    m.releasedNodes.push(node)
+                    return node
+                end function
+            }
+
+            builderStub.widgetTree = widgetTreeStub
+            builderStub.pluginAdapter = { pluginHooks: pluginHooks }
+            builderStub.nodePool = nodePoolStub
+
+            return {
+                builder: builderStub,
+                plugins: {
+                    focus: pluginScope
+                }
+            }
+        end function
+
+        private sub setupExistingChildren()
+            existing1 = CreateObject("roSGNode", "Label")
+            existing1.addField("HID", "string", false)
+            existing1.SetField("HID", "child-1")
+            m.parentNode.appendChild(existing1)
+            m.frameworkStub.builder.widgetTree.lookup["child-1"] = { zIndex: 1 }
+
+            existing2 = CreateObject("roSGNode", "Label")
+            existing2.addField("HID", "string", false)
+            existing2.SetField("HID", "child-2")
+            m.parentNode.appendChild(existing2)
+            m.frameworkStub.builder.widgetTree.lookup["child-2"] = { zIndex: 3 }
+        end sub
+
+        @describe("routes lifecycle hooks across root and plugin priorities")
+
+        @it("routes lifecycle hooks across root and plugin priorities")
+        function run_processes_across_hook_types()
+            widgetAppend = m.createWidget("child-new", true)
+            widgetReindex = m.createWidget("child-reindex", false)
+            widgetReindex.parent.node.appendChild(widgetReindex.node)
+            widgetRemove = m.createWidget("child-remove", false)
+            widgetRemove.parent.node.appendChild(widgetRemove.node)
+            widgetRemove.markedForRemove = true
+            widgetMounted = m.createLifecycleWidget(true)
+            widgetUpdated = { onUpdateWidget: sub() m.updated = true : end sub, updated: false }
+            widgetViewModel = {
+                setProps: sub(newProps)
+                    m.props = newProps
+                end sub,
+                props: invalid
+            }
+            widgetDelete = {
+                HID: "delete-target",
+                onDestroyWidget: sub() m.destroyedWidget = true : end sub,
+                onDestroyView: sub() m.destroyedView = true : end sub,
+                isViewModel: true
+            }
+
+            pluginProcessBefore = {
+                hookType: Rotor.Const.LifeCycleHookType.BEFORE_UPDATE,
+                isPlugin: true,
+                pluginKey: "focus",
+                widget: widgetAppend,
+                newValue: { foo: 1 },
+                oldValue: { foo: 0 }
+            }
+            pluginProcessAfter = {
+                hookType: Rotor.Const.LifeCycleHookType.AFTER_UPDATED,
+                isPlugin: true,
+                pluginKey: "focus",
+                widget: widgetAppend
+            }
+
+            appendProcess = {
+                hookType: Rotor.Const.LifeCycleHookType.APPEND_CHILD,
+                widget: widgetAppend,
+                parent: widgetAppend.parent,
+                zIndex: 2
+            }
+
+            reindexProcess = {
+                hookType: Rotor.Const.LifeCycleHookType.REINDEX_CHILD,
+                widget: widgetReindex,
+                parent: widgetReindex.parent,
+                zIndex: invalid
+            }
+
+            removeProcess = {
+                hookType: Rotor.Const.LifeCycleHookType.REMOVE_CHILD,
+                widget: widgetRemove,
+                parent: widgetRemove.parent,
+                shouldSkipNodePool: false
+            }
+
+            mountedProcess = {
+                hookType: Rotor.Const.LifeCycleHookType.MOUNTED,
+                widget: widgetMounted
+            }
+
+            updatedProcess = {
+                hookType: Rotor.Const.LifeCycleHookType.UPDATED,
+                widget: widgetUpdated
+            }
+
+            stateUpdateProcess = {
+                hookType: Rotor.Const.LifeCycleHookType.VIEWMODEL_STATE_UPDATE,
+                widget: widgetViewModel,
+                props: { message: "hello" }
+            }
+
+            deleteProcess = {
+                hookType: Rotor.Const.LifeCycleHookType.DELETE_WIDGET,
+                widget: widgetDelete
+            }
+
+            m.postBuffer.add([
+                pluginProcessBefore,
+                pluginProcessAfter,
+                appendProcess,
+                reindexProcess,
+                removeProcess,
+                mountedProcess,
+                updatedProcess,
+                stateUpdateProcess,
+                deleteProcess
+            ])
+
+            m.postProcessor.run(m.postBuffer)
+            m.postBuffer.clearLifeCycleBuffers()
+
+            m.assertEqual(widgetAppend.zIndex, 2)
+            m.assertEqual(m.frameworkStub.builder.nodePool.releasedNodes.Count(), 1)
+            m.assertTrue(widgetMounted.mountedWidget)
+            m.assertTrue(widgetMounted.mountedView)
+            m.assertTrue(widgetUpdated.updated)
+            m.assertEqual(widgetViewModel.props.message, "hello")
+            m.assertInvalid(widgetRemove.node)
+            m.assertTrue(widgetDelete.destroyedWidget)
+            m.assertTrue(widgetDelete.destroyedView)
+            m.assertEqual(m.frameworkStub.builder.widgetTree.removed, "delete-target")
+            m.assertNotInvalid(m.frameworkStub.plugins.focus.lastBefore)
+            m.assertEqual(m.frameworkStub.plugins.focus.lastAfter, widgetAppend)
+
+            childCount = m.parentNode.getChildCount()
+            children = m.parentNode.getChildren(childCount, 0)
+            foundAppend = false
+            foundReindex = false
+            foundRemoved = false
+            for each childNode in children
+                if childNode.HID = "child-new"
+                    foundAppend = true
+                else if childNode.HID = "child-reindex"
+                    foundReindex = true
+                else if childNode.HID = "child-remove"
+                    foundRemoved = true
+                end if
+            end for
+            m.assertTrue(foundAppend)
+            m.assertTrue(foundReindex)
+            m.assertFalse(foundRemoved)
+        end function
+
+        private function createWidget(hid as string, markRoot = false as boolean) as object
+            node = CreateObject("roSGNode", "Label")
+            node.addField("HID", "string", false)
+            parentWrapper = { node: m.parentNode }
+            widget = {
+                HID: hid,
+                node: node,
+                parent: parentWrapper,
+                markedToAppend: markRoot
+            }
+            return widget
+        end function
+
+        private function createLifecycleWidget(includeViewModel as boolean) as object
+            return {
+                onMountWidget: sub()
+                    m.mountedWidget = true
+                end sub,
+                onMountView: sub()
+                    m.mountedView = true
+                end sub,
+                isViewModel: includeViewModel
+            }
+        end function
+
+    end class
+end namespace

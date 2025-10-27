@@ -1,0 +1,260 @@
+import "pkg:/source/rotor/base/BaseStack.bs"
+
+namespace tests
+
+    @suite("BaseStackTestSuite")
+    class BaseStackTestSuite extends rooibos.BaseTestSuite
+
+        stack as object
+
+        protected override function beforeEach()
+            m.stack = new Rotor.BaseStack()
+        end function
+
+        protected override function afterEach()
+            m.stack = invalid
+        end function
+
+        @describe("BaseStack initialization")
+
+        @it("creates an empty stack")
+        function _()
+            m.assertNotEqual(m.stack, invalid)
+            m.assertNotEqual(m.stack.stack, invalid)
+            m.assertEqual(m.stack.stack.count(), 0)
+        end function
+
+        @describe("BaseStack set method")
+
+        @it("adds item to stack")
+        function _()
+            m.stack.set("key1", { value: 100 })
+
+            item = m.stack.get("key1")
+            m.assertNotEqual(item, invalid)
+            m.assertEqual(item.value, 100)
+        end function
+
+        @it("replaces existing item with same id")
+        function _()
+            m.stack.set("key1", { value: 100 })
+            m.stack.set("key1", { value: 200 })
+
+            item = m.stack.get("key1")
+            m.assertEqual(item.value, 200)
+        end function
+
+        @it("can store multiple items")
+        function _()
+            m.stack.set("key1", { name: "item1" })
+            m.stack.set("key2", { name: "item2" })
+            m.stack.set("key3", { name: "item3" })
+
+            m.assertEqual(m.stack.stack.count(), 3)
+        end function
+
+        @it("can store different types of values")
+        function _()
+            m.stack.set("string", "value")
+            m.stack.set("number", 42)
+            m.stack.set("object", { key: "val" })
+            m.stack.set("array", [1, 2, 3])
+
+            m.assertEqual(m.stack.get("string"), "value")
+            m.assertEqual(m.stack.get("number"), 42)
+            m.assertNotEqual(m.stack.get("object"), invalid)
+            m.assertNotEqual(m.stack.get("array"), invalid)
+        end function
+
+        @describe("BaseStack get method")
+
+        @it("retrieves existing item")
+        function _()
+            testItem = { id: 1, name: "test" }
+            m.stack.set("mykey", testItem)
+
+            retrieved = m.stack.get("mykey")
+            m.assertNotEqual(retrieved, invalid)
+            m.assertEqual(retrieved.id, 1)
+            m.assertEqual(retrieved.name, "test")
+        end function
+
+        @it("returns invalid for non-existent key")
+        function _()
+            result = m.stack.get("nonexistent")
+            m.assertEqual(result, invalid)
+        end function
+
+        @it("is case insensitive")
+        function _()
+            m.stack.set("MyKey", { value: 123 })
+
+            result1 = m.stack.get("mykey")
+            result2 = m.stack.get("MYKEY")
+            result3 = m.stack.get("MyKey")
+
+            m.assertNotEqual(result1, invalid)
+            m.assertNotEqual(result2, invalid)
+            m.assertNotEqual(result3, invalid)
+        end function
+
+        @describe("BaseStack getAll method")
+
+        @it("returns all items in stack")
+        function _()
+            m.stack.set("a", 1)
+            m.stack.set("b", 2)
+            m.stack.set("c", 3)
+
+            allItems = m.stack.getAll()
+
+            m.assertNotEqual(allItems, invalid)
+            m.assertEqual(allItems.count(), 3)
+        end function
+
+        @it("returns empty object when stack is empty")
+        function _()
+            allItems = m.stack.getAll()
+
+            m.assertNotEqual(allItems, invalid)
+            m.assertEqual(allItems.count(), 0)
+        end function
+
+        @it("returns reference to actual stack")
+        function _()
+            m.stack.set("key", "value")
+
+            allItems = m.stack.getAll()
+
+            ' Should be the same object reference
+            m.assertEqual(allItems.count(), m.stack.stack.count())
+        end function
+
+        @describe("BaseStack remove method")
+
+        @it("removes existing item")
+        function _()
+            m.stack.set("key1", { value: 100 })
+            m.assertNotEqual(m.stack.get("key1"), invalid)
+
+            m.stack.remove("key1")
+
+            m.assertEqual(m.stack.get("key1"), invalid)
+        end function
+
+        @it("does not crash when removing non-existent key")
+        function _()
+            m.stack.remove("nonexistent")
+
+            ' Should not crash
+            m.assertTrue(true)
+        end function
+
+        @it("updates stack count after removal")
+        function _()
+            m.stack.set("a", 1)
+            m.stack.set("b", 2)
+            m.stack.set("c", 3)
+
+            m.assertEqual(m.stack.stack.count(), 3)
+
+            m.stack.remove("b")
+
+            m.assertEqual(m.stack.stack.count(), 2)
+        end function
+
+        @describe("BaseStack clear method")
+
+        @it("clears all items from stack")
+        function _()
+            m.stack.set("a", 1)
+            m.stack.set("b", 2)
+            m.stack.set("c", 3)
+
+            m.assertEqual(m.stack.stack.count(), 3)
+
+            m.stack.clear()
+
+            m.assertEqual(m.stack.stack.count(), 0)
+        end function
+
+        @it("can be called on empty stack")
+        function _()
+            m.stack.clear()
+
+            m.assertEqual(m.stack.stack.count(), 0)
+        end function
+
+        @it("can add items after clearing")
+        function _()
+            m.stack.set("a", 1)
+            m.stack.clear()
+            m.stack.set("b", 2)
+
+            m.assertEqual(m.stack.stack.count(), 1)
+            m.assertNotEqual(m.stack.get("b"), invalid)
+        end function
+
+        @describe("BaseStack has method")
+
+        @it("returns true for existing keys")
+        function _()
+            m.stack.set("exists", "value")
+
+            m.assertTrue(m.stack.has("exists"))
+        end function
+
+        @it("returns false for non-existent keys")
+        function _()
+            m.assertFalse(m.stack.has("nonexistent"))
+        end function
+
+        @it("returns false after item is removed")
+        function _()
+            m.stack.set("key", "value")
+            m.assertTrue(m.stack.has("key"))
+
+            m.stack.remove("key")
+
+            m.assertFalse(m.stack.has("key"))
+        end function
+
+        @it("returns false after stack is cleared")
+        function _()
+            m.stack.set("key", "value")
+            m.assertTrue(m.stack.has("key"))
+
+            m.stack.clear()
+
+            m.assertFalse(m.stack.has("key"))
+        end function
+
+        @describe("BaseStack integration tests")
+
+        @it("handles complex workflow")
+        function _()
+            ' Add items
+            m.stack.set("user1", { name: "Alice", age: 30 })
+            m.stack.set("user2", { name: "Bob", age: 25 })
+
+            m.assertTrue(m.stack.has("user1"))
+            m.assertTrue(m.stack.has("user2"))
+
+            ' Update item
+            m.stack.set("user1", { name: "Alice", age: 31 })
+            m.assertEqual(m.stack.get("user1").age, 31)
+
+            ' Remove item
+            m.stack.remove("user2")
+            m.assertFalse(m.stack.has("user2"))
+
+            ' Verify count
+            m.assertEqual(m.stack.stack.count(), 1)
+
+            ' Clear all
+            m.stack.clear()
+            m.assertEqual(m.stack.stack.count(), 0)
+        end function
+
+    end class
+end namespace

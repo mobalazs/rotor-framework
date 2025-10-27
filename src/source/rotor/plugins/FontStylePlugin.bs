@@ -6,7 +6,7 @@ import "../base/BasePlugin.bs"
 ' @extends BasePlugin class
 '/
 namespace Rotor
-    class FontStylePlugin extends BasePlugin
+    class FontStylePlugin extends Rotor.BasePlugin
 
         ' Constructor
         sub new(key = "fontStyle" as string)

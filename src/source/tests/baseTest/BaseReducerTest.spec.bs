@@ -1,0 +1,97 @@
+import "pkg:/source/rotor/RotorFramework.bs"
+import "pkg:/source/rotor/base/BaseReducer.bs"
+import "pkg:/source/rotor/utils/GeneralUtils.bs"
+
+namespace tests
+
+    @suite("BaseReducerTestSuite")
+    class BaseReducerTestSuite extends rooibos.BaseTestSuite
+
+        fwInstance
+
+        protected override function beforeEach()
+            m.fwInstance = new Rotor.Framework()
+        end function
+
+        protected override function afterEach()
+            if m.fwInstance <> invalid
+                m.fwInstance.destroy()
+                m.fwInstance = invalid
+            end if
+        end function
+
+        @describe("BaseReducer initialization")
+
+        @it("creates reducer instance")
+        function _()
+            testReducer = new Reducer()
+
+            m.assertNotEqual(testReducer, invalid)
+            m.assertTrue(Rotor.Utils.isFunction(testReducer.dispatch))
+        end function
+
+        @it("initializes with empty middlewares array")
+        function _()
+            testReducer = new Reducer()
+
+            m.assertNotEqual(testReducer.middlewares, invalid)
+            m.assertEqual(testReducer.middlewares.count(), 0)
+        end function
+
+        @it("has port from framework")
+        function _()
+            testReducer = new Reducer()
+
+            m.assertNotEqual(testReducer.port, invalid)
+            listener = {
+                received: invalid,
+                dispatch: sub(intent)
+                    m.received = intent
+                end sub
+            }
+            testReducer.ownerDispatcher = listener
+            testIntent = { type: "TEST" }
+            testReducer.dispatch(testIntent)
+            m.assertEqual(listener.received, testIntent)
+        end function
+
+        @describe("BaseReducer reducer method")
+
+        @it("returns unchanged state by default")
+        function _()
+            testReducer = new Reducer()
+            initialState = { count: 0 }
+            intent = { type: "TEST_ACTION", payload: invalid }
+
+            result = testReducer.reducer(initialState, intent)
+
+            m.assertEqual(result.count, 0)
+        end function
+
+        @describe("BaseReducer applyMiddlewares method")
+
+        @it("returns empty array by default")
+        function _()
+            testReducer = new Reducer()
+
+            middlewares = testReducer.applyMiddlewares()
+
+            m.assertNotEqual(middlewares, invalid)
+            m.assertEqual(middlewares.count(), 0)
+        end function
+
+        @describe("BaseReducer destroy method")
+
+        @it("cleans up references")
+        function _()
+            testReducer = new Reducer()
+            testReducer.ownerDispatcher = { test: "value" }
+
+            testReducer.destroy()
+
+            m.assertEqual(testReducer.ownerDispatcher, invalid)
+            m.assertEqual(testReducer.port, invalid)
+        end function
+
+    end class
+end namespace

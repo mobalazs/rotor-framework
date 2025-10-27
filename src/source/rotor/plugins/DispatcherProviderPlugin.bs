@@ -6,7 +6,7 @@ import "../base/BasePlugin.bs"
 ' @extends BasePlugin class
 '/
 namespace Rotor
-    class DispatcherProviderPlugin extends BasePlugin
+    class DispatcherProviderPlugin extends Rotor.BasePlugin
         BasePlugin
         ' Constructor
         sub new(key = "dispatcher" as string)

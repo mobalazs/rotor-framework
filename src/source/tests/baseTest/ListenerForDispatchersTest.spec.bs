@@ -1,0 +1,109 @@
+import "pkg:/source/rotor/base/ListenerForDispatchers.bs"
+import "pkg:/source/rotor/utils/GeneralUtils.bs"
+
+namespace tests
+
+    @suite("ListenerForDispatchers")
+    class ListenerForDispatchersSuite extends rooibos.BaseTestSuite
+
+        @describe("listeners management and notification")
+
+        @it("notifies listeners and removes ones flagged as once")
+        function notifyListeners_removes_once_listener()
+            listener = new ListenerForDispatchers()
+            scope = {
+                props: { value: 0 },
+                called: false,
+                calledWithState: invalid
+            }
+
+            listener.addListener({
+                shouldUpdate: function(props, state)
+                    return state.shouldUpdate
+                end function,
+                mapStateToProps: sub(props, state)
+                    props.value = state.value
+                end sub,
+                callback: sub()
+                    m.called = true
+                end sub,
+                callbackWithState: sub(state)
+                    m.calledWithState = state
+                end sub,
+                once: true
+            }, "listener-1", scope)
+
+            state = { shouldUpdate: true, value: 15 }
+            listener.notifyListeners(state)
+
+            m.assertEqual(scope.props.value, 15)
+            m.assertTrue(scope.called)
+            m.assertEqual(scope.calledWithState, state)
+            m.assertEqual(listener.listeners.Count(), 0)
+        end function
+
+        @it("uses allowUpdate when shouldUpdate missing and supports repeated updates")
+        function notifyListeners_uses_allowUpdate()
+            listener = new ListenerForDispatchers()
+            scope = { props: {} }
+
+            listener.addListener({
+                allowUpdate: function(scope, state)
+                    return state.allowed
+                end function
+            }, "listener-2", scope)
+
+            listener.notifyListeners({ allowed: false, value: "initial" })
+            m.assertEqual(listener.listeners.Count(), 1)
+
+            listener.notifyListeners({ allowed: true, value: "final" })
+            m.assertEqual(listener.listeners.Count(), 1)
+        end function
+
+        @it("removeAllListenersByListenerId clears matching entries")
+        function removeAllListenersByListenerId_removes_matching_entries()
+            listener = new ListenerForDispatchers()
+            scopeA = { props: {} }
+            scopeB = { props: {} }
+
+            listener.addListener({}, "group-A", scopeA)
+            listener.addListener({}, "group-B", scopeB)
+            listener.addListener({}, "group-A", scopeA)
+
+            listener.removeAllListenersByListenerId("group-A")
+
+            m.assertEqual(listener.listeners.Count(), 1)
+            m.assertEqual(listener.listeners[0].listenerId, "group-B")
+        end function
+
+        @it("runMapStateToProps applies mapper when props available")
+        function runMapStateToProps_applies_mapper()
+            listener = new ListenerForDispatchers()
+            scope = {
+                props: { text: "" }
+            }
+
+            listener.runMapStateToProps({ text: "hello" }, sub(props, state)
+                props.text = state.text
+            end sub, scope)
+
+            m.assertEqual(scope.props.text, "hello")
+        end function
+
+        @it("destroy clears listeners and releases callbacks")
+        function destroy_clears_listeners()
+            listener = new ListenerForDispatchers()
+            scope = { props: {} }
+            listener.addListener({
+                callback: sub()
+                    ' noop
+                end sub
+            }, "listener", scope)
+
+            listener.destroy()
+
+            m.assertEqual(listener.listeners.Count(), 0)
+        end function
+
+    end class
+end namespace

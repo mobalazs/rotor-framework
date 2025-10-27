@@ -275,6 +275,8 @@ namespace tests
             m.assertEqual(Rotor.Utils.getWrappedIndex(-1, 5), 4)
         end function
 
+
+
         private function isGreaterThan(value, context)
             return value > context
         end function
@@ -282,5 +284,75 @@ namespace tests
         private sub assertArraysMatch(actual as dynamic, expected as dynamic)
             m.assertEqual(FormatJSON(actual), FormatJSON(expected))
         end sub
+
+
+        @it("converts array to hash with true values")
+        function _()
+            arr = ["a", "b", "c"]
+            result = Rotor.Utils.convertArrayToAAHash(arr)
+
+            m.assertTrue(result.a)
+            m.assertTrue(result.b)
+            m.assertTrue(result.c)
+        end function
+
+        @it("converts array to hash with custom value")
+        function _()
+            arr = ["x", "y"]
+            result = Rotor.Utils.convertArrayToAAHash(arr, false)
+
+            m.assertFalse(result.x)
+            m.assertFalse(result.y)
+        end function
+
+
+        @it("wraps non-array in array")
+        function _()
+            result = Rotor.Utils.ensureArray("single")
+
+            m.assertTrue(Rotor.Utils.isArray(result))
+            m.assertEqual(result.count(), 1)
+            m.assertEqual(result[0], "single")
+        end function
+
+        @it("returns array unchanged")
+        function _()
+            arr = [1, 2, 3]
+            result = Rotor.Utils.ensureArray(arr)
+
+            m.assertTrue(Rotor.Utils.isArray(result))
+            m.assertEqual(result.count(), 3)
+        end function
+
+
+        @it("gets nested value by path")
+        function _()
+            obj = {
+                user: {
+                    name: "John",
+                    age: 30
+                }
+            }
+
+            result = Rotor.Utils.getValueByKeyPath(obj, "user.name")
+            m.assertEqual(result, "John")
+        end function
+
+        @it("gets top level value")
+        function _()
+            obj = { title: "Test" }
+            result = Rotor.Utils.getValueByKeyPath(obj, "title")
+
+            m.assertEqual(result, "Test")
+        end function
+
+        @it("returns invalid for non-existent path")
+        function _()
+            obj = { a: 1 }
+            result = Rotor.Utils.getValueByKeyPath(obj, "b.c")
+
+            m.assertEqual(result, invalid)
+        end function
+
     end class
 end namespace

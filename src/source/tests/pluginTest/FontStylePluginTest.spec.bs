@@ -1,0 +1,75 @@
+import "pkg:/source/rotor/plugins/FontStylePlugin.bs"
+
+namespace tests
+    @suite("FontStylePlugin unit coverage")
+    class FontStylePluginSuite extends rooibos.BaseTestSuite
+
+        plugin as Rotor.FontStylePlugin
+        widget as object
+
+        protected override function beforeEach()
+            m.plugin = new Rotor.FontStylePlugin()
+            m.widget = m.createLabelWidget()
+        end function
+
+        @describe("FontStylePlugin functionality tests")
+
+        @it("beforeMount resolves functional font configuration")
+        function _()
+            m.widget.applyCount = 0
+            m.widget.fontStyle = function()
+                m.applyCount += 1
+                return { uri: "pkg:/fonts/Function.ttf", size: 26 }
+            end function
+
+            m.plugin.hooks.beforeMount(m.plugin, m.widget)
+
+            m.assertEqual(m.widget.applyCount, 1)
+            m.assertNotEqual(m.widget.node.font, invalid)
+            m.assertEqual(m.widget.node.font.uri, "pkg:/fonts/Function.ttf")
+            m.assertEqual(m.widget.node.font.size, 26)
+        end function
+
+        @it("setFontAttribute replaces @ tokens with assocarray values")
+        function _()
+            m.widget.viewModelState = {
+                themeStyle: {
+                    uri: "pkg:/fonts/Body.ttf",
+                    size: 32
+                }
+            }
+            m.widget.fontStyle = "@themeStyle"
+
+            m.plugin.setFontAttribute(m.widget)
+
+            m.assertNotEqual(m.widget.node.font, invalid)
+            m.assertEqual(m.widget.node.font.uri, "pkg:/fonts/Body.ttf")
+            m.assertEqual(m.widget.node.font.size, 32)
+        end function
+
+        @it("beforeUpdate stores new configuration and reapplies font style")
+        function _()
+            config = {
+                uri: "pkg:/fonts/Subhead.ttf",
+                size: 18
+            }
+
+            m.plugin.hooks.beforeUpdate(m.plugin, m.widget, config, "ignored-old-value")
+
+            m.assertEqual(m.widget.fontStyle.uri, "pkg:/fonts/Subhead.ttf")
+            m.assertNotEqual(m.widget.node.font, invalid)
+            m.assertEqual(m.widget.node.font.uri, "pkg:/fonts/Subhead.ttf")
+            m.assertEqual(m.widget.node.font.size, 18)
+        end function
+
+        private function createLabelWidget() as object
+            node = CreateObject("roSGNode", "Label")
+            return {
+                nodeType: "Label",
+                node: node,
+                viewModelState: {},
+                fontStyle: invalid
+            }
+        end function
+    end class
+end namespace

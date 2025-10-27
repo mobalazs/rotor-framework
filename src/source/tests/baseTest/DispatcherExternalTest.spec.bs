@@ -1,0 +1,144 @@
+import "pkg:/source/rotor/base/DispatcherExternal.bs"
+import "pkg:/source/rotor/engine/Constants.bs"
+
+namespace tests
+
+    @suite("DispatcherExternal behaviour")
+    class DispatcherExternalSuite extends rooibos.BaseTestSuite
+
+        frameworkStub as object
+        deregisteredId as string
+        addedObservers as object
+        removedObservers as object
+
+        protected override function beforeEach()
+            m.deregisteredId = ""
+            m.addedObservers = []
+            m.removedObservers = []
+
+            m.frameworkStub = {
+                addObserver: sub(fieldId, node)
+                    m.addedObservers.push({ fieldId: fieldId, node: node })
+                end sub,
+                removeObserver: sub(fieldId, node)
+                    m.removedObservers.push({ fieldId: fieldId, node: node })
+                end sub,
+                dispatcherProvider: {
+                    mockDispatchers: {},
+                    deregisterDispatcher: sub(id)
+                        m.top.deregisteredId = id
+                    end sub,
+                    get: function(id)
+                        return m.mockDispatchers[id]
+                    end function
+                }
+            }
+
+            GetGlobalAA().rotor_framework_helper = {
+                frameworkInstance: m.frameworkStub
+            }
+        end function
+
+   		@describe("dispatch cross-thread intent serialization")
+
+        @it("dispatch serializes intent onto task node for render thread")
+        function dispatch_sets_rotor_sync_payload()
+            node = CreateObject("roSGNode", "ContentNode")
+            node.addField("rotorSync", "assocarray", true)
+            dispatcher = new Rotor.DispatcherExternal("renderDispatch", node, Rotor.Const.ThreadType.RENDER)
+
+            dispatcher.dispatch({ type: "PING", payload: {} } as Intent)
+
+            payload = node.getField("rotorSync")
+            m.assertEqual(payload.type, Rotor.Const.ThreadSyncType.DISPATCH)
+            m.assertEqual(payload.payload.dispatcherId, "renderDispatch")
+        end function
+
+        @it("addListener and removeAllListeners manage observers on render thread")
+        function render_thread_add_remove_listener_updates_observer_state()
+            node = CreateObject("roSGNode", "ContentNode")
+            node.addField("rotorSync", "assocarray", true)
+            dispatcher = new Rotor.DispatcherExternal("renderListener", node, Rotor.Const.ThreadType.RENDER)
+
+            dispatcher.addListener({}, "listener-1", { props: {} })
+            m.assertTrue(dispatcher.isStateObserved)
+
+            dispatcher.removeAllListenersByListenerId("listener-1")
+            m.assertFalse(dispatcher.isStateObserved)
+        end function
+
+        @it("task thread listeners delegate to framework observer hooks")
+        function task_thread_add_remove_listener_delegates_to_framework()
+            node = CreateObject("roSGNode", "ContentNode")
+            node.addField("rotorSync", "assocarray", true)
+            dispatcher = new Rotor.DispatcherExternal("taskListener", node, Rotor.Const.ThreadType.TASK)
+
+            dispatcher.addListener({}, "listener-2", { props: {} })
+            m.assertEqual(m.addedObservers.Count(), 1)
+            m.assertTrue(dispatcher.isStateObserved)
+
+            dispatcher.removeAllListenersByListenerId("listener-2")
+            m.assertEqual(m.removedObservers.Count(), 1)
+            m.assertFalse(dispatcher.isStateObserved)
+        end function
+
+        @it("getState returns field and runs optional mapper")
+        function getState_returns_state_and_runs_map()
+            node = CreateObject("roSGNode", "ContentNode")
+            node.addField("taskDispatcher", "assocarray", true)
+            node.setField("taskDispatcher", { count: 5 })
+            dispatcher = new Rotor.DispatcherExternal("taskDispatcher", node, Rotor.Const.ThreadType.RENDER)
+            scope = { props: { count: 0 } }
+
+            state = dispatcher.getState(sub(props, newState)
+                props.count = newState.count
+            end sub, scope)
+
+            m.assertEqual(state.count, 5)
+            m.assertEqual(scope.props.count, 5)
+        end function
+
+        @it("destroy removes observer and deregisters dispatcher")
+        function destroy_cleans_up_and_deregisters()
+            node = CreateObject("roSGNode", "ContentNode")
+            node.addField("rotorSync", "assocarray", true)
+            dispatcher = new Rotor.DispatcherExternal("toDestroy", node, Rotor.Const.ThreadType.TASK)
+
+            dispatcher.addListener({}, "listener-3", { props: {} })
+            dispatcher.destroy()
+
+            m.assertEqual(m.deregisteredId, "toDestroy")
+            m.assertEqual(m.removedObservers.Count(), 1)
+            m.assertInvalid(dispatcher.taskNode)
+        end function
+
+        @it("dispatcherStateCallback forwards events to dispatcher provider")
+        function dispatcherStateCallback_forwards_state()
+            node = CreateObject("roSGNode", "ContentNode")
+            dispatcherStub = {
+                received: invalid,
+                notifyListeners: sub(state)
+                    m.received = state
+                end sub
+            }
+            m.frameworkStub.dispatcherProvider.mockDispatchers = {
+                callbackTarget: dispatcherStub
+            }
+
+            msg = {
+                getField: function()
+                    return "callbackTarget"
+                end function,
+                getData: function()
+                    return { value: 42 }
+                end function
+            }
+
+            Rotor.dispatcherStateCallback(msg)
+
+            m.assertNotInvalid(dispatcherStub.received)
+            m.assertEqual(dispatcherStub.received.value, 42)
+        end function
+
+    end class
+end namespace

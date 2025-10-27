@@ -6,7 +6,7 @@ import "../base/BasePlugin.bs"
 ' @extends BasePlugin class
 '/
 namespace Rotor
-    class FieldsPlugin extends BasePlugin
+    class FieldsPlugin extends Rotor.BasePlugin
 
         ' Constructor
         sub new(key = "fields" as string, params = invalid as object)

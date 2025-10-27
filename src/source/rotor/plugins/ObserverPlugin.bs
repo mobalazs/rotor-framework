@@ -7,7 +7,7 @@ namespace Rotor
     '** @namespace Rotor
     '** @extends BasePlugin
     '******************************************************************
-    class ObserverPlugin extends BasePlugin
+    class ObserverPlugin extends Rotor.BasePlugin
 
         observerStack as object
         helperInterfaceId as object

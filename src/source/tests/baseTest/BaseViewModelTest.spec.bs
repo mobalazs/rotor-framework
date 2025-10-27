@@ -1,0 +1,35 @@
+import "pkg:/source/rotor/base/BaseViewModel.bs"
+
+namespace tests
+
+    @suite("BaseViewModel tests")
+    class BaseViewModelTestSuite extends rooibos.BaseTestSuite
+
+        @describe("ViewModel initialization")
+
+        @it("creates ViewModel base class")
+        function _()
+            vm = new ViewModel()
+
+            m.assertNotEqual(vm, invalid)
+            m.assertTrue(vm.isViewModel)
+        end function
+
+        @it("setProps updates props")
+        function _()
+            vm = new ViewModel()
+            vm.setProps({ title: "Test" })
+
+            m.assertEqual(vm.props.title, "Test")
+        end function
+
+        @it("template returns empty object")
+        function _()
+            vm = new ViewModel()
+            temp = vm.template()
+
+            m.assertNotEqual(temp, invalid)
+        end function
+
+    end class
+end namespace
