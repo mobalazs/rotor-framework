@@ -1,4 +1,4 @@
-# Rotor Framework Observer Plugin - How-To Guide
+# Observer Configuration
 
 ← [Back to Documentation](../README.md#-learn-more)
 
@@ -23,7 +23,7 @@ The Observer Plugin is a powerful field observation system within the Rotor Fram
 Monitor a single field change on the widget's node:
 
 ```brightscript
-// Basic field observer configuration
+' Basic field observer configuration
 {
     nodeType: "Label",
     observer: {
@@ -43,7 +43,7 @@ Monitor a single field change on the widget's node:
 Monitor multiple fields using array configuration:
 
 ```brightscript
-// Multiple observers on the same widget
+' Multiple observers on the same widget
 {
     nodeType: "Video",
     observer: [
@@ -91,7 +91,7 @@ Monitor multiple fields using array configuration:
 ### 1. Video Player State Monitoring
 
 ```brightscript
-// File: https://github.com/mobalazs/poc-rotor-framework/blob/main/src/components/app/renderThread/viewModels/faders/previewVideo.bs
+' File: https://github.com/mobalazs/poc-rotor-framework/blob/main/src/components/app/renderThread/viewModels/faders/previewVideo.bs
 {
     nodeType: "Video",
     observer: [
@@ -121,7 +121,7 @@ Monitor multiple fields using array configuration:
 ### 2. Auto-Sizing Button with Render Tracking
 
 ```brightscript
-// File: https://github.com/mobalazs/poc-rotor-framework/blob/main/src/components/app/renderThread/viewModels/buttons/simpleButton.bs
+' File: https://github.com/mobalazs/poc-rotor-framework/blob/main/src/components/app/renderThread/viewModels/buttons/simpleButton.bs
 {
     id: "buttonLabel",
     nodeType: "Label",
@@ -145,16 +145,16 @@ Monitor multiple fields using array configuration:
 ### 3. Animation State Observer
 
 ```brightscript
-// File: https://github.com/mobalazs/poc-rotor-framework/blob/main/src/components/app/renderThread/viewModels/pages/moviesPage.bs
+' File: https://github.com/mobalazs/poc-rotor-framework/blob/main/src/components/app/renderThread/viewModels/pages/moviesPage.bs
 {
     nodeType: "Group",
     observer: m.showPageAnimationObserver,
     children: [
-        // Page content
+        ' Page content
     ]
 }
 
-// In ViewModel
+' In ViewModel
 sub onCreateView()
     m.showPageAnimationObserver = {
         fieldId: "animationState",
@@ -221,7 +221,7 @@ Observer that removes itself when condition is met:
     observer: {
         fieldId: "position",
         until: function(payload) as boolean
-            return payload.position >= 30  // Remove after 30 seconds
+            return payload.position >= 30  ' Remove after 30 seconds
         end function,
         callback: sub(payload)
             print "Video position: " + payload.position.toStr()
@@ -258,8 +258,8 @@ Set an initial field value that triggers observation:
     nodeType: "Rectangle",
     observer: {
         fieldId: "width",
-        value: 100,  // Sets initial width to 100
-        alwaysNotify: true,  // Callback will fire even if width was already 100
+        value: 100,  ' Sets initial width to 100
+        alwaysNotify: true,  ' Callback will fire even if width was already 100
         callback: sub(payload)
             print "Width changed to: " + payload.width.toStr()
         end sub
@@ -295,19 +295,19 @@ The Observer Plugin operates automatically through the widget lifecycle - no man
 Always observe specific, well-defined SceneGraph fields:
 
 ```brightscript
-// Good: Observe specific fields
+' Good: Observe specific fields
 observer: {
-    fieldId: "state",  // Clear SceneGraph field
+    fieldId: "state",  ' Clear SceneGraph field
     callback: sub(payload)
-        // Handle state change
+        ' Handle state change
     end sub
 }
 
-// Avoid: Observing undefined or custom fields without setup
+' Avoid: Observing undefined or custom fields without setup
 observer: {
-    fieldId: "customField",  // May not exist on node
+    fieldId: "customField",  ' May not exist on node
     callback: sub(payload)
-        // May never be called
+        ' May never be called
     end sub
 }
 ```
@@ -320,10 +320,10 @@ Observers execute in widget scope, so `m` refers to the widget:
 observer: {
     fieldId: "text",
     callback: sub(payload)
-        // `m` refers to the widget instance
+        ' `m` refers to the widget instance
         m.updateRelatedWidgets(payload.text)
         
-        // Access widget properties and methods
+        ' Access widget properties and methods
         if m.props.autoUpdate
             m.getViewModel().processTextChange(payload.text)
         end if
@@ -337,7 +337,7 @@ observer: {
 observer: {
     fieldId: "customData",
     parsePayload: function(payload) as object
-        // Transform complex data structures
+        ' Transform complex data structures
         processedData = {
             items: payload.customData.items,
             count: payload.customData.items.count(),
@@ -346,7 +346,7 @@ observer: {
         return processedData
     end function,
     callback: sub(payload)
-        // Work with clean, processed data
+        ' Work with clean, processed data
         if payload.hasValidData
             print "Processing " + payload.count.toStr() + " items"
         end if
@@ -375,13 +375,13 @@ observer: {
 ### Observer Not Firing
 
 ```brightscript
-// Debug observer setup
+' Debug observer setup
 sub debugObserver(widget as object)
     print "Widget ID: " + widget.id
     print "Node Type: " + widget.nodeType
     print "Observer Config: " + FormatJson(widget.observer)
     
-    // Check if field exists on node
+    ' Check if field exists on node
     if widget.node.hasField("yourFieldId")
         print "Field exists on node"
         print "Current value: " + widget.node.getField("yourFieldId").toStr()
@@ -419,7 +419,7 @@ end sub
     observer: {
         fieldId: "text",
         callback: sub(payload)
-            // Respond to field changes from fields plugin
+            ' Respond to field changes from fields plugin
             m.getViewModel().onTextUpdated(payload.text)
         end sub
     }
@@ -433,13 +433,13 @@ end sub
     nodeType: "Button",
     focus: {
         onFocusChanged: sub(isFocused)
-            // Focus plugin updates viewModelState.isFocused
+            ' Focus plugin updates viewModelState.isFocused
         end sub
     },
     observer: {
         fieldId: "buttonSelected",
         callback: sub(payload)
-            // Observe button selection events
+            ' Observe button selection events
             if m.viewModelState.isFocused and payload.buttonSelected
                 m.getViewModel().handleFocusedSelection()
             end if
@@ -460,7 +460,7 @@ end sub
             fieldId: "state",
             callback: sub(payload)
                 if payload.state = "playing"
-                    // Enable position monitoring
+                    ' Enable position monitoring
                     m.setupPositionObserver()
                 end if
             end sub
@@ -472,7 +472,7 @@ end sub
 ### 2. State Machine with Observers
 
 ```brightscript
-// State-driven observer configuration
+' State-driven observer configuration
 sub setupStateObservers()
     stateObservers = [
         {
@@ -493,7 +493,7 @@ sub setupStateObservers()
         }
     ]
     
-    // Apply observers to widget
+    ' Apply observers to widget
     m.updateWidget("mediaPlayer", { observer: stateObservers })
 end sub
 ```
@@ -501,7 +501,7 @@ end sub
 ### 3. Dynamic Observer Management
 
 ```brightscript
-// Conditional observer setup based on widget state
+' Conditional observer setup based on widget state
 function createObserverConfig() as object
     baseObservers = [{
         fieldId: "content",
@@ -510,7 +510,7 @@ function createObserverConfig() as object
         end sub
     }]
     
-    // Add additional observers based on conditions
+    ' Add additional observers based on conditions
     if m.props.enablePositionTracking
         baseObservers.push({
             fieldId: "position",
@@ -524,3 +524,22 @@ function createObserverConfig() as object
 end function
 ```
 
+---
+
+## 📚 Learn More
+
+**NEXT STEP: [Focus Plugin](./view-builder-focus-plugin.md)**
+
+**Reference Documentation:**
+- [ViewBuilder Overview](./view-builder-overview.md) - High-level architecture and concepts
+- [Widget Reference](./view-builder-widget-reference.md) - Complete Widget properties, methods, and usage patterns
+- [ViewModel Reference](./view-builder-viewmodel-reference.md) - Complete ViewModel structure, lifecycle, and state management
+
+**Plugin Documentation:**
+- [Fields Plugin](./view-builder-fields-plugin.md) - Field management with expressions and interpolation
+- [FontStyle Plugin](./view-builder-fontstyle-plugin.md) - Typography and font styling
+- [Focus Plugin](./view-builder-focus-plugin.md) - Focus management and navigation
+
+**Additional Documentation:**
+- [Cross-Thread MVI design pattern](./cross-thread-mvi.md) - State management across threads
+- [Internationalization support](./i18n-support.md) - Locale-aware interface implementation

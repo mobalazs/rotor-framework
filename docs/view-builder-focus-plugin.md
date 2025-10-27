@@ -1,4 +1,4 @@
-# Rotor Framework Focus Plugin - How-To Guide
+# Focus Configuration
 
 ← [Back to Documentation]../(README.md#-learn-more)
 
@@ -24,17 +24,17 @@ The Focus Plugin is one of the most sophisticated components of the Rotor Framew
 Focus items are individual widgets that can receive focus:
 
 ```brightscript
-// Basic focus item configuration
+' Basic focus item configuration
 focus: {
     isEnabled: true,
     onFocusChanged: sub(isFocused as boolean)
         if isFocused
-            m.node.blendColor = "0xFF0000FF" // Red when focused
+            m.node.blendColor = "0xFF0000FF" ' Red when focused
         else
-            m.node.blendColor = "0xFFFFFFFF" // White when not focused
+            m.node.blendColor = "0xFFFFFFFF" ' White when not focused
         end if
         
-        // Note: viewModelState.isFocused is automatically updated by the plugin
+        ' Note: viewModelState.isFocused is automatically updated by the plugin
     end sub,
     onSelected: sub()
         print "Button selected!"
@@ -47,7 +47,7 @@ focus: {
 Focus groups manage navigation between multiple focusable items:
 
 ```brightscript
-// Basic focus group configuration
+' Basic focus group configuration
 focus: {
     group: {
         defaultFocusId: "firstButton",
@@ -87,7 +87,7 @@ focus: {
 ### 1. Simple Button with Focus Styling
 
 ```brightscript
-// File: https://github.com/mobalazs/poc-rotor-framework/blob/main/src/components/app/renderThread/viewModels/buttons/simpleButton.bs
+' File: https://github.com/mobalazs/poc-rotor-framework/blob/main/src/components/app/renderThread/viewModels/buttons/simpleButton.bs
 focus: {
     isEnabled: true,
     onFocusChanged: sub(isFocused as boolean)
@@ -112,7 +112,7 @@ focus: {
 ### 2. Card with Native Focus and Long Press
 
 ```brightscript
-// File: https://github.com/mobalazs/poc-rotor-framework/blob/main/src/components/app/renderThread/viewModels/carousel/cards/defaultCard.bs
+' File: https://github.com/mobalazs/poc-rotor-framework/blob/main/src/components/app/renderThread/viewModels/carousel/cards/defaultCard.bs
 focus: {
     enableNativeFocus: true,
     enableSpatialNavigation: false,
@@ -140,11 +140,11 @@ focus: {
 ### 3. Menu Group with Static Navigation
 
 ```brightscript
-// File: https://github.com/mobalazs/poc-rotor-framework/blob/main/src/components/app/renderThread/viewModels/layout/pageMenu/pageMenu.bs
+' File: https://github.com/mobalazs/poc-rotor-framework/blob/main/src/components/app/renderThread/viewModels/layout/pageMenu/pageMenu.bs
 focus: {
     group: {
         defaultFocusId: "homeMenuItem",
-        down: "additionalMenuItems", // Points to another group
+        down: "additionalMenuItems", ' Points to another group
         onFocusChanged: sub(isFocused)
             m.getViewModel().updateMenuVisibility(isFocused)
         end sub
@@ -155,7 +155,7 @@ focus: {
 ### 4. Hierarchical Group Structure
 
 ```brightscript
-// Main sidebar group
+' Main sidebar group
 {
     id: "mainSidebar",
     focus: {
@@ -213,7 +213,7 @@ focus: {
 ### 2. Spatial Navigation Control
 
 ```brightscript
-// Disable spatial navigation for precise control
+' Disable spatial navigation for precise control
 focus: {
     enableSpatialNavigation: false,
     up: "specificButtonAbove",
@@ -249,7 +249,7 @@ focus: {
 focus: {
     group: {
         defaultFocusId: "centerItem",
-        enableSpatialEnter: true, // Use spatial navigation when entering group
+        enableSpatialEnter: true, ' Use spatial navigation when entering group
         onFocusChanged: sub(isFocused)
             m.getViewModel().updateGroupState(isFocused)
         end sub
@@ -264,7 +264,7 @@ focus: {
 The Focus Plugin automatically maintains the `viewModelState.isFocused` property for all focusable widgets:
 
 ```brightscript
-// Access current focus state anywhere in your widget
+' Access current focus state anywhere in your widget
 sub someWidgetMethod()
     if m.viewModelState.isFocused
         print "This widget currently has focus"
@@ -274,7 +274,7 @@ sub someWidgetMethod()
     end if
 end sub
 
-// Use in field functions for dynamic styling
+' Use in field functions for dynamic styling
 fields: {
     color: function() as string
         if m.viewModelState.isFocused
@@ -291,7 +291,7 @@ fields: {
 You can reference the focus state directly in widget templates:
 
 ```brightscript
-// Example: Dynamic button styling based on focus state
+' Example: Dynamic button styling based on focus state
 {
     nodeType: "Rectangle",
     fields: {
@@ -313,13 +313,13 @@ You can reference the focus state directly in widget templates:
 The Focus Plugin automatically decorates widgets with focus-specific methods during widget creation. When a widget has focus configuration, the plugin injects methods directly into the widget instance, making them accessible through the `widget.plugins.focus` namespace.
 
 ```brightscript
-// These methods are automatically available on widgets with focus configuration
+' These methods are automatically available on widgets with focus configuration
 {
     nodeType: "Button",
     focus: {
         isEnabled: true,
         onSelected: sub()
-            // Now you can call focus methods directly on this widget
+            ' Now you can call focus methods directly on this widget
             m.plugins.focus.setFocus("otherWidget")
         end sub
     }
@@ -477,3 +477,24 @@ Enable debug logging to trace focus behavior:
     print "[FOCUS] Current focused widget: " + m.plugins.focus.getFocusedWidget().id
 #end if
 ```
+
+
+---
+
+## 📚 Learn More
+
+**NEXT STEP: [Internationalization support](./i18n-support.md)**
+
+**Reference Documentation:**
+- [ViewBuilder Overview](./view-builder-overview.md) - High-level architecture and concepts
+- [Widget Reference](./view-builder-widget-reference.md) - Complete Widget properties, methods, and usage patterns
+- [ViewModel Reference](./view-builder-viewmodel-reference.md) - Complete ViewModel structure, lifecycle, and state management
+
+**Plugin Documentation:**
+- [Fields Plugin](./view-builder-fields-plugin.md) - Field management with expressions and interpolation
+- [FontStyle Plugin](./view-builder-fontstyle-plugin.md) - Typography and font styling
+- [Observer Plugin](./view-builder-observer-plugin.md) - Field observation patterns
+
+**Additional Documentation:**
+- [Cross-Thread MVI design pattern](./cross-thread-mvi.md) - State management across threads
+- [Internationalization support](./i18n-support.md) - Locale-aware interface implementation

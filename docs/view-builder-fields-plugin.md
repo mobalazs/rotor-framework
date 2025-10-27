@@ -1,4 +1,4 @@
-# Widget Fields Configuration
+# Fields Configuration
 
 ← [Back to Documentation](../README.md#-learn-more)
 
@@ -456,7 +456,7 @@ end sub
 
 ## 📚 Learn More
 
-**NEXT STEP: [FontStyle Plugin](./view-builder-fontstyle-howto.md)**
+**NEXT STEP: [FontStyle Plugin](./view-builder-fontstyle-plugin.md)**
 
 **Reference Documentation:**
 - [ViewBuilder Overview](./view-builder-overview.md) - High-level architecture and concepts
@@ -464,9 +464,9 @@ end sub
 - [ViewModel Reference](./view-builder-viewmodel-reference.md) - Complete ViewModel structure, lifecycle, and state management
 
 **Plugin Documentation:**
-- [FontStyle Plugin](./view-builder-fontstyle-howto.md) - Typography and font styling
-- [Observer Plugin](./view-builder-observer-howto.md) - Field observation patterns
-- [Focus Plugin](./view-builder-focus-howto.md) - Focus management and navigation
+- [FontStyle Plugin](./view-builder-fontstyle-plugin.md) - Typography and font styling
+- [Observer Plugin](./view-builder-observer-plugin.md) - Field observation patterns
+- [Focus Plugin](./view-builder-focus-plugin.md) - Focus management and navigation
 
 **Additional Documentation:**
 - [Cross-Thread MVI design pattern](./cross-thread-mvi.md) - State management across threads

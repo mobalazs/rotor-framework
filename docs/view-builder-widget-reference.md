@@ -1,10 +1,12 @@
-# Core Widget Configuration
+# Widget Reference
 
 ← [Back to Documentation](../README.md#-learn-more)
 
 ## Overview
 
-Every widget in the Rotor Framework automatically receives core configuration properties and methods. This document covers the fundamental widget functionality available to all widgets, including basic widgets and ViewModels.
+A **Widget** is the smallest unit in the Rotor UI tree. Every widget is a plain BrightScript object that describes a SceneGraph node and its behavior.
+
+Every widget in the Rotor Framework automatically receives core configuration properties and methods. This document covers the fundamental widget functionality available to all widgets.
 
 ## Configuration Properties Reference
 
@@ -102,6 +104,33 @@ Every widget automatically receives these methods:
         color: "#FFFFFF"
     }
 }
+```
+
+### Widget with Children
+
+```brightscript
+frameworkInstance.render({
+    id: "container",
+    nodeType: "Rectangle",
+    fields: {
+        width: 300,
+        height: 100,
+        translation: [100, 50],
+        color: "#3E6641"
+    },
+    children: [{
+        id: "label",
+        nodeType: "Label",
+        fields: {
+            text: "Hello World",
+            horizAlign: "center",
+            vertAlign: "center",
+            width: 300,
+            height: 100,
+            color: "#FFFFFF"
+        }
+    }]
+})
 ```
 
 ### Widget with Lifecycle
@@ -593,3 +622,23 @@ end if
 - **Dispatcher not found**: Ensure dispatcher exists before access
 - **State not updating**: Verify listener configuration
 - **Memory leaks**: Invalidate references created by you in destroy lifecycle hooks
+
+---
+
+## 📚 Learn More
+
+**NEXT STEP: [ViewModel Reference](./view-builder-viewmodel-reference.md)**
+
+**Reference Documentation:**
+- [ViewBuilder Overview](./view-builder-overview.md) - High-level architecture and concepts
+- [ViewModel Reference](./view-builder-viewmodel-reference.md) - Complete ViewModel structure, lifecycle, and state management
+
+**Plugin Documentation:**
+- [Fields Plugin](./view-builder-fields-plugin.md) - Field management with expressions and interpolation
+- [FontStyle Plugin](./view-builder-fontstyle-plugin.md) - Typography and font styling
+- [Observer Plugin](./view-builder-observer-plugin.md) - Field observation patterns
+- [Focus Plugin](./view-builder-focus-plugin.md) - Focus management and navigation
+
+**Additional Documentation:**
+- [Cross-Thread MVI design pattern](./cross-thread-mvi.md) - State management across threads
+- [Internationalization support](./i18n-support.md) - Locale-aware interface implementation

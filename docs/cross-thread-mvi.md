@@ -288,3 +288,24 @@ Each dispatcher maintains one model as the single source of truth for its domain
 - Filter listener updates with `allowUpdate` when needed
 - Remove listeners with `once: true` for one-time operations
 - Handle all state mutations in the reducer, never in middleware
+
+
+---
+
+## 📚 Learn More
+
+**[ViewBuilder Overview](./view-builder-overview.md)**
+
+**Reference Documentation:**
+- [ViewBuilder Overview](./view-builder-overview.md) - High-level architecture and concepts
+- [Widget Reference](./view-builder-widget-reference.md) - Complete Widget properties, methods, and usage patterns
+- [ViewModel Reference](./view-builder-viewmodel-reference.md) - Complete ViewModel structure, lifecycle, and state management
+
+**Plugin Documentation:**
+- [Fields Plugin](./view-builder-fields-plugin.md) - Field management with expressions and interpolation
+- [FontStyle Plugin](./view-builder-fontstyle-plugin.md) - Typography and font styling
+- [Observer Plugin](./view-builder-observer-plugin.md) - Field observation patterns
+- [Focus Plugin](./view-builder-focus-plugin.md) - Focus management and navigation
+
+**Additional Documentation:**
+- [Internationalization support](./i18n-support.md) - Locale-aware interface implementation

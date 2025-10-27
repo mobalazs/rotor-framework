@@ -1,4 +1,4 @@
-# Rotor Framework FontStyle Plugin - How-To Guide
+# FontStyle Configuration
 
 ← [Back to Documentation](../README.md#-learn-more)
 
@@ -390,7 +390,7 @@ pkg:/fonts/
 
 ## 📚 Learn More
 
-**NEXT STEP: [Observer Plugin](./view-builder-observer-howto.md)**
+**NEXT STEP: [Observer Plugin](./view-builder-observer-plugin.md)**
 
 **Reference Documentation:**
 - [ViewBuilder Overview](./view-builder-overview.md) - High-level architecture and concepts
@@ -398,9 +398,9 @@ pkg:/fonts/
 - [ViewModel Reference](./view-builder-viewmodel-reference.md) - Complete ViewModel structure, lifecycle, and state management
 
 **Plugin Documentation:**
-- [Fields Plugin](./view-builder-fields-howto.md) - Field management with expressions and interpolation
-- [Observer Plugin](./view-builder-observer-howto.md) - Field observation patterns
-- [Focus Plugin](./view-builder-focus-howto.md) - Focus management and navigation
+- [Fields Plugin](./view-builder-fields-plugin.md) - Field management with expressions and interpolation
+- [Observer Plugin](./view-builder-observer-plugin.md) - Field observation patterns
+- [Focus Plugin](./view-builder-focus-plugin.md) - Focus management and navigation
 
 **Additional Documentation:**
 - [Cross-Thread MVI design pattern](./cross-thread-mvi.md) - State management across threads

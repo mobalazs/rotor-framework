@@ -137,13 +137,13 @@ Load multiple translation sections (merged into single l10n object):
             nodeType: "Label",
             fields: {
                 ' Access merged sections at root level
-                text: "@l10n.home"  // From navigation
+                text: "@l10n.home"  ' From navigation
             }
         },
         {
             nodeType: "Label",
             fields: {
-                text: "@l10n.save"  // From buttons
+                text: "@l10n.save"  ' From buttons
             }
         }
     ]
@@ -194,7 +194,7 @@ Use `@l10n` to reference translation keys in field values.
 {
     nodeType: "Label",
     fields: {
-        text: "@l10n.app.title"  // Full path: app.title
+        text: "@l10n.app.title"  ' Full path: app.title
     }
 }
 ```
@@ -208,7 +208,7 @@ Use `@l10n` to reference translation keys in field values.
         path: "app"
     },
     fields: {
-        text: "@l10n.title"  // Scoped: only "title" (within "app")
+        text: "@l10n.title"  ' Scoped: only "title" (within "app")
     }
 }
 ```
@@ -224,7 +224,7 @@ class MenuItem extends ViewModel
         return {
             nodeType: "Label",
             i18n: {
-                path: "navigation"  // Scopes @l10n to "navigation"
+                path: "navigation"  ' Scopes @l10n to "navigation"
             },
             fields: {
                 ' Dynamic key based on props (within "navigation" scope)
@@ -267,7 +267,7 @@ Combine multiple translation references:
         path: "app"
     },
     fields: {
-        text: `@l10n.title - @l10n.version`  // Both within "app" scope
+        text: `@l10n.title - @l10n.version`  ' Both within "app" scope
     }
 }
 ```
@@ -626,3 +626,24 @@ Check:
 - Load only required translation sections using specific paths
 - Cache translations in ViewModel state
 - Avoid complex nested key resolution in frequently called functions
+
+
+---
+
+## 📚 Learn More
+
+**NEXT STEP: [Cross-Thread MVI design pattern](./cross-thread-mvi.md)**
+
+**Reference Documentation:**
+- [ViewBuilder Overview](./view-builder-overview.md) - High-level architecture and concepts
+- [Widget Reference](./view-builder-widget-reference.md) - Complete Widget properties, methods, and usage patterns
+- [ViewModel Reference](./view-builder-viewmodel-reference.md) - Complete ViewModel structure, lifecycle, and state management
+
+**Plugin Documentation:**
+- [Fields Plugin](./view-builder-fields-plugin.md) - Field management with expressions and interpolation
+- [FontStyle Plugin](./view-builder-fontstyle-plugin.md) - Typography and font styling
+- [Observer Plugin](./view-builder-observer-plugin.md) - Field observation patterns
+- [Focus Plugin](./view-builder-focus-plugin.md) - Focus management and navigation
+
+**Additional Documentation:**
+- [Cross-Thread MVI design pattern](./cross-thread-mvi.md) - State management across threads
