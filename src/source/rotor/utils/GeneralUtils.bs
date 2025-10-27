@@ -63,16 +63,26 @@ namespace Rotor.Utils
     function rotateSegment(x1 as float, y1 as float, x2 as float, y2 as float, rotation, center)
         cosVal = Cos(rotation)
         sinVal = Sin(rotation)
-        x1 = (cosVal * (x1 - center[0])) + (sinVal * (y1 - center[1])) + center[0]
-        y1 = (cosVal * (y1 - center[1])) - (sinVal * (x1 - center[0])) + center[1]
-        x2 = (cosVal * (x2 - center[0])) + (sinVal * (y2 - center[1])) + center[0]
-        y2 = (cosVal * (y2 - center[1])) - (sinVal * (x2 - center[0])) + center[1]
+
+        ' Store original values before modification
+        origX1 = x1
+        origY1 = y1
+        origX2 = x2
+        origY2 = y2
+
+        ' Rotate first point
+        newX1 = (cosVal * (origX1 - center[0])) + (sinVal * (origY1 - center[1])) + center[0]
+        newY1 = (cosVal * (origY1 - center[1])) - (sinVal * (origX1 - center[0])) + center[1]
+
+        ' Rotate second point
+        newX2 = (cosVal * (origX2 - center[0])) + (sinVal * (origY2 - center[1])) + center[0]
+        newY2 = (cosVal * (origY2 - center[1])) - (sinVal * (origX2 - center[0])) + center[1]
 
         return {
-            x1: x1,
-            y1: y1,
-            x2: x2,
-            y2: y2
+            x1: newX1,
+            y1: newY1,
+            x2: newX2,
+            y2: newY2
         }
 
     end function
