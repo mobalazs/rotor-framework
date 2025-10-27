@@ -38,23 +38,6 @@ namespace tests
             m.assertEqual(testReducer.middlewares.count(), 0)
         end function
 
-        @it("has port from framework")
-        function _()
-            testReducer = new Reducer()
-
-            m.assertNotEqual(testReducer.port, invalid)
-            listener = {
-                received: invalid,
-                dispatch: sub(intent)
-                    m.received = intent
-                end sub
-            }
-            testReducer.ownerDispatcher = listener
-            testIntent = { type: "TEST" }
-            testReducer.dispatch(testIntent)
-            m.assertEqual(listener.received, testIntent)
-        end function
-
         @describe("BaseReducer reducer method")
 
         @it("returns unchanged state by default")

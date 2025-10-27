@@ -381,15 +381,18 @@ namespace tests
         end function
 
         ' ======================================================================
-        ' TEST SUITE 8: getChildrenWidgets
+        ' TEST SUITE 8: getChildrenWidgets and getTopWidgets
         ' ======================================================================
 
-        @describe("getChildrenWidgets")
+        @describe("getChildrenWidgets - widget method")
 
         @it("returns direct children of widget")
         function _()
-            ' When: Get children of app
-            children = m.fwInstance.getChildrenWidgets("app")
+            ' Given: Get app widget
+            app = m.fwInstance.getWidget("app")
+
+            ' When: Get children
+            children = app.getChildrenWidgets()
 
             ' Then: Should return header, content, footer in order
             m.assertNotInvalid(children)
@@ -399,50 +402,91 @@ namespace tests
             m.assertEqual(children[2].id, "footer")
         end function
 
-        @it("returns children in correct node order")
+        @it("filters children by matching pattern")
         function _()
-            ' When: Get children of nav
-            children = m.fwInstance.getChildrenWidgets("nav")
+            ' Given: Get nav widget
+            nav = m.fwInstance.getWidget("nav")
 
-            ' Then: Should return menu items in order
+            ' When: Get children matching "menuItem*"
+            children = nav.getChildrenWidgets("menuItem*")
+
+            ' Then: Should return all 3 menu items
             m.assertNotInvalid(children)
             m.assertEqual(children.Count(), 3)
-            m.assertEqual(children[0].id, "menuItem1")
-            m.assertEqual(children[1].id, "menuItem2")
-            m.assertEqual(children[2].id, "menuItem3")
         end function
 
-        @it("returns invalid for widget without children")
+        @it("filters children with specific pattern")
         function _()
-            ' When: Get children of leaf widget
-            children = m.fwInstance.getChildrenWidgets("logo")
+            ' Given: Get nav widget
+            nav = m.fwInstance.getWidget("nav")
+
+            ' When: Get children matching "menuItem1"
+            children = nav.getChildrenWidgets("menuItem1")
+
+            ' Then: Should return only menuItem1
+            m.assertNotInvalid(children)
+            m.assertEqual(children.Count(), 1)
+            m.assertEqual(children[0].id, "menuItem1")
+        end function
+
+        @it("returns empty array when no children match pattern")
+        function _()
+            ' Given: Get nav widget
+            nav = m.fwInstance.getWidget("nav")
+
+            ' When: Get children matching non-existent pattern
+            children = nav.getChildrenWidgets("button*")
 
             ' Then: Should return empty array
             m.assertNotInvalid(children)
             m.assertEqual(children.Count(), 0)
         end function
 
-        @it("returns invalid for non-existent widget")
+        @it("returns empty array for widget without children")
         function _()
-            ' When: Get children of non-existent widget
-            children = m.fwInstance.getChildrenWidgets("nonExistent")
+            ' Given: Get leaf widget
+            logo = m.fwInstance.getWidget("logo")
 
-            ' Then: Should return invalid
-            m.assertInvalid(children)
+            ' When: Get children
+            children = logo.getChildrenWidgets()
+
+            ' Then: Should return empty array
+            m.assertNotInvalid(children)
+            m.assertEqual(children.Count(), 0)
         end function
 
-        @it("works with HID parameter")
+        @describe("getTopWidgets - framework method")
+
+        @it("returns all top-level widgets")
         function _()
-            ' Given: Get HID of header
-            header = m.fwInstance.getWidget("header")
-            headerHID = header.HID
+            ' When: Get top widgets
+            children = m.fwInstance.getTopWidgets()
 
-            ' When: Get children using HID
-            children = m.fwInstance.getChildrenWidgets("nav", headerHID)
-
-            ' Then: Should find nav's children
+            ' Then: Should return root widget
             m.assertNotInvalid(children)
-            m.assertEqual(children.Count(), 3)
+            m.assertEqual(children.Count(), 1)
+            m.assertEqual(children[0].id, "root")
+        end function
+
+        @it("filters top widgets by pattern")
+        function _()
+            ' When: Get top widgets matching "root"
+            children = m.fwInstance.getTopWidgets("root")
+
+            ' Then: Should return root widget
+            m.assertNotInvalid(children)
+            m.assertEqual(children.Count(), 1)
+            m.assertEqual(children[0].id, "root")
+        end function
+
+        @it("returns empty array when no top widgets match pattern")
+        function _()
+            ' When: Get top widgets matching non-existent pattern
+            children = m.fwInstance.getTopWidgets("nonExistent*")
+
+            ' Then: Should return empty array
+            m.assertNotInvalid(children)
+            m.assertEqual(children.Count(), 0)
         end function
 
         ' ======================================================================

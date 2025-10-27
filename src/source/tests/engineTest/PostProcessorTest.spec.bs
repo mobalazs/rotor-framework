@@ -247,6 +247,7 @@ namespace tests
         private function createWidget(hid as string, markRoot = false as boolean) as object
             node = CreateObject("roSGNode", "Label")
             node.addField("HID", "string", false)
+            node.SetField("HID", hid)
             parentWrapper = { node: m.parentNode }
             widget = {
                 HID: hid,

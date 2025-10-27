@@ -52,7 +52,7 @@ namespace tests
             m.i18nService.setLocal("de_DE")
 
             ' When: Get locale
-            result = m.i18nService.getLocale("de_DE")
+            result = m.i18nService.getLocale()
 
             ' Then: Should return the locale
             m.assertEqual(result, "de_DE")

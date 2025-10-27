@@ -48,7 +48,7 @@ namespace tests
             scope = { props: {} }
 
             listener.addListener({
-                allowUpdate: function(scope, state)
+                allowUpdate: function(state)
                     return state.allowed
                 end function
             }, "listener-2", scope)

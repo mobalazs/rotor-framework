@@ -1,6 +1,4 @@
 
-' namespace Reducers
-
 '--------------------------------------------------------------------------
 ' @class Reducer
 ' @description Base Reducer class that handles state transitions in the Rotor framework.
@@ -18,7 +16,7 @@ class Reducer
 
     ' Array of middleware functions with signature: function(intent as Intent, state as Object) as Dynamic
     ' Each middleware can intercept/transform intents or return invalid to cancel state change
-    middlewares as function[]
+    middlewares = [] as function[]
 
     middlewareFnScoped as dynamic
     getDispatcher as function
@@ -67,7 +65,7 @@ class Reducer
     '                or return invalid (to stop reducer execution).
     '--------------------------------------------------------------------------
     public function applyMiddlewares() as function[]
-        return []
+        return [] as function[]
     end function
 
     function reduce(state as object, intent as Intent) as object
@@ -103,5 +101,3 @@ class Reducer
     end sub
 
 end class
-
-' end namespace

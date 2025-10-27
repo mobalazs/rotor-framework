@@ -70,7 +70,9 @@ namespace tests
 
         @it("rotateSegment rotates coordinates around center")
         function _()
-            rotated = Rotor.Utils.rotateSegment(0, 0, 1, 0, 90, [0, 0])
+            ' Test with π/2 radians (90 degrees) rotation
+            piDiv2 = 1.5707963267948966 ' π/2 in radians
+            rotated = Rotor.Utils.rotateSegment(0, 0, 1, 0, piDiv2, [0, 0])
             m.assertTrue(Abs(rotated.x1) < 0.0001)
             m.assertTrue(Abs(rotated.y1) < 0.0001)
             m.assertTrue(Abs(rotated.x2) < 0.0001)
