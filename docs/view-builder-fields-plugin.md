@@ -3,6 +3,8 @@
 ← [README.md](../README.md#-learn-more)
 ← [ViewBuilder Overview](./view-builder-overview.md)
 
+> 🧠 YAML reference: [AI-optimized reference](./ai/view-builder-fields-plugin.opt.yaml).
+
 ## Overview
 
 The Fields Plugin provides declarative field management for SceneGraph nodes. It enables setting and updating node properties through a `fields` configuration, supporting static values, function expressions, and dynamic values (using `@` operator and string interpolation).

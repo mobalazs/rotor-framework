@@ -2,6 +2,8 @@
 
 ← [README.md](../README.md#-learn-more)
 
+> 🧠 YAML reference: [AI-optimized reference](./ai/i18n-support.opt.yaml).
+
 ## Overview
 
 The Rotor Framework provides built-in internationalization (i18n) support through the `I18nService`. The system enables multi-language applications with automatic locale management, translation loading, and variable interpolation.

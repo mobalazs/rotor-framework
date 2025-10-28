@@ -1,0 +1,69 @@
+```yaml
+ctx: ViewBuilder Observer Plugin
+type: node field observation
+scope:
+  nodes: SceneGraph widgets with observer configuration
+  usage: Monitor node field changes via ViewBuilder templates
+core:
+  configuration:
+    single: "observer: { fieldId, callback, ... }"
+    multi: "observer: [ { fieldId, ... }, { fieldId, ... } ]"
+  properties:
+    fieldId: "SceneGraph field name to observe (required)."
+    callback: "Function executed on change (required)."
+    id: "Optional identifier."
+    value: "Optional initial field value."
+    alwaysNotify: "Fire callback even if value unchanged (default true)."
+    once: "Auto-remove after first invocation."
+    until: "Function returning true to remove observer."
+    parsePayload: "Transform payload before callback."
+    infoFields: "Extra fields merged into payload."
+  typecastSupport: "typecast m as Rotor.Widget/ViewModel for IDE tooling."
+rules:
+  - "Ensure observed field exists on the node subtype."
+  - "Define callback for every observer; plugin requires it."
+  - "Keep callbacks lightweight; defer heavy work."
+  - "Use once or until for single-shot or condition-based cleanup."
+  - "Group related observers in arrays for readability."
+  - "Normalize payloads via parsePayload before consuming."
+  - "Prefer moving business logic outside callbacks; callbacks trigger intent/state updates."
+api:
+  lifecycleHooks:
+    - beforeMount (register observers)
+    - beforeUpdate (detach old, register new)
+    - beforeDestroy (unobserve and cleanup)
+state:
+  helperInterface: "Per-node attachment ID stored to route callbacks."
+  observerStack: "Manages Observer instances keyed by id/attachment."
+patterns:
+  videoStateMonitoring: "Observe Video.state and position to update playback UI."
+  scrollProgress: "Observer updating progress bars with once/until."
+  metricsRecording: "Use infoFields to enrich analytics payloads."
+  batchedObservers: "Array of observers for related properties (state, position)."
+  payloadParsing: "parsePayload converting SG payload into app-friendly shape."
+pitfalls:
+  - "Observing missing fields results in no callbacks; validate node subtype."
+  - "Forgetting cleanup outside plugin (plugin auto-cleans, but custom observers may leak)."
+  - "Scope confusion in callback; use typecast for tooling and clarity."
+  - "Heavy operations inside callback causing frame drops."
+troubleshooting:
+  observerNotFiring: "Verify field existence, print widget.observer config, inspect node subtype."
+  callbackNotExecuting: "Check fieldId spelling, ensure callbacks referenced correctly, log payload."
+  performance: "Profile callbacks, combine observers, optimize parsePayload."
+lifecycle:
+  - parseConfig
+  - generateAttachmentId
+  - injectHelperInterface
+  - registerObserver (ObserverStack)
+  - observeFieldScoped routing
+  - executeCallback (with optional parsePayload, once/until handling)
+  - detach on update/destroy
+pipeline:
+  - read observer config (object or array)
+  - create Observer instances with helper info
+  - call node.observeFieldScoped(fieldId, router, infoFields)
+  - route SG events via observerNativeCallback
+  - execute callback in widget scope
+  - apply once/until/alwaysNotify logic
+  - remove observers during lifecycle cleanup
+```

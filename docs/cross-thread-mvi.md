@@ -2,6 +2,8 @@
 
 ← [README.md](../README.md#-learn-more)
 
+> 🧠 YAML reference: [AI-optimized reference](./ai/cross-thread-mvi.opt.yaml).
+
 ## Overview
 
 The Cross-Thread MVI pattern enables thread-safe state management across render and task threads. The pattern consists of three core components: **Model** (state container), **Reducer** (state transformation logic), and **Dispatcher** (thread-safe communication bridge).

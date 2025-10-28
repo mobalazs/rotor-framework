@@ -1,0 +1,64 @@
+```yaml
+ctx: Internationalization (i18n) Support
+type: localization / translation
+scope:
+  service: Rotor Framework I18nService
+  consumers:
+    - ViewModels via i18n template sections
+    - Widget fields using @l10n references
+core:
+  features:
+    - "Multi-language associative-array translation bundles."
+    - "Automatic ViewModel integration with viewModelState.l10n."
+    - "Dynamic key-path resolution and variable interpolation."
+    - "Translation caching and optional includeIsRtl flag."
+  setup:
+    translationStructure: "Locale-rooted AA (e.g., en_US.app.title)."
+    initialization: "Call setL10n() with locale-specific bundle during app init."
+api:
+  setL10n: "Load translations for active locale."
+  getL10n: "Fetch full bundle or nested key paths."
+  setLocale: "Switch locale (runtime switching limited)."
+  getIsRtl: "Return RTL boolean derived from locale."
+  ViewModelConfig:
+    path: "Select translation branch."
+    include: "load = true/false, includeIsRtl option."
+state:
+  viewModelState:
+    l10n: "Merged translations from configured paths."
+    isRTL: "Optional flag when includeIsRtl = true."
+props:
+  templateBindings:
+    text: "`@l10n.section.key`"
+    interpolation: "`@l10n.dynamic.${m.props.key}`"
+    fallback: "`@l10n.path || Default Text`"
+rules:
+  - "Define translations per locale; keep keys consistent across locales."
+  - "Initialize i18nService with current locale before rendering ViewModels."
+  - "Use ViewModel i18n.path to limit loaded sections for performance."
+  - "Prefer template string interpolation for dynamic keys."
+  - "For RTL locales, request includeIsRtl and adjust layouts manually."
+patterns:
+  basicViewModel: "Load navigation section, bind labels to viewModelState.l10n keys."
+  multiSection: "Use load array or include map to merge multiple branches."
+  viewProps: "Pass customProps.locale, format version strings, dynamic routes."
+  reusableComponents: "Reference @l10n.status.${m.props.statusType} for status messaging."
+  customService: "Wrap i18nService to add caching, versioning, lazy loading."
+pitfalls:
+  - "Runtime locale switching not fully implemented; set locale at startup."
+  - "Advanced formatting (currency/date/number pluralization) unsupported."
+  - "Missing translations lead to undefined keys; debug via getL10n."
+  - "Variable interpolation fails if key path or template syntax incorrect."
+lifecycle:
+  - loadTranslationBundles
+  - setL10n(localeBundle)
+  - configureViewModel i18n path/include
+  - bind @l10n fields during render
+  - respond to state updates (optional layout adjust for RTL)
+pipeline:
+  - fetch translations
+  - set locale bundle
+  - merge i18n sections per ViewModel
+  - render fields with @l10n references
+  - optional RTL/layout adjustments
+```

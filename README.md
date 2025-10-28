@@ -9,6 +9,12 @@
 
 ---
 
+## 📎 AI-Optimized References
+
+Machine-readable (token-friendly) YAML digests for the docs: [docs/ai/index.md](./docs/ai/index.md)
+
+---
+
 ## 🚀 Key Features
 
 * **ViewBuilder system**: Declarative and extensible view construction with a flexible, code-based template system, automatic full lifecycle management, and a virtual node tree abstraction.

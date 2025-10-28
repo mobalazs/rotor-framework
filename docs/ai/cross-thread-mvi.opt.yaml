@@ -1,0 +1,63 @@
+```yaml
+ctx: Cross-Thread MVI Pattern
+type: state-management / multi-thread
+scope:
+  threads:
+    - render thread
+    - task thread
+  usage: Rotor Framework apps requiring synchronized state across threads
+core:
+  components:
+    Model: "State container extending Model base class; declares initial state."
+    Reducer: "Transforms state via reducer() and optional applyMiddlewares()."
+    Dispatcher: "Bridge exposing createDispatcher, dispatch, getState, addListener."
+  flowDiagram: images/Rotor_Framework_cross-thread_MVI.jpeg
+api:
+  createDispatcher: "Register dispatcher with unique name, model, reducer (task or render thread)."
+  dispatch: "Send intents from any thread; payload optional."
+  getState: "Callback receives current state snapshot; used for binding props."
+  addListener: "Subscribe to state changes; supports mapStateToProps, allowUpdate, once."
+state:
+  renderThread:
+    - dispatch(intent)
+    - listener callbacks
+    - UI update
+  taskThread:
+    - middleware execution
+    - reducer state update
+    - sync back to listeners
+patterns:
+  middleware:
+    - "Logger middleware demonstrating pass-through."
+    - "Async guard returning invalid to halt reducer."
+  reducer:
+    - "Intent types INCREMENT, COUNT_LOADED mutating count and lastUpdated."
+  renderIntegration:
+    - "ViewModel onCreateView obtains dispatcher, binds listeners, renders label."
+resolution:
+  priority: "Reducer resolves intents after middleware; listeners react post-update."
+rules:
+  - "Create dispatchers in task thread for global access; render-thread dispatchers are local-use only."
+  - "All state mutations happen in reducers on task thread."
+  - "Use middleware for async work; return invalid to stop reducer."
+  - "Filter listener updates with allowUpdate or once to reduce churn."
+  - "Maintain single source of truth per dispatcher/model pair."
+pitfalls:
+  - "Avoid mutating state directly in render thread."
+  - "Render-thread dispatchers should rarely be consumed cross-thread."
+lifecycle:
+  - createDispatcher
+  - dispatch intent
+  - middleware
+  - reducer
+  - state update
+  - listener notify
+  - UI render
+pipeline:
+  - intent emission
+  - middleware chain
+  - reducer execution
+  - model state commit
+  - listener callbacks
+  - widget update/render
+```

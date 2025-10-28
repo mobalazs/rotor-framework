@@ -1,0 +1,89 @@
+```yaml
+ctx: ViewBuilder Focus Plugin
+type: navigation / focus-management
+scope:
+  targets:
+    - FocusItem widgets (buttons, cards, menu entries)
+    - FocusGroup containers (menus, carousels, grids)
+  state: viewModelState.isFocused auto-managed
+core:
+  strategies:
+    bubbling: "Upward search (child → parent → grandparent) for alternative routes."
+    capturing: "Downward resolution (group → nested group → focus item) via defaultFocusId."
+    spatial: "Automatic in-group navigation based on widget positions when enabled."
+  capabilities:
+    - "Static direction overrides (up/down/left/right/back)."
+    - "Last-focused tracking per group."
+    - "Long-press detection with duration and handler callbacks."
+    - "Global enable/disable flags for navigation and long press."
+props:
+  focusItem:
+    isEnabled: boolean (default true)
+    enableNativeFocus: boolean
+    enableSpatialNavigation: boolean
+    directions: "up/down/left/right/back as string or function."
+    callbacks:
+      - onFocusChanged(isFocused)
+      - onFocus()
+      - onSelected()
+      - longPressHandler(isLongPress, key)
+  focusGroup:
+    defaultFocusId: "string or function"
+    lastFocusedHID: "auto-managed string"
+    enableSpatialEnter: boolean
+    directions: "group.up/down/left/right/back"
+    onFocusChanged: "group focus-chain callback"
+resolution:
+  priority:
+    - "Static direction (FocusItem.* or group.*) if defined."
+    - "Spatial navigation inside current group when enabled."
+    - "Bubbling upward to parent groups for further resolution."
+    - "Capturing downward from resolved group/ID to concrete focus item."
+rules:
+  - "Always set group.defaultFocusId to avoid focus loss (RULE #11)."
+  - "Static directions override spatial navigation when provided (RULE #3)."
+  - "Use true to block exits in group directions; false to hard-stop path (RULE #6)."
+  - "Keep focus items inside their group hierarchy to enable bubbling (RULE #10)."
+  - "Enable enableSpatialEnter only when positions are valid (RULE #14)."
+  - "Remember spatial navigation is limited to one group; use static directions to exit (RULE #4)."
+  - "Avoid circular navigation by designing direction graph carefully (RULE #1)."
+  - "Use enableNativeFocus consistently to prevent conflicts with SceneGraph focus."
+api:
+  widgetMethods:
+    enableFocusNavigation(enable?): "Toggle global navigation."
+    isFocusNavigationEnabled(): "Check global flag."
+    setFocus(command, enableNativeFocus?): "Focus current widget or target by ID/HID."
+    getFocusedWidget(): "Return current focus item."
+    proceedLongPress(): "Trigger long-press action."
+    isLongPressActive(): "Check long-press state."
+    triggerKeyPress(key): "Simulate navigation key."
+patterns:
+  staticRouting: "Define explicit IDs for directional exits between groups."
+  deepCapturing: "defaultFocusId resolved across multi-level hierarchies."
+  spatialOnly: "Grid/group using enableSpatialNavigation = true with no static overrides."
+  focusAwareStyling: "Field expressions reacting to viewModelState.isFocused for color changes."
+  longPressUI: "Timers toggling long-press feedback via plugin longPressTimer."
+pitfalls:
+  - "Focus loops from bidirectional static mappings."
+  - "Missing defaultFocusId causing no-entry for groups."
+  - "Attempting to focus disabled isEnabled=false items."
+  - "Mixing native/managed focus leading to inconsistent states."
+  - "Improper hierarchy preventing bubbling/capturing."
+  - "Expecting spatial navigation to cross group boundaries."
+  - "Misusing group direction true/false semantics."
+  - "defaultFocusId pointing to nonexistent descendant."
+lifecycle:
+  - beforeMount (register focus item/group)
+  - beforeUpdate (detach old config, apply new)
+  - beforeDestroy (unregister and cleanup)
+pipeline:
+  - parse focus config (determine item vs group)
+  - instantiate FocusItem/Group
+  - register in stacks (FocusItemStack/GroupStack)
+  - track hierarchy and lastFocus
+  - set viewModelState.isFocused default false
+  - handle focus events (static → spatial → bubble → capture)
+  - update node + viewModelState + callbacks
+  - manage long-press timer and global navigation flags
+  - cleanup on destroy
+```

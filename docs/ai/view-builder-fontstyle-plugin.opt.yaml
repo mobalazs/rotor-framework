@@ -1,0 +1,55 @@
+```yaml
+ctx: ViewBuilder FontStyle Plugin
+type: typography / label-styling
+scope:
+  nodeType: Label only
+  integration: ViewBuilder widget templates via fontStyle property
+core:
+  valueTypes:
+    object: "{ uri, size } static font definition."
+    variable: '"@fontStyleVar" referencing viewModelState.'
+    function: "function() as object with access to m.viewModelState, m.props."
+  features:
+    - "Automatic font node creation and application during lifecycle."
+    - "Supports typecast m as Rotor.Widget for tooling."
+    - "Reusable typography systems via shared UI.fontStyles."
+props:
+  fontObject:
+    uri: "Font file path (pkg:/fonts/...)."
+    size: "Integer pixel size."
+  contextAccess:
+    m.viewModelState: "Source for @ operator variables."
+    m.props: "Conditional font selection."
+rules:
+  - "Apply fontStyle only to Label widgets."
+  - "Reference existing font files; ensure TTF supported formats."
+  - "Reuse predefined font style objects to avoid redundant font nodes."
+  - "Use function expressions for conditional styling instead of manual updates."
+  - "Apply typecast m as Rotor.Widget for IDE assistance (optional)."
+  - "Limit font variants to essential set for performance."
+patterns:
+  typographySystem: "Central UI.fontStyles map with H1/H2/body/caption definitions."
+  dynamicState: "Function returning highlight vs default font based on props/state."
+  viewProps: "Choose font by m.props.category or viewModelState flags."
+  selectionHighlight: "Change font weight when m.viewModelState.isSelected."
+pitfalls:
+  - "Non-Label node types silently ignore fontStyle."
+  - "Missing font files cause runtime errors; validate pkg:/fonts structure."
+  - "Unsupported formats (non-TTF) fail to load."
+  - "Function expressions lacking widget scope; add typecast if tooling needs."
+  - "Unnecessary font object creation increases memory usage."
+troubleshooting:
+  fontNotApplying: "Check nodeType, inspect widget.node.font, print config."
+  interpolationIssues: "Verify @ variables exist in viewModelState and syntax is correct."
+  performance: "Profile font loading, preload essential fonts, cache style objects."
+lifecycle:
+  - beforeMount (initial font apply)
+  - beforeUpdate (reapply on fontStyle changes)
+pipeline:
+  - confirm widget is Label
+  - resolve fontStyle value (object / @ / function)
+  - evaluate expressions with widget context
+  - create/reuse Font node
+  - assign to Label.node.font
+  - reapply on updates
+```

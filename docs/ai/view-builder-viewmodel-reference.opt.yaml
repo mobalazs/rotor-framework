@@ -1,0 +1,38 @@
+```yaml
+ctx: ViewModel Reference
+type: component-state container
+scope:
+  baseClass: Rotor.ViewModel
+  usage: Group multiple widgets with shared props and viewModelState
+core:
+  requiredMethod:
+    template(): "Returns widget tree configuration; called once during creation."
+  optionalMethods:
+    setProps(newProps): "Update props, typically triggers onUpdateView."
+  lifecycleHooks:
+    onCreateView: "Initialize state, listeners, config."
+    onTemplateCreated: "Access rendered widgets before display."
+    onUpdateView: "React to prop changes; manually update UI."
+    onDestroyView: "Cleanup resources and references."
+  sharedProperties:
+    props: "Read-only configuration shared across child widgets."
+    viewModelState: "Mutable state shared across child widgets."
+workflow:
+  - instantiate ViewModel
+  - add root widget to virtual tree (assign HID)
+  - extend props + viewModelState from config
+  - decorate widget with framework methods/plugins
+  - call onCreateView (optional)
+  - execute template() to build widget tree
+  - apply plugins (fields, focus, observer, font, dispatcher)
+  - expose shared props/state to child widgets
+  - on destruction invoke onDestroyView and clear references
+patterns:
+  buttonExample: "Template returns Group with Rectangle + Label; color responds to props.enabled and viewModelState.isFocused."
+  stateSharing: "Child widgets access m.props / m.viewModelState for coordinated updates."
+  manualUpdates: "Override onUpdateView to control rerenders on prop changes."
+rules:
+  - "Use template() to declare UI; do not mutate props/viewModelState inside template."
+  - "Initialize required state fields before template executes."
+  - "Implement onUpdateView to control post-mount updates; framework will not auto re-render."
+```

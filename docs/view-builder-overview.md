@@ -2,6 +2,8 @@
 
 ← [README.md](../README.md#-learn-more)
 
+> 🧠 YAML reference: [AI-optimized reference](./ai/view-builder-overview.opt.yaml).
+
 The Rotor ViewBuilder provides a declarative way to build Roku SceneGraph UIs entirely from BrightScript code—without XML. This document provides a high-level overview of the ViewBuilder architecture and its core concepts.
 
 ---

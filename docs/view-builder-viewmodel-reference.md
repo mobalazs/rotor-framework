@@ -3,6 +3,8 @@
 ← [README.md](../README.md#-learn-more)
 ← [ViewBuilder Overview](./view-builder-overview.md)
 
+> 🧠 YAML reference: [AI-optimized reference](./ai/view-builder-viewmodel-reference.opt.yaml).
+
 ## Overview
 
 A **ViewModel** extends the base Widget class to group multiple widgets with shared state and behavior. It separates presentation logic from business logic by encapsulating both the widget tree structure and the state management.

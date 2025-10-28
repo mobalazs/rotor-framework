@@ -1,0 +1,58 @@
+```yaml
+ctx: ViewBuilder Overview
+type: architecture summary
+scope:
+  platform: Rotor Framework SceneGraph UI
+  focus: Declarative BrightScript UI construction without XML
+core:
+  layers:
+    ViewBuilderEngine:
+      responsibilities:
+        - create widgets
+        - update widgets
+        - remove widgets
+      identifiers: "Hierarchical Identifier (HID) system tracks widget tree."
+    VirtualNodeTree:
+      description: "Abstraction maintaining widget/ViewModel hierarchy and relationships."
+      capabilities:
+        - efficient lookup
+        - parent-child management
+        - single source of truth for diffs
+    Plugins:
+      list:
+        - Observer (field observation)
+        - Dispatcher (state integration)
+        - Fields (dynamic expressions)
+        - FontStyle (typography)
+        - Focus (navigation)
+      lifecycleHooks:
+        - beforeMount
+        - beforeUpdate
+        - beforeDestroy
+coreConcepts:
+  Widget:
+    traits:
+      - declarative configuration
+      - plugin support
+      - child widget nesting
+      - framework methods for navigation/state
+  ViewModel:
+    traits:
+      - template() returns widget tree
+      - shared props (read-only)
+      - shared viewModelState (mutable)
+      - lifecycle hooks: onCreateView, onTemplateCreated, onUpdateView, onDestroyView
+pipeline:
+  - register widget with HID in Virtual Node Tree
+  - decorate via configured plugins
+  - build hierarchy links
+  - materialize SceneGraph nodes from virtual tree
+  - manage mount/update/destroy automatically
+benefits:
+  - build UIs in BrightScript (no XML)
+  - declarative API
+  - automatic lifecycle handling
+  - extensible plugin architecture
+  - efficient updates via virtual tree abstraction
+  - scoped shared state through ViewModels
+```

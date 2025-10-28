@@ -3,6 +3,8 @@
 ← [README.md](../README.md#-learn-more)
 ← [ViewBuilder Overview](./view-builder-overview.md)
 
+> 🧠 YAML reference: [AI-optimized reference](./ai/view-builder-observer-plugin.opt.yaml).
+
 ## Overview
 
 The Observer Plugin provides declarative field observation for SceneGraph nodes. It enables monitoring node field changes through an `observer` configuration, supporting single observers, multiple observers per widget, callback routing, and automatic lifecycle management.

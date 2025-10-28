@@ -1,0 +1,62 @@
+```yaml
+ctx: ViewBuilder Fields Plugin
+type: widget field-configuration
+scope:
+  appliesTo: SceneGraph widget nodes via ViewBuilder templates
+  consumers: ViewModels, widgets using fields configurations
+core:
+  capabilities:
+    - "Declarative assignment of node properties (static, dynamic, function)."
+    - "Support for @ operator referencing viewModelState."
+    - "String interpolation with ${} expressions and mixed @ usage."
+    - "Function expressions with optional typecast for IntelliSense."
+  valueTypes:
+    static: 'text: "Welcome"'
+    dynamic: '@stateVar', '`@l10n.menu.${m.props.pageKey}`'
+    function: "function() as <type> using m.viewModelState / m.props."
+props:
+  context:
+    m.viewModelState: "Shared ViewModel state across widgets."
+    m.props: "Shared props provided by parent ViewModel."
+    m.*: "Widget instance methods/properties accessible inside expressions."
+rules:
+  - "Initialize required viewModelState variables before referencing with @."
+  - "Prefer lightweight expressions; precompute heavy logic into state."
+  - "Use typecast m as Rotor.Widget/ViewModel to improve tooling (optional)."
+  - "Avoid circular dependencies between fields and their expressions."
+  - "Return correct data types from function expressions."
+  - "Keep closures stateless to prevent memory leaks."
+api:
+  configuration:
+    fields:
+      static: "Direct literal assignments."
+      dynamic: "Use @ operator or template strings."
+      function: "Return values via function() expressions."
+patterns:
+  staticFields: "Labels with fixed text, color, size."
+  statusLabel: "Function expression branch on viewModelState.isLoading/hasError."
+  dynamicInterpolation: "`@currentUser - Level ${m.props.level}` mixed usage."
+  focusIntegration: "Use viewModelState.isFocused to style focused nodes."
+  i18n: "Bind text to @l10n keys; dynamic templates for localized sections."
+  computedProperty: "Function computing page count from state values."
+pitfalls:
+  - "Undefined @ references due to missing state initialization."
+  - "Expensive computations inside function expressions impacting performance."
+  - "Circular expressions referencing the field being set."
+  - "Type mismatches returned by expressions."
+  - "Leaking large objects captured in closures."
+lifecycle:
+  - parseFieldsConfig
+  - resolveStaticValues
+  - evaluateDynamicStrings (@ and interpolation)
+  - executeFunctionExpressions
+  - applyNodeFields
+  - rerunOnStateOrPropChange
+pipeline:
+  - read fields map
+  - resolve @ operator → viewModelState
+  - evaluate templates/interpolation
+  - invoke function expressions (with optional typecast)
+  - set SceneGraph node fields
+  - debug via logging if mismatches occur
+```

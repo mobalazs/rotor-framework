@@ -3,6 +3,8 @@
 ← [README.md](../README.md#-learn-more)
 ← [ViewBuilder Overview](./view-builder-overview.md)
 
+> 🧠 YAML reference: [AI-optimized reference](./ai/view-builder-widget-reference.opt.yaml).
+
 ## Overview
 
 A **Widget** is the smallest unit in the Rotor UI tree. Every widget is a plain BrightScript object that describes a SceneGraph node and its behavior.

@@ -3,6 +3,8 @@
 ← [README.md](../README.md#-learn-more)
 ← [ViewBuilder Overview](./view-builder-overview.md)
 
+> 🧠 YAML reference: [AI-optimized reference](./ai/view-builder-fontstyle-plugin.opt.yaml).
+
 ## Overview
 
 The FontStyle Plugin provides declarative font management for Label nodes. It enables automatic font styling through a `fontStyle` configuration, supporting static font objects, function expressions, and dynamic values (using `@` operator for variable interpolation).

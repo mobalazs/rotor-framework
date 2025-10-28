@@ -3,6 +3,8 @@
 ← [README.md](../README.md#-learn-more)
 ← [ViewBuilder Overview](./view-builder-overview.md)
 
+> 🧠 YAML reference: [AI-optimized reference](./ai/view-builder-focus-plugin.opt.yaml).
+
 ## Overview
 
 The Focus Plugin provides advanced focus management and spatial navigation for TV-friendly interfaces. It implements hierarchical focus groups, automatic spatial navigation based on widget positions, static navigation paths, long press detection, and automatic state management through `viewModelState.isFocused`.
