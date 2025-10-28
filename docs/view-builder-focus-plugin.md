@@ -54,127 +54,6 @@ This means `defaultFocusId: "deepItem"` will find "deepItem" even if it's 3+ lev
 
 **Together they work as**: User Action → Bubbling (↑ find alternative) → Capturing (↓ resolve target)
 
-## Navigation Rules
-
-### RULE #1: Widget Types
-
-- `focus: { group: {...} }` → Group (container)
-- `focus: {...}` (no group key) → FocusItem (focusable element)
-- No focus config → Not part of focus system
-
-### RULE #2: FocusItem Direction Values
-
-- **String (Node ID)**: Static navigation to that element
-- **Function**: Dynamic, evaluated at runtime (returns node ID or boolean)
-- **`false`**: Blocks the direction (nothing happens)
-- **`true`** / **`undefined`** / **`""`**: Spatial navigation attempts
-
-### RULE #3: Navigation Priority (Decreasing Order)
-
-1. FocusItem static direction (e.g., `left: "button2"`)
-2. Spatial navigation (within group only)
-3. BubblingFocus (ask parent groups)
-
-### RULE #4: Spatial Navigation Scope
-
-- **ONLY works within a single group**
-- Cannot cross into sibling or parent groups
-- Searches only possible focus items from `group.getGroupMembersHIDs()`
-
-### RULE #5: Group Direction Activation
-
-Group direction triggers ONLY when:
-- FocusItem has NO static direction
-- Spatial navigation found NOTHING
-- BubblingFocus reaches this group
-
-### RULE #6: Group Direction Values
-
-- **String (Node ID)**: Navigate to that group/item (may EXIT group)
-- **`true`**: BLOCKS (stays on current element)
-- **`false`** / **`undefined`**: Continue bubbling to next ancestor
-
-### RULE #7: Group Direction Does NOT Block Spatial Navigation
-
-Setting `group.right = true` does NOT prevent spatial navigation INSIDE the group. It only blocks EXITING the group when spatial navigation finds nothing.
-
-### RULE #8: Exiting a Group - 3 Methods
-
-**Method 1: FocusItem explicit direction**
-```brightscript
-focusItem.right = "otherGroupItem" ' EXITS immediately
-```
-
-**Method 2: Group direction (via BubblingFocus)**
-```brightscript
-group.right = "otherGroup" ' EXITS when spatial nav fails
-```
-
-**Method 3: Ancestor group direction**
-```brightscript
-parentGroup.right = "otherGroup" ' EXITS when child groups pass
-```
-
-### RULE #9: Blocking Group Exit
-
-To prevent exit: `group.left = true`, `group.right = true`
-
-The plugin treats this as a valid navigation action that was processed - the user stays on the current item without the key event propagating further.
-
-**Exception**: FocusItem explicit directions still work!
-
-### RULE #10: BubblingFocus Flow
-
-```
-FocusItem (no direction) → Spatial nav (nothing) → Group.direction?
-  - "nodeId" → CapturingFocus(nodeId) [EXIT]
-  - true → STOP (stay on current)
-  - false/undefined → Continue to parent group
-  - No more ancestors → Stay on current
-```
-
-### RULE #11: CapturingFocus Priority
-
-1. `group.lastFocusedHID` (if exists) [AUTO-SAVED]
-2. `group.defaultFocusId` [CONFIGURED]
-3. Deep search (if defaultFocusId not found immediately)
-
-### RULE #12: DefaultFocusId Targets
-
-- **FocusItem node ID** → Focus goes directly to it
-- **Group node ID** → Capturing continues on that group
-- **Non-existent ID** → Deep search attempts
-
-### RULE #13: Deep Search Activation
-
-Triggers when:
-- CapturingFocus doesn't find `defaultFocusId` in immediate children
-- `defaultFocusId` is not empty
-
-Searches:
-1. All descendant FocusItems (any depth)
-2. All nested Groups (any depth, applies their fallback)
-
-### RULE #14: Spatial Enter
-
-When `enableSpatialEnter = true` on a group:
-- Entering the group uses spatial navigation from the direction
-- Finds geometrically closest item instead of `defaultFocusId`
-- Falls back to `defaultFocusId` if spatial finds nothing
-
-### RULE #15: Navigation Decision Tree Summary
-
-```
-User presses direction key:
-  1. FocusItem.direction exists? → Use it (may EXIT group)
-  2. Spatial nav finds item? → Navigate (STAYS in group)
-  3. BubblingFocus: Group.direction?
-     - "nodeId" → EXIT to that target
-     - true → BLOCK (stay)
-     - undefined → Continue to ancestor
-  4. No more ancestors? → STAY on current item
-```
-
 ## Focus Item Configuration Properties
 
 | Property | Type | Default | Description |
@@ -590,6 +469,129 @@ focus: {
         down: "nextGroup"
     }
 }
+```
+
+## Navigation Rules
+
+In CTV applications, focus is a critically important feature. In many cases, implementing complex focus behavior in dynamic, complex applications is very challenging. Therefore, the goal is a dynamic (runtime-adaptive) and intuitive, easy-to-use architecture. The rules below serve this goal.
+
+### RULE #1: Widget Types
+
+- `focus: { group: {...} }` → Group (container)
+- `focus: {...}` (no group key) → FocusItem (focusable element)
+- No focus config → Not part of focus system
+
+### RULE #2: FocusItem Direction Values
+
+- **String (Node ID)**: Static navigation to that element
+- **Function**: Dynamic, evaluated at runtime (returns node ID or boolean)
+- **`false`**: Blocks the direction (nothing happens)
+- **`true`** / **`undefined`** / **`""`**: Spatial navigation attempts
+
+### RULE #3: Navigation Priority (Decreasing Order)
+
+1. FocusItem static direction (e.g., `left: "button2"`)
+2. Spatial navigation (within group only)
+3. BubblingFocus (ask parent groups)
+
+### RULE #4: Spatial Navigation Scope
+
+- **ONLY works within a single group**
+- Cannot cross into sibling or parent groups
+- Searches only possible focus items from `group.getGroupMembersHIDs()`
+
+### RULE #5: Group Direction Activation
+
+Group direction triggers ONLY when:
+- FocusItem has NO static direction
+- Spatial navigation found NOTHING
+- BubblingFocus reaches this group
+
+### RULE #6: Group Direction Values
+
+- **String (Node ID)**: Navigate to that group/item (may EXIT group)
+- **`true`**: BLOCKS (stays on current element)
+- **`false`** / **`undefined`**: Continue bubbling to next ancestor
+
+### RULE #7: Group Direction Does NOT Block Spatial Navigation
+
+Setting `group.right = true` does NOT prevent spatial navigation INSIDE the group. It only blocks EXITING the group when spatial navigation finds nothing.
+
+### RULE #8: Exiting a Group - 3 Methods
+
+**Method 1: FocusItem explicit direction**
+```brightscript
+focusItem.right = "otherGroupItem" ' EXITS immediately
+```
+
+**Method 2: Group direction (via BubblingFocus)**
+```brightscript
+group.right = "otherGroup" ' EXITS when spatial nav fails
+```
+
+**Method 3: Ancestor group direction**
+```brightscript
+parentGroup.right = "otherGroup" ' EXITS when child groups pass
+```
+
+### RULE #9: Blocking Group Exit
+
+To prevent exit: `group.left = true`, `group.right = true`
+
+The plugin treats this as a valid navigation action that was processed - the user stays on the current item without the key event propagating further.
+
+**Exception**: FocusItem explicit directions still work!
+
+### RULE #10: BubblingFocus Flow
+
+```
+FocusItem (no direction) → Spatial nav (nothing) → Group.direction?
+  - "nodeId" → CapturingFocus(nodeId) [EXIT]
+  - true → STOP (stay on current)
+  - false/undefined → Continue to parent group
+  - No more ancestors → Stay on current
+```
+
+### RULE #11: CapturingFocus Priority
+
+1. `group.lastFocusedHID` (if exists) [AUTO-SAVED]
+2. `group.defaultFocusId` [CONFIGURED]
+3. Deep search (if defaultFocusId not found immediately)
+
+### RULE #12: DefaultFocusId Targets
+
+- **FocusItem node ID** → Focus goes directly to it
+- **Group node ID** → Capturing continues on that group
+- **Non-existent ID** → Deep search attempts
+
+### RULE #13: Deep Search Activation
+
+Triggers when:
+- CapturingFocus doesn't find `defaultFocusId` in immediate children
+- `defaultFocusId` is not empty
+
+Searches:
+1. All descendant FocusItems (any depth)
+2. All nested Groups (any depth, applies their fallback)
+
+### RULE #14: Spatial Enter
+
+When `enableSpatialEnter = true` on a group:
+- Entering the group uses spatial navigation from the direction
+- Finds geometrically closest item instead of `defaultFocusId`
+- Falls back to `defaultFocusId` if spatial finds nothing
+
+### RULE #15: Navigation Decision Tree Summary
+
+```
+User presses direction key:
+  1. FocusItem.direction exists? → Use it (may EXIT group)
+  2. Spatial nav finds item? → Navigate (STAYS in group)
+  3. BubblingFocus: Group.direction?
+     - "nodeId" → EXIT to that target
+     - true → BLOCK (stay)
+     - undefined → Continue to ancestor
+  4. No more ancestors? → STAY on current item
 ```
 
 ## Common Pitfalls
