@@ -1,9 +1,6 @@
 # Internationalization (i18n) Support
 
-<div style="display:flex; justify-content:space-between; align-items:center;">
-  <span>← <a href="../README.md#-learn-more">README.md</a></span>
-  <span><a href="./ai/i18n-support.opt.yaml">🌱</a></span>
-</div>
+[← README.md](../README.md#-learn-more) | [🌱](./ai/i18n-support.opt.yaml)
 
 ## Overview
 
