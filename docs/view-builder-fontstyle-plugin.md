@@ -9,7 +9,7 @@ The FontStyle Plugin provides declarative font management for Label nodes. It en
 
 **Important**: FontStyle only applies to Label nodes. Non-Label widgets will ignore fontStyle configuration.
 
-## Font Style Value Types
+## Config Value Types
 
 | Type | Description | Example |
 |------|-------------|---------|
@@ -40,7 +40,7 @@ The FontStyle Plugin provides declarative font management for Label nodes. It en
     fontStyle: "@headerFontStyle",
 
     ' Function expression - dynamic based on state
-    fontStyle: function() as object
+    fontStyle: function() as object typecast m as Rotor.Widget
         if m.viewModelState.isFocused
             return UI.fontStyles.H1_aa
         else
@@ -49,6 +49,17 @@ The FontStyle Plugin provides declarative font management for Label nodes. It en
     end function
 }
 ```
+
+### Type Safety with Typecast (Optional)
+
+The `typecast` statement is a BrighterScript V1 feature that provides type information to the language server and IDE. It is **entirely optional** and has no runtime effect - it only improves development experience.
+Type examples: `Rotor.Widget`, `Rotor.ViewModel`, or any class that extends them.
+
+**Benefits:**
+- **IDE Autocomplete**: Enables IntelliSense/autocomplete for widget methods and properties
+- **Type Safety**: Catches type errors during development before runtime
+- **Documentation**: Makes code intent clearer for other developers
+
 
 ## Lifecycle Integration
 

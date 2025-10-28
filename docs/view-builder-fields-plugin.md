@@ -7,7 +7,7 @@
 
 The Fields Plugin provides declarative field management for SceneGraph nodes. It enables setting and updating node properties through a `fields` configuration, supporting static values, function expressions, and dynamic values (using `@` operator and string interpolation).
 
-## Field Value Types
+## Config Value Types
 
 | Type | Description | Example |
 |------|-------------|---------|
@@ -77,6 +77,17 @@ Use function expressions to compute field values based on widget state:
     }
 }
 ```
+
+### Type Safety with Typecast (Optional)
+
+The `typecast` statement is a BrighterScript V1 feature that provides type information to the language server and IDE. It is **entirely optional** and has no runtime effect - it only improves development experience.
+Type examples: `Rotor.Widget`, `Rotor.ViewModel`, or any class that extends them.
+
+**Benefits:**
+- **IDE Autocomplete**: Enables IntelliSense/autocomplete for widget methods and properties
+- **Type Safety**: Catches type errors during development before runtime
+- **Documentation**: Makes code intent clearer for other developers
+
 
 **Function expressions have access to:**
 - `m.viewModelState` - Shared state across ViewModel's widgets
