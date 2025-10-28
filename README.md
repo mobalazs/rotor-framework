@@ -58,21 +58,21 @@ This minimalist example initializes the framework and displays a label on screen
 ## 📚 Learn More
 
 ### MVI Documentation
-* [Cross-Thread MVI design pattern](https://github.com/mobalazs/rotor-framework/blob/main/docs/cross-thread-mvi.md) - State management across threads
+* [Cross-Thread MVI design pattern](./docs/cross-thread-mvi.md) - State management across threads
 
 ### ViewBuilder Reference
-* [ViewBuilder Overview](https://github.com/mobalazs/rotor-framework/blob/main/docs/view-builder-overview.md) - High-level architecture and core concepts
-* [Widget Reference](https://github.com/mobalazs/rotor-framework/blob/main/docs/view-builder-widget-reference.md) - Complete Widget properties, methods, and usage patterns
-* [ViewModel Reference](https://github.com/mobalazs/rotor-framework/blob/main/docs/view-builder-viewmodel-reference.md) - Complete ViewModel structure, lifecycle, and state management
+* [ViewBuilder Overview](./docs/view-builder-overview.md) - High-level architecture and core concepts
+* [Widget Reference](./docs/view-builder-widget-reference.md) - Complete Widget properties, methods, and usage patterns
+* [ViewModel Reference](./docs/view-builder-viewmodel-reference.md) - Complete ViewModel structure, lifecycle, and state management
 
 ### ViewBuilder Plugins
-* [ViewBuilder Fields Plugin](https://github.com/mobalazs/rotor-framework/blob/main/docs/view-builder-fields-plugin.md) - Field management and binding
-* [ViewBuilder FontStyle Plugin](https://github.com/mobalazs/rotor-framework/blob/main/docs/view-builder-fontstyle-plugin.md) - Typography and styling
-* [ViewBuilder Observer Plugin](https://github.com/mobalazs/rotor-framework/blob/main/docs/view-builder-observer-plugin.md) - State observation patterns
-* [ViewBuilder Focus Plugin](https://github.com/mobalazs/rotor-framework/blob/main/docs/view-builder-focus-plugin.md) - Focus management system
+* [ViewBuilder Fields Plugin](./docs/view-builder-fields-plugin.md) - Field management and binding
+* [ViewBuilder FontStyle Plugin](./docs/view-builder-fontstyle-plugin.md) - Typography and styling
+* [ViewBuilder Observer Plugin](./docs/view-builder-observer-plugin.md) - State observation patterns
+* [ViewBuilder Focus Plugin](./docs/view-builder-focus-plugin.md) - Focus management system
 
 ### i18N Documentation
-* [Internationalization support](https://github.com/mobalazs/rotor-framework/blob/main/docs/i18n-support.md) - Locale-aware interface implementation
+* [Internationalization support](./docs/i18n-support.md) - Locale-aware interface implementation
 
 ---
 
