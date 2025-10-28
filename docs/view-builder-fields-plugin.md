@@ -1,6 +1,7 @@
 # Fields Configuration
 
-← [Back to Documentation](../README.md#-learn-more)
+← [README.md](../README.md#-learn-more)
+← [ViewBuilder Overview](./view-builder-overview.md)
 
 ## Overview
 
@@ -123,6 +124,27 @@ Combine variables and expressions in strings:
     }
 }
 ```
+
+## Lifecycle Integration
+
+The Fields Plugin operates automatically through widget lifecycle:
+
+| Lifecycle Hook | Purpose |
+|----------------|---------|
+| `beforeMount` | Parse and apply initial field values |
+| `beforeUpdate` | Extend existing fields with new values and reapply |
+| `beforeDestroy` | Clear field references to prevent memory leaks |
+
+### Field Processing Pipeline
+
+1. **Field Collection**: Plugin processes all fields from widget configuration
+2. **Value Resolution**: Determines if value is static, function expression, or @ operator
+3. **Expression Execution**: Function expressions executed in widget scope with access to `m`
+4. **Variable Interpolation**: `@` operator patterns resolved from `viewModelState`
+5. **String Interpolation**: Interpolated strings processed with variable substitution
+6. **Field Application**: Final values applied to SceneGraph node
+7. **Update Handling**: Fields re-evaluated when widget updates occur
+
 
 ## Common Patterns
 
@@ -259,26 +281,6 @@ Set complex data structures as field values:
     }
 }
 ```
-
-## Lifecycle Integration
-
-The Fields Plugin operates automatically through widget lifecycle:
-
-| Lifecycle Hook | Purpose |
-|----------------|---------|
-| `beforeMount` | Parse and apply initial field values |
-| `beforeUpdate` | Extend existing fields with new values and reapply |
-| `beforeDestroy` | Clear field references to prevent memory leaks |
-
-### Field Processing Pipeline
-
-1. **Field Collection**: Plugin processes all fields from widget configuration
-2. **Value Resolution**: Determines if value is static, function expression, or @ operator
-3. **Expression Execution**: Function expressions executed in widget scope with access to `m`
-4. **Variable Interpolation**: `@` operator patterns resolved from `viewModelState`
-5. **String Interpolation**: Interpolated strings processed with variable substitution
-6. **Field Application**: Final values applied to SceneGraph node
-7. **Update Handling**: Fields re-evaluated when widget updates occur
 
 ## Best Practices
 

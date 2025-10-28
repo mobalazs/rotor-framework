@@ -1,6 +1,6 @@
 # Internationalization (i18n) Support
 
-← [Back to Documentation](../README.md#-learn-more)
+← [README.md](../README.md#-learn-more)
 
 ## Overview
 

@@ -1,6 +1,6 @@
 # Cross-Thread MVI Pattern
 
-← [Back to Documentation](../README.md#-learn-more)
+← [README.md](../README.md#-learn-more)
 
 ## Overview
 
