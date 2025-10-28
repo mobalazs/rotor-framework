@@ -24,7 +24,7 @@ namespace tests
 
         @it("creates reducer instance")
         function _()
-            testReducer = new Reducer()
+            testReducer = new Rotor.Reducer()
 
             m.assertNotEqual(testReducer, invalid)
             m.assertTrue(Rotor.Utils.isFunction(testReducer.dispatch))
@@ -32,7 +32,7 @@ namespace tests
 
         @it("initializes with empty middlewares array")
         function _()
-            testReducer = new Reducer()
+            testReducer = new Rotor.Reducer()
 
             m.assertNotEqual(testReducer.middlewares, invalid)
             m.assertEqual(testReducer.middlewares.count(), 0)
@@ -42,7 +42,7 @@ namespace tests
 
         @it("returns unchanged state by default")
         function _()
-            testReducer = new Reducer()
+            testReducer = new Rotor.Reducer()
             initialState = { count: 0 }
             intent = { type: "TEST_ACTION", payload: invalid }
 
@@ -55,7 +55,7 @@ namespace tests
 
         @it("returns empty array by default")
         function _()
-            testReducer = new Reducer()
+            testReducer = new Rotor.Reducer()
 
             middlewares = testReducer.applyMiddlewares()
 
@@ -67,7 +67,7 @@ namespace tests
 
         @it("cleans up references")
         function _()
-            testReducer = new Reducer()
+            testReducer = new Rotor.Reducer()
             testReducer.ownerDispatcher = { test: "value" }
 
             testReducer.destroy()

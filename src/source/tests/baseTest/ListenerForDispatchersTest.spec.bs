@@ -10,7 +10,7 @@ namespace tests
 
         @it("notifies listeners and removes ones flagged as once")
         function notifyListeners_removes_once_listener()
-            listener = new ListenerForDispatchers()
+            listener = new Rotor.ListenerForDispatchers()
             scope = {
                 props: { value: 0 },
                 called: false,
@@ -44,7 +44,7 @@ namespace tests
 
         @it("uses allowUpdate when shouldUpdate missing and supports repeated updates")
         function notifyListeners_uses_allowUpdate()
-            listener = new ListenerForDispatchers()
+            listener = new Rotor.ListenerForDispatchers()
             scope = { props: {} }
 
             listener.addListener({
@@ -62,7 +62,7 @@ namespace tests
 
         @it("removeAllListenersByListenerId clears matching entries")
         function removeAllListenersByListenerId_removes_matching_entries()
-            listener = new ListenerForDispatchers()
+            listener = new Rotor.ListenerForDispatchers()
             scopeA = { props: {} }
             scopeB = { props: {} }
 
@@ -78,7 +78,7 @@ namespace tests
 
         @it("runMapStateToProps applies mapper when props available")
         function runMapStateToProps_applies_mapper()
-            listener = new ListenerForDispatchers()
+            listener = new Rotor.ListenerForDispatchers()
             scope = {
                 props: { text: "" }
             }
@@ -92,7 +92,7 @@ namespace tests
 
         @it("destroy clears listeners and releases callbacks")
         function destroy_clears_listeners()
-            listener = new ListenerForDispatchers()
+            listener = new Rotor.ListenerForDispatchers()
             scope = { props: {} }
             listener.addListener({
                 callback: sub()

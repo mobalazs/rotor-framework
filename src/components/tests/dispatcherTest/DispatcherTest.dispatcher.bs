@@ -2,14 +2,14 @@ import "pkg:/components/tests/dispatcherTest/DispatcherTest.const.bs"
 
 namespace test
 
-    class TestModel extends Model
+    class TestModel extends Rotor.Model
         state = {
             foo: "bar",
             hitCounter: 0
         }
     end class
 
-    class TestReducer extends Reducer
+    class TestReducer extends Rotor.Reducer
 
         override function applyMiddlewares()
             return [

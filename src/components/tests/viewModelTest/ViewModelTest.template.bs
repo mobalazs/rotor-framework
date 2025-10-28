@@ -1,7 +1,7 @@
 import "pkg:/components/tests/viewModelTest/ViewModelTest.const.bs"
 import "pkg:/components/tests/widgetTest/WidgetTest.const.bs"
 
-class ViewModelTestViewModel extends ViewModel
+class ViewModelTestViewModel extends Rotor.ViewModel
 
     props = {
         title: "Default Title",

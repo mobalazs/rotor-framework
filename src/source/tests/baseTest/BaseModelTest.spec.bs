@@ -10,7 +10,7 @@ namespace tests
         @it("creates model with initial state")
         function _()
             initialState = { count: 5 }
-            testModel = new Model(initialState)
+            testModel = new Rotor.Model(initialState)
 
             m.assertNotEqual(testModel, invalid)
             m.assertEqual(testModel.state.count, 5)
@@ -18,13 +18,13 @@ namespace tests
 
         @it("creates model without state")
         function _()
-            testModel = new Model()
+            testModel = new Rotor.Model()
             m.assertNotEqual(testModel, invalid)
         end function
 
         @it("destroys model properly")
         function _()
-            testModel = new Model({ value: 10 })
+            testModel = new Rotor.Model({ value: 10 })
             testModel.destroy()
 
             m.assertEqual(testModel.state, invalid)

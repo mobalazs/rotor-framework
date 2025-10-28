@@ -52,7 +52,7 @@ function getI18nTestTranslations() as object
 end function
 
 ' ViewModel for testing single i18n path
-class I18nSinglePathViewModel extends ViewModel
+class I18nSinglePathViewModel extends Rotor.ViewModel
     override function template() as object
         return {
             nodeType: "Group",
@@ -70,7 +70,7 @@ class I18nSinglePathViewModel extends ViewModel
 end class
 
 ' ViewModel for testing multiple i18n paths
-class I18nMultiPathViewModel extends ViewModel
+class I18nMultiPathViewModel extends Rotor.ViewModel
     override function template() as object
         return {
             nodeType: "Group",
@@ -103,7 +103,7 @@ class I18nMultiPathViewModel extends ViewModel
 end class
 
 ' ViewModel for testing locale and RTL flags
-class I18nLocaleViewModel extends ViewModel
+class I18nLocaleViewModel extends Rotor.ViewModel
     override function template() as object
         return {
             nodeType: "Group",
@@ -124,7 +124,7 @@ class I18nLocaleViewModel extends ViewModel
 end class
 
 ' ViewModel without i18n config (gets full l10n)
-class I18nFullL10nViewModel extends ViewModel
+class I18nFullL10nViewModel extends Rotor.ViewModel
     override function template() as object
         return {
             nodeType: "Group",
@@ -145,7 +145,7 @@ class I18nFullL10nViewModel extends ViewModel
 end class
 
 ' ViewModel for testing deep nested paths
-class I18nDeepNestedViewModel extends ViewModel
+class I18nDeepNestedViewModel extends Rotor.ViewModel
     override function template() as object
         return {
             nodeType: "Group",
