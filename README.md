@@ -1,27 +1,28 @@
 # Rotor Framework
 
-[![Coverage Status](https://coveralls.io/repos/github/mobalazs/rotor-framework/badge.svg?branch=main&v=2)](https://coveralls.io/github/mobalazs/rotor-framework?branch=main)
-[![GitHub package.json version](https://img.shields.io/github/package-json/v/mobalazs/rotor-framework)](https://github.com/mobalazs/rotor-framework/packages)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Slack](https://img.shields.io/badge/Slack-RokuDevelopers-4A154B?logo=slack)](https://rokudevelopers.slack.com)
+<div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:0.5rem;">
+  <span style="display:flex; flex-wrap:wrap; gap:0.5rem;">
+    <a href="https://coveralls.io/github/mobalazs/rotor-framework?branch=main"><img src="https://coveralls.io/repos/github/mobalazs/rotor-framework/badge.svg?branch=main&v=2" alt="Coverage Status" /></a>
+    <a href="https://github.com/mobalazs/rotor-framework/packages"><img src="https://img.shields.io/github/package-json/v/mobalazs/rotor-framework" alt="GitHub package.json version" /></a>
+    <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" /></a>
+    <a href="https://rokudevelopers.slack.com"><img src="https://img.shields.io/badge/Slack-RokuDevelopers-4A154B?logo=slack" alt="Slack" /></a>
+  </span>
+  <span>🌱 <a href="./docs/ai/readme.opt.yaml">Token-friendly AI refs</a></span>
+</div>
+
+<br/>
 
 **Rotor** is a modular, ViewModel-first UI framework for Roku applications built with BrighterScript and SceneGraph. It is lightweight and designed to intuitively speed up development time while simplifying both the implementation and long-term maintenance process. It features a rich ViewBuilder system and a Roku-friendly implementation of the MVI (Model-View-Intent) design pattern. It helps developers structure large-scale apps with reusable components, state-driven logic, and optimized rendering — all without relying on traditional XML-based views.
 
 ---
 
-## 📎 AI-Optimized References
-
-Machine-readable (token-friendly) YAML digests for the docs: [docs/ai/index.md](./docs/ai/index.md)
-
----
-
 ## 🚀 Key Features
 
-* **ViewBuilder system**: Declarative and extensible view construction with a flexible, code-based template system, automatic full lifecycle management, and a virtual node tree abstraction.
-* **Roku-friendly MVI design pattern**: Predictable state, clear separation of concerns, and cross-thread compatibility.
-* **Component-based UI**: Isolated, reusable UI widgets and view models.
-* **i18n support**: Locale-aware interface with flexible language resource injection.
-* **Integrated Animate Library**: [https://github.com/haystacknews/animate](https://github.com/haystacknews/animate)
+-   **ViewBuilder system**: Declarative and extensible view construction with a flexible, code-based template system, automatic full lifecycle management, and a virtual node tree abstraction.
+-   **Roku-friendly MVI design pattern**: Predictable state, clear separation of concerns, and cross-thread compatibility.
+-   **Component-based UI**: Isolated, reusable UI widgets and view models.
+-   **i18n support**: Locale-aware interface with flexible language resource injection.
+-   **Integrated** [Animate](https://github.com/haystacknews/animate) Library 
 
 ---
 
@@ -64,28 +65,32 @@ This minimalist example initializes the framework and displays a label on screen
 ## 📚 Learn More
 
 ### MVI Documentation
-* [Cross-Thread MVI design pattern](./docs/cross-thread-mvi.md) - State management across threads
+
+-   [Cross-Thread MVI design pattern](./docs/cross-thread-mvi.md) - State management across threads
 
 ### ViewBuilder Reference
-* [ViewBuilder Overview](./docs/view-builder-overview.md) - High-level architecture and core concepts
-* [Widget Reference](./docs/view-builder-widget-reference.md) - Complete Widget properties, methods, and usage patterns
-* [ViewModel Reference](./docs/view-builder-viewmodel-reference.md) - Complete ViewModel structure, lifecycle, and state management
+
+-   [ViewBuilder Overview](./docs/view-builder-overview.md) - High-level architecture and core concepts
+-   [Widget Reference](./docs/view-builder-widget-reference.md) - Complete Widget properties, methods, and usage patterns
+-   [ViewModel Reference](./docs/view-builder-viewmodel-reference.md) - Complete ViewModel structure, lifecycle, and state management
 
 ### ViewBuilder Plugins
-* [ViewBuilder Fields Plugin](./docs/view-builder-fields-plugin.md) - Field management and binding
-* [ViewBuilder FontStyle Plugin](./docs/view-builder-fontstyle-plugin.md) - Typography and styling
-* [ViewBuilder Observer Plugin](./docs/view-builder-observer-plugin.md) - State observation patterns
-* [ViewBuilder Focus Plugin](./docs/view-builder-focus-plugin.md) - Focus management system
+
+-   [ViewBuilder Fields Plugin](./docs/view-builder-fields-plugin.md) - Field management and binding
+-   [ViewBuilder FontStyle Plugin](./docs/view-builder-fontstyle-plugin.md) - Typography and styling
+-   [ViewBuilder Observer Plugin](./docs/view-builder-observer-plugin.md) - State observation patterns
+-   [ViewBuilder Focus Plugin](./docs/view-builder-focus-plugin.md) - Focus management system
 
 ### i18N Documentation
-* [Internationalization support](./docs/i18n-support.md) - Locale-aware interface implementation
+
+-   [Internationalization support](./docs/i18n-support.md) - Locale-aware interface implementation
 
 ---
 
 ## 🔧 Requirements
 
-* Roku SceneGraph (firmware 10.5+ recommended)
-* BrighterScript V1
+-   Roku SceneGraph (firmware 10.5+ recommended)
+-   BrighterScript V1
 
 ---
 

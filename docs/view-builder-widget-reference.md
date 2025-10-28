@@ -1,9 +1,9 @@
 # Widget Reference
 
-← [README.md](../README.md#-learn-more)
-← [ViewBuilder Overview](./view-builder-overview.md)
-
-> 🧠 YAML reference: [AI-optimized reference](./ai/view-builder-widget-reference.opt.yaml).
+<div style="display:flex; justify-content:space-between; align-items:center;">
+  <span>← <a href="../README.md#-learn-more">README.md</a></span>
+  <span>🌱 <a href="./ai/view-builder-widget-reference.opt.yaml">Token-friendly AI refs for view-builder-widget-reference</a></span>
+</div>
 
 ## Overview
 

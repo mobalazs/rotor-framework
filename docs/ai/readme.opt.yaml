@@ -1,0 +1,38 @@
+```yaml
+ctx: Rotor Framework README
+type: project-overview
+scope:
+  platform: Roku applications built with BrighterScript and SceneGraph
+  framework: Rotor ViewBuilder + MVI architecture
+core:
+  highlights:
+    - Modular, ViewModel-first UI framework without XML views
+    - Rich ViewBuilder system with virtual node tree
+    - Roku-friendly Model-View-Intent implementation
+  sellingPoints:
+    - Faster development and simpler maintenance
+    - Reusable components and state-driven rendering
+    - Optimized performance for large-scale apps
+rules:
+  - "Adopt ViewBuilder templates for declarative UI."
+  - "Leverage plugins (Fields, FontStyle, Observer, Focus) to extend widgets."
+  - "Use MVI pattern for predictable, cross-thread state updates."
+patterns:
+  documentationLinks:
+    - docs/cross-thread-mvi.md
+    - docs/i18n-support.md
+    - docs/view-builder-fields-plugin.md
+    - docs/view-builder-fontstyle-plugin.md
+    - docs/view-builder-observer-plugin.md
+    - docs/view-builder-focus-plugin.md
+    - docs/view-builder-widget-reference.md
+    - docs/view-builder-viewmodel-reference.md
+  integrations:
+    animateLibrary: "https://github.com/haystacknews/animate"
+pipeline:
+  - explore key features
+  - install via npm
+  - run tests and coverage
+  - lint with ESLint (npm run lint)
+  - consult docs for architecture, plugins, i18n, MVI
+```

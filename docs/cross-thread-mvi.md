@@ -1,8 +1,9 @@
 # Cross-Thread MVI Pattern
 
-← [README.md](../README.md#-learn-more)
-
-> 🧠 YAML reference: [AI-optimized reference](./ai/cross-thread-mvi.opt.yaml).
+<div style="display:flex; justify-content:space-between; align-items:center;">
+  <span>← <a href="../README.md#-learn-more">README.md</a></span>
+  <span>🌱 <a href="./ai/cross-thread-mvi.opt.yaml">Token-friendly AI refs for cross-thread-mvi</a></span>
+</div>
 
 ## Overview
 
