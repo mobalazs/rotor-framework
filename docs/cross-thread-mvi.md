@@ -165,7 +165,7 @@ end sub
 
 ```brightscript
 namespace ViewModels
-    class CounterView extends ViewModel
+    class CounterView extends Rotor.ViewModel
 
         override sub onCreateView()
             m.dispatcher = m.getDispatcher("counter")
@@ -244,7 +244,7 @@ Dispatchers can also be created in the render thread using the exactly same patt
 
 ```brightscript
 ' In render thread - for complex component internal state
-class MyViewModel extends viewModel
+class MyViewModel extends Rotor.ViewModel
     override sub onCreateView()
         model = new Models.ComponentStateModel()
         reducer = new Reducers.ComponentStateReducer()

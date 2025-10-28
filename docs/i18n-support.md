@@ -93,7 +93,7 @@ end sub
 Configure i18n in ViewModel template to load specific translation sections:
 
 ```brightscript
-class NavigationMenu extends ViewModel
+class NavigationMenu extends Rotor.ViewModel
 
     override function template() as object
         return {
@@ -218,7 +218,7 @@ Use `@l10n` to reference translation keys in field values.
 Build dynamic key paths using template strings and props:
 
 ```brightscript
-class MenuItem extends ViewModel
+class MenuItem extends Rotor.ViewModel
 
     override function template() as object
         return {
@@ -307,7 +307,7 @@ Access nested translation structures:
 Access translations directly in ViewModel logic. The `viewModelState.l10n` follows the same scoping rules as `@l10n`:
 
 ```brightscript
-class ConfirmDialog extends ViewModel
+class ConfirmDialog extends Rotor.ViewModel
 
     override sub onCreateView()
         ' With i18n path: "dialog", l10n is scoped to dialog section
@@ -400,7 +400,7 @@ i18nService.extendL10n(additionalTranslations)
 ### Menu System
 
 ```brightscript
-class Menu extends ViewModel
+class Menu extends Rotor.ViewModel
 
     override function template() as object
         menuItems = ["home", "settings", "about"]
@@ -425,7 +425,7 @@ class Menu extends ViewModel
     end function
 end class
 
-class MenuItem extends ViewModel
+class MenuItem extends Rotor.ViewModel
 
     override function template() as object
         return {
@@ -441,7 +441,7 @@ end class
 ### Button Labels
 
 ```brightscript
-class ActionButtons extends ViewModel
+class ActionButtons extends Rotor.ViewModel
 
     override function template() as object
         return {
