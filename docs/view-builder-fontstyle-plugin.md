@@ -2,7 +2,7 @@
 
 <div style="display:flex; justify-content:space-between; align-items:center;">
   <span>← <a href="../README.md#-learn-more">README.md</a></span>
-  <span>🌱 <a href="./ai/view-builder-fontstyle-plugin.opt.yaml">Token-friendly AI refs for view-builder-fontstyle-plugin</a></span>
+  <span><a href="./ai/view-builder-fontstyle-plugin.opt.yaml">🌱</a></span>
 </div>
 
 ## Overview

@@ -2,7 +2,7 @@
 
 <div style="display:flex; justify-content:space-between; align-items:center;">
   <span>← <a href="../README.md#-learn-more">README.md</a></span>
-  <span>🌱 <a href="./ai/i18n-support.opt.yaml">Token-friendly AI refs for i18n-support</a></span>
+  <span><a href="./ai/i18n-support.opt.yaml">🌱</a></span>
 </div>
 
 ## Overview

@@ -4,35 +4,111 @@ type: project-overview
 scope:
   platform: Roku applications built with BrighterScript and SceneGraph
   framework: Rotor ViewBuilder + MVI architecture
+  description: "Modular, ViewModel-first UI framework for Roku. Lightweight, speeds up development, simplifies implementation and long-term maintenance. No traditional XML-based views."
 core:
-  highlights:
-    - Modular, ViewModel-first UI framework without XML views
-    - Rich ViewBuilder system with virtual node tree
-    - Roku-friendly Model-View-Intent implementation
+  keyFeatures:
+    viewBuilderSystem:
+      description: "Declarative and extensible view construction"
+      features:
+        - "Flexible, code-based template system"
+        - "Automatic full lifecycle management"
+        - "Virtual node tree abstraction"
+    mviPattern:
+      description: "Roku-friendly MVI design pattern"
+      features:
+        - "Predictable state management"
+        - "Clear separation of concerns"
+        - "Cross-thread compatibility"
+    componentBasedUI:
+      description: "Isolated, reusable UI widgets and view models"
+    i18nSupport:
+      description: "Locale-aware interface with flexible language resource injection"
+    integratedAnimate:
+      description: "Integrated Animate library for animations"
+      url: "https://github.com/haystacknews/animate"
   sellingPoints:
-    - Faster development and simpler maintenance
-    - Reusable components and state-driven rendering
-    - Optimized performance for large-scale apps
+    - "Faster development time"
+    - "Simpler implementation and maintenance"
+    - "Reusable components"
+    - "State-driven logic"
+    - "Optimized rendering for large-scale apps"
+    - "No reliance on traditional XML-based views"
+installation:
+  method: "Shared library for BrighterScript projects"
+  steps:
+    - "Copy the source/rotor directory into your project"
+    - "Import Rotor in your main file: import \"pkg:/source/rotor/RotorFramework.bs\""
+quickStart:
+  example: |
+    frameworkInstance = new Rotor.Framework()
+    frameworkInstance.render([
+      {
+        id: "helloLabel",
+        nodeType: "Label",
+        fields: {
+          text: "Hello World!",
+          color: "#CCCCCC"
+        }
+      }
+    ])
+  description: "Minimalist example initializes framework and displays a label. Fully initializes ViewBuilder and demonstrates core rendering capabilities."
+requirements:
+  platform: "Roku SceneGraph (firmware 10.5+ recommended)"
+  language: "BrighterScript V1"
+documentation:
+  mvi:
+    - title: "Cross-Thread MVI design pattern"
+      path: "docs/cross-thread-mvi.md"
+      description: "State management across threads"
+  viewBuilderReference:
+    - title: "ViewBuilder Overview"
+      path: "docs/view-builder-overview.md"
+      description: "High-level architecture and core concepts"
+    - title: "Widget Reference"
+      path: "docs/view-builder-widget-reference.md"
+      description: "Complete Widget properties, methods, and usage patterns"
+    - title: "ViewModel Reference"
+      path: "docs/view-builder-viewmodel-reference.md"
+      description: "Complete ViewModel structure, lifecycle, and state management"
+  viewBuilderPlugins:
+    - title: "ViewBuilder Fields Plugin"
+      path: "docs/view-builder-fields-plugin.md"
+      description: "Field management and binding"
+    - title: "ViewBuilder FontStyle Plugin"
+      path: "docs/view-builder-fontstyle-plugin.md"
+      description: "Typography and styling"
+    - title: "ViewBuilder Observer Plugin"
+      path: "docs/view-builder-observer-plugin.md"
+      description: "State observation patterns"
+    - title: "ViewBuilder Focus Plugin"
+      path: "docs/view-builder-focus-plugin.md"
+      description: "Focus management system"
+  i18n:
+    - title: "Internationalization support"
+      path: "docs/i18n-support.md"
+      description: "Locale-aware interface implementation"
+license: "MIT licensed. See LICENSE file for details."
+copyright: "© 2025 Rotor Molnar Balazs"
 rules:
-  - "Adopt ViewBuilder templates for declarative UI."
+  - "Adopt ViewBuilder templates for declarative UI construction."
   - "Leverage plugins (Fields, FontStyle, Observer, Focus) to extend widgets."
   - "Use MVI pattern for predictable, cross-thread state updates."
+  - "Build UIs in BrightScript without XML."
+  - "Use ViewModels for grouping widgets with shared state."
 patterns:
-  documentationLinks:
-    - docs/cross-thread-mvi.md
-    - docs/i18n-support.md
-    - docs/view-builder-fields-plugin.md
-    - docs/view-builder-fontstyle-plugin.md
-    - docs/view-builder-observer-plugin.md
-    - docs/view-builder-focus-plugin.md
-    - docs/view-builder-widget-reference.md
-    - docs/view-builder-viewmodel-reference.md
-  integrations:
-    animateLibrary: "https://github.com/haystacknews/animate"
+  basicUsage: "Initialize Framework, call render() with widget configurations."
+  viewModelUsage: "Extend Rotor.ViewModel, implement template() method, use props and viewModelState."
+  stateManagement: "Create Model, Reducer, Dispatcher on task thread. Subscribe to state changes in render thread."
+  pluginUsage: "Configure plugins in widget definitions. Plugins extend functionality (fields, focus, observer, fonts)."
+integrations:
+  animateLibrary:
+    description: "Integrated Animate library for animations"
+    url: "https://github.com/haystacknews/animate"
 pipeline:
-  - explore key features
-  - install via npm
-  - run tests and coverage
-  - lint with ESLint (npm run lint)
-  - consult docs for architecture, plugins, i18n, MVI
+  - "Explore key features (ViewBuilder, MVI, plugins, i18n)"
+  - "Install via copying source/rotor directory"
+  - "Import framework in main file"
+  - "Initialize framework instance"
+  - "Render widgets using declarative configuration"
+  - "Consult docs for architecture, plugins, i18n, MVI patterns"
 ```

@@ -7,7 +7,7 @@
     <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" /></a>
     <a href="https://rokudevelopers.slack.com"><img src="https://img.shields.io/badge/Slack-RokuDevelopers-4A154B?logo=slack" alt="Slack" /></a>
   </span>
-  <span>🌱 <a href="./docs/ai/readme.opt.yaml">Token-friendly AI refs</a></span>
+  <span><a href="./docs/ai/readme.opt.yaml">🌱</a></span>
 </div>
 
 <br/>
@@ -23,6 +23,7 @@
 -   **Component-based UI**: Isolated, reusable UI widgets and view models.
 -   **i18n support**: Locale-aware interface with flexible language resource injection.
 -   **Integrated** [Animate](https://github.com/haystacknews/animate) Library 
+
 
 ---
 
@@ -58,7 +59,14 @@ frameworkInstance.render([
 
 ```
 
-This minimalist example initializes the framework and displays a label on screen. This minimal setup fully initializes the ViewBuilder and demonstrates its core rendering capabilities. You can find many more examples and capabilities in the detailed documentation.
+---
+
+## Token-efficient documentation for AI
+
+You can find 🌱 symbols in the top right corner of all documentation pages. These symbols link to AI-optimized summaries of the respective documentation.
+
+**📖 [Read more about token savings](./docs/token-efficient-docs.md)**
+
 
 ---
 

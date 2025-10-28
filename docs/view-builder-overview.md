@@ -2,7 +2,7 @@
 
 <div style="display:flex; justify-content:space-between; align-items:center;">
   <span>← <a href="../README.md#-learn-more">README.md</a></span>
-  <span>🌱 <a href="./ai/view-builder-overview.opt.yaml">Token-friendly AI refs for view-builder-overview</a></span>
+  <span><a href="./ai/view-builder-overview.opt.yaml">🌱</a></span>
 </div>
 
 The Rotor ViewBuilder provides a declarative way to build Roku SceneGraph UIs entirely from BrightScript code—without XML. This document provides a high-level overview of the ViewBuilder architecture and its core concepts.

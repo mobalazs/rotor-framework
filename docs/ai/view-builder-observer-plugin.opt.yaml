@@ -3,67 +3,141 @@ ctx: ViewBuilder Observer Plugin
 type: node field observation
 scope:
   nodes: SceneGraph widgets with observer configuration
-  usage: Monitor node field changes via ViewBuilder templates
+  usage: "Declarative field observation for SceneGraph nodes. Monitors node field changes through observer config, supports single/multiple observers per widget, callback routing, automatic lifecycle management."
+
 core:
   configuration:
-    single: "observer: { fieldId, callback, ... }"
-    multi: "observer: [ { fieldId, ... }, { fieldId, ... } ]"
-  properties:
-    fieldId: "SceneGraph field name to observe (required)."
-    callback: "Function executed on change (required)."
-    id: "Optional identifier."
-    value: "Optional initial field value."
-    alwaysNotify: "Fire callback even if value unchanged (default true)."
-    once: "Auto-remove after first invocation."
-    until: "Function returning true to remove observer."
-    parsePayload: "Transform payload before callback."
-    infoFields: "Extra fields merged into payload."
-  typecastSupport: "typecast m as Rotor.Widget/ViewModel for IDE tooling."
-rules:
-  - "Ensure observed field exists on the node subtype."
-  - "Define callback for every observer; plugin requires it."
-  - "Keep callbacks lightweight; defer heavy work."
-  - "Use once or until for single-shot or condition-based cleanup."
-  - "Group related observers in arrays for readability."
-  - "Normalize payloads via parsePayload before consuming."
-  - "Prefer moving business logic outside callbacks; callbacks trigger intent/state updates."
-api:
-  lifecycleHooks:
-    - beforeMount (register observers)
-    - beforeUpdate (detach old, register new)
-    - beforeDestroy (unobserve and cleanup)
-state:
-  helperInterface: "Per-node attachment ID stored to route callbacks."
-  observerStack: "Manages Observer instances keyed by id/attachment."
-patterns:
-  videoStateMonitoring: "Observe Video.state and position to update playback UI."
-  scrollProgress: "Observer updating progress bars with once/until."
-  metricsRecording: "Use infoFields to enrich analytics payloads."
-  batchedObservers: "Array of observers for related properties (state, position)."
-  payloadParsing: "parsePayload converting SG payload into app-friendly shape."
-pitfalls:
-  - "Observing missing fields results in no callbacks; validate node subtype."
-  - "Forgetting cleanup outside plugin (plugin auto-cleans, but custom observers may leak)."
-  - "Scope confusion in callback; use typecast for tooling and clarity."
-  - "Heavy operations inside callback causing frame drops."
-troubleshooting:
-  observerNotFiring: "Verify field existence, print widget.observer config, inspect node subtype."
-  callbackNotExecuting: "Check fieldId spelling, ensure callbacks referenced correctly, log payload."
-  performance: "Profile callbacks, combine observers, optimize parsePayload."
+    single: "observer: { fieldId: 'text', callback: sub(payload) ... end sub }"
+    multi: "observer: [ { fieldId: 'state', ... }, { fieldId: 'position', ... } ]"
+  valueTypes:
+    singleObject: "One observer per widget"
+    array: "Multiple observers per widget"
+
+props:
+  required:
+    fieldId: "string - Name of SceneGraph field to observe"
+    callback: "function - Function called when field changes. sub(payload) or sub(payload) typecast m as Rotor.Widget"
+  optional:
+    id: "string - Custom identifier for observer"
+    value: "dynamic - Initial value to set on field"
+    alwaysNotify: "boolean (default: true) - Trigger callback even if value unchanged"
+    once: "boolean (default: false) - Remove observer after first callback"
+    until: "function - Function returning true when observer should be removed"
+    parsePayload: "function - Transform payload before passing to callback"
+    infoFields: "array - Additional fields to include in callback payload"
+
+typecast:
+  feature: "BrighterScript V1 feature - provides type information to language server/IDE"
+  optional: "Entirely optional, no runtime effect - only improves development experience"
+  types: "Rotor.Widget, Rotor.ViewModel, or any class that extends them"
+  benefits:
+    - "IDE Autocomplete: IntelliSense for widget methods/properties"
+    - "Type Safety: Catches type errors during development before runtime"
+    - "Documentation: Makes code intent clearer"
+  usage: "typecast m as Rotor.Widget inside callback for IDE support"
+  note: "Without typecast, code works identically at runtime. Use only when needed for IDE support or team type safety."
+
 lifecycle:
-  - parseConfig
-  - generateAttachmentId
-  - injectHelperInterface
-  - registerObserver (ObserverStack)
-  - observeFieldScoped routing
-  - executeCallback (with optional parsePayload, once/until handling)
-  - detach on update/destroy
+  beforeMount: "Register observers when widget mounts"
+  beforeUpdate: "Detach old observers, register new observers"
+  beforeDestroy: "Unobserve fields and cleanup observer instances"
+
 pipeline:
-  - read observer config (object or array)
-  - create Observer instances with helper info
-  - call node.observeFieldScoped(fieldId, router, infoFields)
-  - route SG events via observerNativeCallback
-  - execute callback in widget scope
-  - apply once/until/alwaysNotify logic
-  - remove observers during lifecycle cleanup
+  1: "Configuration Parse - plugin processes observer config (single object or array)"
+  2: "Attachment ID Generation - unique ID created per node attachment"
+  3: "Helper Interface Setup - internal field added to node for observer tracking"
+  4: "Observer Registration - creates Observer instance, stores in ObserverStack"
+  5: "Native Observation - calls node.observeFieldScoped() with routing info"
+  6: "Callback Routing - field changes route to correct Observer via callback router"
+  7: "Payload Processing - optional parsePayload transformation before callback"
+  8: "Callback Execution - callback executed in widget scope with payload"
+  9: "Cleanup - observers automatically detached on widget destroy or update"
+
+patterns:
+  videoStateMonitoring: |
+    observer: [
+      { fieldId: "state", callback: sub(payload)
+          if payload.state = "playing" -> m.node.visible = true
+          else if payload.state = "finished" -> m.handleVideoFinished()
+      },
+      { fieldId: "position", callback: sub(payload) -> m.updateProgressBar(payload.position) }
+    ]
+  oneTimeObserver: |
+    observer: { fieldId: "loadComplete", once: true, callback: sub(payload) -> print "Load complete!" }
+    Callback fires once, then observer removed
+  conditionalObserver: |
+    observer: {
+      fieldId: "state"
+      until: function(payload) -> return payload.state = "finished" end function
+      callback: sub(payload) -> m.updateAnimationState(payload.state)
+    }
+    Remove observer when animation finishes
+  payloadTransformation: |
+    observer: {
+      fieldId: "text"
+      parsePayload: function(payload) as object
+        return { text: payload.text, length: Len(payload.text), timestamp: CreateObject("roDateTime").AsSeconds() }
+      end function
+      callback: sub(payload) -> print "Text: " + payload.text + " Length: " + payload.length.toStr()
+    }
+  initialFieldValue: |
+    observer: {
+      fieldId: "customState"
+      value: "initial"  (sets field initial value)
+      alwaysNotify: true  (triggers callback even if value unchanged)
+      callback: sub(payload) -> print "State: " + payload.customState
+    }
+
+bestPractices:
+  useOnceForOneTime: "Use once: true for one-time events. Avoids manual cleanup and memory leaks."
+  useParsePayloadToReduceComplexity: "Clean separation: parsePayload transforms data, callback uses transformed data. Reduces callback complexity."
+  groupRelatedObservers: "Use array for related observers (state, position). Keeps observers together, prevents forgetting some."
+  useUntilForConditional: "Automatic cleanup when condition met. Avoids manual condition checking in callback."
+
+pitfalls:
+  observingNonExistentFields: "Field doesn't exist on node type. Solution: Verify field exists for specific SceneGraph node type."
+  memoryLeaks: "Forgetting cleanup outside plugin. Solution: Plugin handles cleanup automatically in lifecycle."
+  callbackScopeIssues: "m context in callbacks unclear. Solution: Use typecast m as Rotor.Widget for type safety."
+  missingCallback: "Observer configured without callback function. Solution: Always provide callback property (required)."
+  payloadStructureAssumptions: "Assuming payload format. Solution: Use parsePayload to normalize payload structure."
+  heavyCallbackOperations: "Expensive operations in callbacks. Solution: Keep callbacks lightweight, defer heavy work."
+
+troubleshooting:
+  observerNotFiring:
+    checks:
+      - "Verify field exists: widget.node.hasField('yourFieldId')"
+      - "Print observer config: FormatJson(widget.observer)"
+      - "Check node type: widget.node.subtype()"
+      - "Check current value: widget.node.getField('yourFieldId').toStr()"
+    debug: |
+      sub debugObserver(widget as object)
+        print "Widget ID: " + widget.id
+        print "Node Type: " + widget.nodeType
+        print "Observer Config: " + FormatJson(widget.observer)
+        if widget.node.hasField("yourFieldId")
+          print "Field exists on node"
+          print "Current value: " + widget.node.getField("yourFieldId").toStr()
+        else
+          print "ERROR: Field does not exist on node type " + widget.node.subtype()
+  callbackNotExecuting:
+    - "Check field name: Ensure fieldId matches exact SceneGraph field name"
+    - "Verify node type: Confirm field exists for specific node type"
+    - "Test field changes: Manually change field to verify observation works"
+    - "Check callback function: Ensure callback is valid function reference"
+    - "Inspect payload: Print payload in callback to see what's received"
+  performanceIssues:
+    - "Profile callbacks: Measure callback execution time"
+    - "Reduce observer count: Combine related observations when possible"
+    - "Optimize parsePayload: Keep payload processing minimal and fast"
+    - "Use once and until: Remove observers when no longer needed"
+
+state:
+  helperInterface: "Per-node attachment ID stored to route callbacks"
+  observerStack: "Manages Observer instances keyed by id/attachment"
+  routing: "observerNativeCallback routes SceneGraph events to correct Observer instance"
+
+api:
+  nativeIntegration: "node.observeFieldScoped(fieldId, router, infoFields)"
+  callbackScope: "Callbacks executed in widget scope (m = widget)"
+  payloadFormat: "{ fieldId: value, ...infoFields }"
 ```
