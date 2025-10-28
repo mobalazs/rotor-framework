@@ -10,11 +10,11 @@ coverage.lcov
 debug.log
 
 # IDE specific
-
 .vscode/*
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/sample.settings.json
+.claude/*
 
 # OS specific paths
 __MACOSX

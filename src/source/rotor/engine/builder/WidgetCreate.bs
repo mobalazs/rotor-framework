@@ -62,9 +62,8 @@ namespace Rotor.ViewBuilder
             return m.getFrameworkInstance().builder.widgetTree.find(searchPattern, m.HID)
         end function
 
-        widget.getChildrenWidgets = function(searchPattern = "" as string) as object
-            if searchPattern = "" then searchPattern = m.HID
-            return m.getFrameworkInstance().builder.widgetTree.getChildrenWidgets(searchPattern, m.HID)
+        widget.getChildrenWidgets = function(matchingPattern = "" as string) as object
+            return m.getFrameworkInstance().builder.widgetTree.getChildrenWidgets(m, matchingPattern)
         end function
 
         widget.getSubtreeClone = function(searchPattern = "" as string, keyPathList = [] as object) as object
@@ -104,11 +103,6 @@ namespace Rotor.ViewBuilder
 
         widget.getDispatcher = function(dispatcherId as string) as object
             return m.getFrameworkInstance().dispatcherProvider.getFacade(dispatcherId, m)
-        end function
-
-        widget.createDispatcher = function(dispatcherId as string, modelInstance as Model, reducerInstance as Reducer) as object
-            Rotor.createDispatcher(dispatcherId, modelInstance, reducerInstance)
-            return m.getDispatcher(dispatcherId)
         end function
 
         widget.animator = function(animatorId) as object

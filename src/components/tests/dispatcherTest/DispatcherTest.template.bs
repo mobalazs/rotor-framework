@@ -1,6 +1,6 @@
 import "pkg:/components/tests/dispatcherTest/DispatcherTest.const.bs"
 
-class AncestorViewModel extends ViewModel
+class AncestorViewModel extends Rotor.ViewModel
 
     props = {
         foo: ""
@@ -42,7 +42,7 @@ class AncestorViewModel extends ViewModel
     end sub
 
 end class
-class DescendantViewModel extends ViewModel
+class DescendantViewModel extends Rotor.ViewModel
 
     override function template() as object
         return {

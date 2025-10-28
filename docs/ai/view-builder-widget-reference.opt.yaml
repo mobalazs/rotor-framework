@@ -1,0 +1,468 @@
+```yaml
+ctx: Widget Reference
+type: widget-definition / API
+scope:
+  unit: "Rotor Framework widget: smallest unit in UI tree. Plain BrightScript object describing SceneGraph node and its behavior."
+  usage: "Declarative BrightScript configuration rendered via ViewBuilder"
+  description: "Every widget automatically receives core configuration properties and methods."
+configurationProperties:
+  core:
+    id:
+      type: "string"
+      required: false
+      description: "Unique widget identifier. Auto-generated if omitted, guaranteed unique among siblings."
+    nodeType:
+      type: "string"
+      required: false
+      default: "Group"
+      description: "SceneGraph node type. Accepts both built-in SceneGraph node types (e.g., \"Label\", \"Group\") and custom component names."
+    viewModel:
+      type: "class"
+      required: false
+      description: "ViewModel class reference."
+    props:
+      type: "object"
+      required: false
+      description: "Properties passed to ViewModels. Shared across all widgets within same ViewModel."
+    viewModelState:
+      type: "object"
+      required: false
+      description: "Initial ViewModel state. Shared across all widgets within same ViewModel."
+    children:
+      type: "array/object"
+      required: false
+      description: "Child widget configurations."
+    zIndex:
+      type: "integer"
+      required: false
+      description: "Rendering z-order among node siblings. Higher values render on top (default: order of creation)."
+    fields:
+      type: "object"
+      required: false
+      description: "SceneGraph node fields (e.g., text, color, translation, etc.)"
+  lifecycleHooks:
+    onMountWidget:
+      description: "Called when widget mounts to scene"
+    onUpdateWidget:
+      description: "Called when widget configuration updates"
+    onDestroyWidget:
+      description: "Called before widget destruction"
+    onRenderSettled:
+      description: "Called after render completes"
+  internationalization:
+    i18n.path:
+      description: "Single translation section path"
+    i18n.paths:
+      description: "Multiple translation section paths (merged at root)"
+    i18n.includeIsRtl:
+      description: "Include RTL flag in viewModelState"
+    i18n.includeLocale:
+      description: "Include locale string in viewModelState"
+injectedMethods:
+  frameworkAccess:
+    getFrameworkInstance:
+      parameters: []
+      return: "object"
+      description: "Framework instance"
+    getInfo:
+      parameters: []
+      return: "object"
+      description: "Framework info (device, version)"
+  widgetNavigation:
+    getWidget:
+      syntax: "getWidget(id)"
+      parameters: ["id (string)"]
+      return: "object"
+      description: "Find widget by ID (any depth) or path. Searches recursively in subtree."
+    getSiblingWidget:
+      syntax: "getSiblingWidget(id)"
+      parameters: ["id (string)"]
+      return: "object"
+      description: "Get direct sibling by ID. Must be direct sibling, not recursive."
+    getViewModel:
+      syntax: "getViewModel()"
+      parameters: []
+      return: "object"
+      description: "Get widget's ViewModel"
+    getParentViewModel:
+      syntax: "getParentViewModel()"
+      parameters: []
+      return: "object"
+      description: "Get parent ViewModel"
+    getRootWidget:
+      syntax: "getRootWidget()"
+      parameters: []
+      return: "object"
+      description: "Get root widget"
+    findWidgets:
+      syntax: "findWidgets(pattern)"
+      parameters: ["pattern (string)"]
+      return: "array"
+      description: "Find widgets by pattern. Supports glob patterns: * (one level), ** (any depth), / (path separator), .. (parent), ./ (root)."
+    getChildrenWidgets:
+      syntax: "getChildrenWidgets([matchingPattern])"
+      parameters: ["matchingPattern (string, optional)"]
+      return: "array"
+      description: "Get direct children, optionally filtered by ID pattern. Returns ordered array matching node order."
+    getSubtreeClone:
+      syntax: "getSubtreeClone([pattern], [keyPaths])"
+      parameters: ["pattern (optional)", "keyPaths"]
+      return: "object"
+      description: "Clone widget subtree (current widget if no pattern)"
+  rendering:
+    render:
+      syntax: "render(payloads, [params])"
+      parameters: ["payloads", "params (optional)"]
+      return: "void"
+      description: "Render or update widgets. Pass single object or array of widget configurations."
+    refresh:
+      syntax: "refresh([keyPaths])"
+      parameters: ["keyPaths (optional)"]
+      return: "void"
+      description: "Refresh specific features (fields, focus, etc.)"
+    erase:
+      syntax: "erase(payloads, [skipPool])"
+      parameters: ["payloads", "skipPool (optional)"]
+      return: "void"
+      description: "Destroy widgets"
+  stateManagement:
+    getDispatcher:
+      syntax: "getDispatcher(id)"
+      parameters: ["id (string)"]
+      return: "object"
+      description: "Get dispatcher by ID"
+    createDispatcher:
+      syntax: "createDispatcher(id, model, reducer)"
+      parameters: ["id", "model", "reducer"]
+      return: "object"
+      description: "Create new dispatcher"
+  animation:
+    animator:
+      syntax: "animator(id)"
+      parameters: ["id (string)"]
+      return: "object"
+      description: "Get animator factory"
+basicUsage:
+  simpleWidget: |
+    {
+      id: "simpleLabel",
+      nodeType: "Label",
+      fields: {
+        text: "Hello World",
+        color: "#FFFFFF"
+      }
+    }
+  widgetWithChildren: |
+    frameworkInstance.render({
+      id: "container",
+      nodeType: "Rectangle",
+      fields: { width: 300, height: 100, translation: [100, 50], color: "#3E6641" },
+      children: [{
+        id: "label",
+        nodeType: "Label",
+        fields: { text: "Hello World", horizAlign: "center", vertAlign: "center", width: 300, height: 100, color: "#FFFFFF" }
+      }]
+    })
+  widgetWithLifecycle: |
+    {
+      id: "lifecycleWidget",
+      nodeType: "Group",
+      fields: { visible: true },
+      onMountWidget: sub()
+        print "Widget mounted: " + m.id
+      end sub,
+      onDestroyWidget: sub()
+        print "Widget destroyed: " + m.id
+      end sub
+    }
+widgetNavigation:
+  directAccess: |
+    ' Access by ID (searches recursively at any depth)
+    childWidget = m.getWidget("childId")
+
+    ' Access by explicit path
+    nestedWidget = m.getWidget("container/content/item1")
+
+    ' Access sibling (must be direct sibling, not recursive)
+    siblingWidget = m.getSiblingWidget("siblingId")
+
+    ' Access parent
+    parentWidget = m.getWidget("../")  ' Using navigation
+    parentWidget = m.parent            ' Direct property access (alternative)
+
+    ' Access children
+    allChildren = m.getChildrenWidgets()  ' Returns ordered array
+    childrenAA = m.children               ' Direct property access (associative array, unordered)
+  globPatternMatching: |
+    ' Single wildcard (*) - matches one level
+    directChildren = m.findWidgets("container/*")
+    menuItems = m.findWidgets("menuItem*")
+
+    ' Double wildcard (**) - matches any depth
+    allTitles = m.findWidgets("**/title")
+    allButtons = m.findWidgets("**/*Button")
+
+    ' Path-based search
+    navWidget = m.findWidgets("app/header/nav")
+
+    ' Pattern in path
+    navChildren = m.findWidgets("app/*/nav/*")
+
+    ' Relative paths
+    parent = m.findWidgets("..")
+    sibling = m.findWidgets("../siblingId")
+  globPatternSyntax:
+    - "* : Match any characters at one level (e.g., item* → item1, item2, itemFoo)"
+    - "** : Match any depth recursively (e.g., **/footer → all footer widgets)"
+    - "/ : Path separator"
+    - ".. : Parent directory"
+    - "./ : Current directory (root)"
+  getDirectChildren: |
+    ' Get all children (no filtering)
+    allChildren = m.getChildrenWidgets()
+
+    ' Filter children by ID pattern (glob matching)
+    menuItems = m.getChildrenWidgets("menuItem*")  ' Returns: menuItem1, menuItem2, menuItem3
+    buttons = m.getChildrenWidgets("*Button")      ' Returns: saveButton, cancelButton
+
+    ' Direct property access (alternative, unordered)
+    childrenAA = m.children  ' { childId: widget, anotherChild: widget, ... }
+    specificChild = m.children["childId"]  ' Direct access by ID
+renderingOperations:
+  renderUpdates: |
+    ' Update single widget
+    m.render({
+      id: "targetWidget",
+      fields: { text: "Updated text", color: "#00FF00" }
+    })
+
+    ' Update multiple widgets
+    m.render([
+      { id: "widget1", fields: { visible: false } },
+      { id: "widget2", fields: { color: "#FF0000" } }
+    ])
+  addChildren: |
+    ' Add new children to widget
+    m.render({
+      id: "container",
+      children: [{
+        id: "newChild",
+        nodeType: "Label",
+        fields: { text: "New Item" }
+      }]
+    })
+  renderCallback: |
+    ' Execute callback after render
+    m.render(payload, {
+      callback: sub()
+        print "Render completed"
+      end sub
+    })
+  destroyWidgets: |
+    ' Destroy single widget
+    m.erase({ id: "targetWidget" })
+
+    ' Destroy multiple widgets
+    m.erase([
+      { id: "widget1" },
+      { id: "widget2" }
+    ])
+stateManagement:
+  usingDispatchers: |
+    {
+      id: "stateWidget",
+      viewModel: ViewModels.StateExample,
+      onMountWidget: sub()
+        ' Get dispatcher
+        dispatcher = m.getDispatcher("dataState")
+
+        ' Listen to state changes
+        dispatcher.addListener({
+          mapStateToProps: sub(props, state)
+            props.items = state.items
+          end sub,
+          callback: m.updateUI
+        })
+
+        ' Dispatch action
+        dispatcher.dispatch({ type: "LOAD_DATA" })
+      end sub,
+      sub updateUI()
+        ' Update based on new props
+        m.render({ id: "list", fields: { content: m.props.items } })
+      end sub
+    }
+  createDispatcher: |
+    ' Create new dispatcher in widget
+    onMountWidget: sub()
+      model = new Models.LocalStateModel()
+      reducer = new Reducers.LocalStateReducer()
+      m.createDispatcher("localState", model, reducer)
+    end sub
+internationalization:
+  basicI18n: |
+    {
+      id: "localizedWidget",
+      viewModel: ViewModels.LocalizedWidget,
+      i18n: { path: "menu" },
+      onMountWidget: sub()
+        ' Access translations from viewModelState.l10n
+        title = m.viewModelState.l10n.title
+        subtitle = m.viewModelState.l10n.subtitle
+      end sub
+    }
+  multiplePaths: |
+    {
+      i18n: { paths: ["menu", "buttons"] },
+      onMountWidget: sub()
+        ' Merged sections at root level
+        menuTitle = m.viewModelState.l10n.title
+        saveButton = m.viewModelState.l10n.save
+      end sub
+    }
+  rtlAndLocale: |
+    {
+      i18n: { path: "app", includeIsRtl: true, includeLocale: true },
+      onMountWidget: sub()
+        isRTL = m.viewModelState.isRTL
+        locale = m.viewModelState.locale
+        if isRTL
+          ' Apply RTL layout
+        end if
+      end sub
+    }
+animation:
+  basicAnimation: |
+    {
+      id: "animatedWidget",
+      nodeType: "Rectangle",
+      fields: { color: "#FF0000", opacity: 0 },
+      onMountWidget: sub()
+        ' Get animator
+        fadeAnimator = m.animator("fade")
+
+        ' Animate
+        fadeAnimator.animateIn(m.node, {
+          fromOpacity: 0,
+          toOpacity: 1,
+          duration: 500
+        })
+      end sub
+    }
+dynamicWidgetCreation:
+  generateChildren: |
+    {
+      id: "dynamicContainer",
+      nodeType: "Group",
+      onMountWidget: sub()
+        ' Generate child configurations
+        children = []
+        for i = 0 to 4
+          children.push({
+            id: "item-" + i.toStr(),
+            nodeType: "Rectangle",
+            fields: { color: "#FF0000", width: 100, height: 50, translation: [i * 110, 0] }
+          })
+        end for
+
+        ' Render dynamic children
+        m.render({ id: m.id, children: children })
+      end sub
+    }
+bestPractices:
+  lifecycleManagement: |
+    Good:
+    onMountWidget: sub()
+      ' Initialize resources
+      m.setupListeners()
+    end sub
+    onDestroyWidget: sub()
+      ' Cleanup resources
+      m.removeListeners()
+    end sub
+
+    Avoid:
+    onMountWidget: sub()
+      ' Don't do expensive operations that block rendering
+      m.loadMassiveDataSet()
+    end sub
+  widgetLookup: |
+    Good:
+    ' Use direct access when ID is known
+    widget = m.getWidget("knownId")
+
+    ' Use pattern matching when needed
+    items = m.findWidgets("item-*")
+
+    Avoid:
+    ' Don't use pattern matching for known IDs
+    widget = m.findWidgets("knownId")[0]  ' Inefficient
+  stateUpdates: |
+    Good:
+    ' Use dispatcher for state changes
+    dispatcher.dispatch({ type: "UPDATE", payload: data })
+
+    Avoid:
+    ' Don't mutate viewModelState directly
+    m.viewModelState.data = newData  ' Wrong
+rules:
+  - "Use render/refresh instead of direct node mutation for consistency."
+  - "Leverage lifecycle hooks for resource setup/cleanup; avoid heavy work in onMount."
+  - "Use getWidget for known IDs; reserve findWidgets for pattern matching."
+  - "Dispatch intents for state changes rather than mutating viewModelState directly."
+  - "Ensure nodes exist before accessing fields; validate via getChildrenWidgets when debugging."
+  - "Use getChildrenWidgets() for ordered children, m.children for direct ID access."
+  - "Clean up resources in onDestroyWidget to prevent memory leaks."
+pitfalls:
+  - "Pattern search for known IDs is inefficient. Use getWidget() instead."
+  - "Mutating viewModelState directly bypasses dispatcher flow and breaks state management."
+  - "Forgetting to clean up listeners/resources in onDestroyWidget causes memory leaks."
+  - "Assuming lifecycle hooks fire without assigning functions in config."
+  - "Accessing fields before nodes exist. Validate widget exists first."
+troubleshooting:
+  widgetNotFound: |
+    targetWidget = m.getWidget("targetId")
+    if targetWidget = invalid
+      print "Widget not found: targetId"
+      ' List available children
+      children = m.getChildrenWidgets()
+      for each child in children
+        print "Available: " + child.id
+      end for
+    end if
+  debugWidgetTree: |
+    print "Widget ID: " + m.id
+    ' Check hierarchy
+    parent = m.getWidget("../")
+    if parent <> invalid
+      print "Parent ID: " + parent.id
+    else
+      print "No parent (root widget)"
+    end if
+  lifecycleIssues:
+    - "Hook not firing: Check function assignment in configuration"
+    - "Context errors: Verify m refers to correct widget instance (use typecast statement)"
+    - "Timing problems: Understand hook execution order"
+  stateManagementIssues:
+    - "Dispatcher not found: Ensure dispatcher exists before access"
+    - "State not updating: Verify listener configuration"
+    - "Memory leaks: Invalidate references created by you in destroy lifecycle hooks"
+lifecycle:
+  - "Configure widget object"
+  - "Register in virtual tree with HID"
+  - "Apply plugins"
+  - "onMountWidget → onRenderSettled"
+  - "onUpdateWidget on config changes"
+  - "onDestroyWidget before removal"
+pipeline:
+  - "Declare widget config"
+  - "Resolve children/ViewModel"
+  - "Apply plugins (fields, focus, font, observer, dispatcher)"
+  - "Materialize SceneGraph node"
+  - "Respond to render/refresh/erase calls"
+  - "Teardown via lifecycle hooks"
+nextSteps:
+  - "ViewModel Reference: Complete ViewModel structure, lifecycle, and state management"
+  - "ViewBuilder Overview: High-level architecture and concepts"
+  - "Plugin Documentation: Fields, FontStyle, Observer, Focus plugins"
+```

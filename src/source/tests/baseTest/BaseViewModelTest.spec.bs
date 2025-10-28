@@ -9,7 +9,7 @@ namespace tests
 
         @it("creates ViewModel base class")
         function _()
-            vm = new ViewModel()
+            vm = new Rotor.ViewModel()
 
             m.assertNotEqual(vm, invalid)
             m.assertTrue(vm.isViewModel)
@@ -17,7 +17,7 @@ namespace tests
 
         @it("setProps updates props")
         function _()
-            vm = new ViewModel()
+            vm = new Rotor.ViewModel()
             vm.setProps({ title: "Test" })
 
             m.assertEqual(vm.props.title, "Test")
@@ -25,7 +25,7 @@ namespace tests
 
         @it("template returns empty object")
         function _()
-            vm = new ViewModel()
+            vm = new Rotor.ViewModel()
             temp = vm.template()
 
             m.assertNotEqual(temp, invalid)

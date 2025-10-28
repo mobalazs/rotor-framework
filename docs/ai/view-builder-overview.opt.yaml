@@ -1,0 +1,94 @@
+```yaml
+ctx: ViewBuilder Overview
+type: architecture summary
+scope:
+  platform: Rotor Framework SceneGraph UI
+  focus: "Declarative BrightScript UI construction without XML. Build entire UIs from BrightScript code."
+  purpose: "Provides declarative way to build Roku SceneGraph UIs entirely from BrightScript code—without XML."
+architecture:
+  diagram: "images/Rotor_Framework_ViewBuilder.jpeg"
+  description: "ViewBuilder system consists of three main layers: View Builder Engine, Virtual Node Tree, and Plugins."
+core:
+  layers:
+    ViewBuilderEngine:
+      description: "Core Engine responsible for complete lifecycle management of widgets and ViewModels"
+      responsibilities:
+        - "Create widgets: Instantiate and configure new UI components"
+        - "Remove widgets: Clean up and destroy components"
+        - "Update widgets: Modify existing component properties"
+      identifiers: "Hierarchical Identifier (HID) system tracks widget tree structure. All widgets registered with unique identifier."
+    VirtualNodeTree:
+      description: "Abstraction layer representing entire UI hierarchy. Maintains hierarchy of widgets and ViewModels."
+      capabilities:
+        - "Efficient lookup and navigation through widget tree"
+        - "Parent-child relationship management (automatic)"
+        - "Single source of truth for tracking changes and updates"
+        - "Each ViewModel extends Widget and can contain multiple child widgets"
+      benefit: "Allows framework to efficiently track changes and update only necessary SceneGraph nodes."
+    Plugins:
+      description: "Extend widget functionality. Invoked on-demand based on configuration."
+      list:
+        - "Observer Plugin: Field observation and change callbacks"
+        - "Dispatcher Plugin: State management integration"
+        - "Fields Plugin: Dynamic field expressions and interpolation"
+        - "Font Style Plugin: Typography and font configuration"
+        - "Focus Plugin: Spatial navigation and focus management"
+      lifecycleHooks:
+        - "beforeMount: Called before widget mounts"
+        - "beforeUpdate: Called before widget updates"
+        - "beforeDestroy: Called before widget destroys"
+      commonPattern: "All plugins follow same lifecycle hooks and can extend or decorate widgets with additional capabilities."
+coreConcepts:
+  Widget:
+    description: "Smallest unit in UI tree. Represents a single SceneGraph node."
+    traits:
+      - "Configured through declarative object properties"
+      - "Can have child widgets"
+      - "Supports all plugin extensions"
+      - "Automatically receives framework methods for navigation and state management"
+    link: "docs/view-builder-widget-reference.md"
+  ViewModel:
+    description: "Extends Widget to group multiple widgets with shared state and behavior."
+    traits:
+      - "Shared props: Read-only configuration accessible to all child widgets"
+      - "Shared viewModelState: Mutable state accessible to all child widgets"
+      - "template() method: Returns the widget tree configuration"
+      - "Lifecycle hooks: onCreateView, onTemplateCreated, onUpdateView, onDestroyView"
+    stateSharing: "All widgets within a ViewModel can access the same props and viewModelState references, enabling coordinated UI updates without prop drilling."
+    link: "docs/view-builder-viewmodel-reference.md"
+howItWorks:
+  sequence:
+    - step: "Widget Registration"
+      description: "Widgets are created and added to the Virtual Node Tree with unique HIDs"
+    - step: "Plugin Decoration"
+      description: "Based on configuration, plugins extend widgets with additional functionality"
+    - step: "Hierarchy Building"
+      description: "Parent-child relationships are established in the virtual tree"
+    - step: "SceneGraph Rendering"
+      description: "Virtual widgets are materialized as actual SceneGraph nodes"
+    - step: "Lifecycle Management"
+      description: "Framework manages mount, update, and destroy operations automatically"
+  virtualTreeRole: "Virtual Node Tree acts as single source of truth, allowing framework to efficiently track changes and update only necessary SceneGraph nodes."
+keyBenefits:
+  - "No XML Required: Build entire UIs in BrightScript with full IDE support"
+  - "Declarative API: Describe what you want, not how to build it"
+  - "Automatic Lifecycle: Framework handles mounting, updating, and cleanup"
+  - "Plugin Architecture: Extend functionality without modifying core code"
+  - "Virtual Tree Abstraction: Efficient updates and lookups"
+  - "Shared State: ViewModels provide scoped state sharing without prop drilling"
+pipeline:
+  - "Register widget with HID in Virtual Node Tree"
+  - "Decorate widget via configured plugins"
+  - "Build hierarchy links (parent-child relationships)"
+  - "Materialize SceneGraph nodes from virtual tree"
+  - "Manage mount/update/destroy automatically"
+rules:
+  - "Use ViewBuilder templates for declarative UI construction."
+  - "Leverage plugins to extend widget functionality."
+  - "Use ViewModels for grouping widgets with shared state."
+  - "Virtual Node Tree provides single source of truth for UI hierarchy."
+nextSteps:
+  - "Widget Reference: Complete Widget properties, methods, and usage patterns"
+  - "ViewModel Reference: Complete ViewModel structure, lifecycle, and state management"
+  - "Plugin Documentation: Fields, FontStyle, Observer, Focus plugins"
+```

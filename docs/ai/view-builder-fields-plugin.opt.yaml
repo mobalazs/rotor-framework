@@ -1,0 +1,182 @@
+```yaml
+ctx: ViewBuilder Fields Plugin
+type: field management / dynamic values
+scope:
+  nodes: SceneGraph widgets with fields configuration
+  usage: "Declarative field management for SceneGraph nodes. Set and update node properties through fields config, supports static values, function expressions, dynamic values with @ operator and string interpolation."
+
+core:
+  valueTypes:
+    static: "Direct assignment to node field. Example: text: 'Hello World'"
+    functionExpression: "Dynamic expression computed from state. Example: function() as string"
+    dynamicValue: "String with @ operator, interpolation, or both. Example: @currentTitle, `${m.props.count} items`"
+  operators:
+    atOperator: "@ - reference viewModelState property. Example: @userName"
+    stringInterpolation: "`${expression}` - embed expressions in strings. Example: `Score: ${m.props.score}`"
+    combined: "Mix @ and interpolation. Example: `Hello @userName, you have ${m.props.unreadCount} messages`"
+
+valueTypes:
+  staticValue: |
+    fields: {
+      text: "Welcome"
+      color: "#FFFFFF"
+      width: 300
+      height: 60
+    }
+  functionExpression: |
+    fields: {
+      text: function() as string typecast m as Rotor.Widget
+        if m.viewModelState.isLoading -> return "Loading..."
+        else if m.viewModelState.hasError -> return "Error occurred"
+        else -> return "Ready"
+      end function
+      color: function() as string
+        return m.viewModelState.hasError ? "#FF0000" : "#00FF00"
+      end function
+    }
+    Access to: m.viewModelState, m.props, m.* (all widget instance properties/methods)
+  atOperator: |
+    m.viewModelState.userName = "John Doe"
+    m.viewModelState.score = 1250
+    fields: {
+      text: "@userName"  (references viewModelState.userName)
+      visible: "@isOnline"  (references viewModelState.isOnline)
+    }
+  stringInterpolation: |
+    fields: {
+      text: `@l10n.menu.${m.props.pageKey}`  (dynamic property access)
+      description: `Score: ${m.props.score} points`  (combining props)
+      status: `@userName - Level @currentLevel`  (multiple variable references)
+    }
+
+typecast:
+  feature: "BrighterScript V1 feature - provides type information to language server/IDE"
+  optional: "Entirely optional, no runtime effect - only improves development experience"
+  types: "Rotor.Widget, Rotor.ViewModel, or any class that extends them"
+  benefits:
+    - "IDE Autocomplete: IntelliSense for widget methods/properties"
+    - "Type Safety: Catches type errors during development before runtime"
+    - "Documentation: Makes code intent clearer"
+  usage: "function() as string typecast m as Rotor.Widget"
+  note: "Without typecast, code works identically at runtime. Use only for IDE support or team type safety."
+
+lifecycle:
+  beforeMount: "Parse and apply initial field values"
+  beforeUpdate: "Extend existing fields with new values and reapply"
+  beforeDestroy: "Clear field references to prevent memory leaks"
+
+pipeline:
+  1: "Field Collection - plugin processes all fields from widget configuration"
+  2: "Value Resolution - determines if value is static, function expression, or @ operator"
+  3: "Expression Execution - function expressions executed in widget scope with access to m"
+  4: "Variable Interpolation - @ operator patterns resolved from viewModelState"
+  5: "String Interpolation - interpolated strings processed with variable substitution"
+  6: "Field Application - final values applied to SceneGraph node"
+  7: "Update Handling - fields re-evaluated when widget updates occur"
+
+patterns:
+  buttonWithFocusState: |
+    fields: {
+      color: function() as string
+        if m.viewModelState.isFocused -> return "#FF5500"  (orange when focused)
+        else if m.props.isSelected -> return "#0055FF"  (blue when selected)
+        else -> return "#CCCCCC"  (gray default)
+      end function
+    }
+    Label text color: function() -> return m.viewModelState.isFocused ? "#FFFFFF" : "#000000"
+  listItemDynamicContent: |
+    fields: {
+      title: `@l10n.items.${m.props.itemKey}.title`  (dynamic i18n lookup)
+      subtitle: `${m.props.itemData.count} items available`
+      visible: function() -> return m.props.itemData.stock > 0 end function
+    }
+  conditionalVisibility: |
+    fields: {
+      visible: function() as boolean
+        return m.viewModelState.userRole = "admin" or m.viewModelState.isOwner
+      end function
+    }
+  dynamicColor: |
+    fields: {
+      color: function() as string
+        if m.viewModelState.status = "success" -> return "#00FF00"
+        else if m.viewModelState.status = "error" -> return "#FF0000"
+        else if m.viewModelState.status = "warning" -> return "#FFAA00"
+        else -> return "#CCCCCC"
+      end function
+    }
+  i18nInterpolation: |
+    fields: {
+      text: `@l10n.welcome.${m.props.userType}.message`  (dynamic i18n path)
+      subtitle: `@l10n.menu.${m.props.currentPage}`  (page-specific i18n)
+    }
+  combinedAtAndInterpolation: |
+    fields: {
+      text: `Hello @userName, you have ${m.props.unreadCount} messages`
+      status: `@currentUser - Level ${m.props.level} - @statusMessage`
+    }
+
+bestPractices:
+  useFunctionExpressionsForComplexLogic: "Keep complex conditionals in function expressions. Easier to read and debug than inline ternary operators."
+  keepFunctionsLightweight: "Function expressions re-execute on updates. Keep them fast and avoid heavy computation."
+  useAtOperatorForSimpleReferences: "Use @ operator for simple viewModelState references. Cleaner than function expressions."
+  combineAtAndInterpolation: "Mix @ and ${} for dynamic paths and composite strings. Example: `@l10n.${m.props.key}`"
+  avoidSideEffects: "Function expressions should not modify state. They should only compute and return values."
+
+pitfalls:
+  functionSideEffects: "Modifying state inside function expressions. Solution: Keep functions pure, only compute and return values."
+  heavyComputationInExpressions: "Expensive operations in function expressions. Solution: Pre-compute in ViewModel, reference via @ operator."
+  missingAtOperatorReferences: "Referencing non-existent viewModelState properties. Solution: Ensure viewModelState properties exist before using @."
+  stringInterpolationSyntax: "Incorrect template string syntax. Solution: Use backticks ` for interpolation, ${} for expressions."
+  typecastConfusion: "Expecting typecast to affect runtime behavior. Solution: Remember typecast is IDE-only, no runtime effect."
+  staleFieldReferences: "Fields not updating when viewModelState changes. Solution: Use function expressions or @ operator for reactive values."
+
+troubleshooting:
+  fieldsNotUpdating:
+    checks:
+      - "Verify viewModelState property exists and is being updated"
+      - "Check @ operator syntax: @propertyName (no quotes, no m.viewModelState prefix)"
+      - "Ensure function expressions access correct scope: m.viewModelState.propertyName"
+      - "Test string interpolation syntax: backticks and ${} correct"
+    debug: |
+      sub debugFields(widget as object)
+        print "Widget ID: " + widget.id
+        print "viewModelState: " + FormatJson(widget.viewModelState)
+        print "props: " + FormatJson(widget.props)
+        print "node fields: " + FormatJson(widget.node.getFields())
+  atOperatorNotWorking:
+    - "Check property exists: m.viewModelState.propertyName set in ViewModel"
+    - "Verify syntax: @propertyName (no quotes, no prefix)"
+    - "Ensure field updates: Widget must re-render or update for @ operator to re-evaluate"
+    - "Test with function expression: Compare @ operator vs function() -> return m.viewModelState.propertyName"
+  interpolationNotEvaluating:
+    - "Check backticks: Must use ` not ' or double quotes"
+    - "Verify ${} syntax: Expressions must be inside ${}"
+    - "Test expression separately: Print ${m.props.value} to verify expression works"
+    - "Check property access: Ensure m.props.propertyName or m.viewModelState.propertyName exists"
+
+scope:
+  functionExpressionAccess:
+    - "m.viewModelState - shared state across ViewModel's widgets"
+    - "m.props - shared props across ViewModel's widgets"
+    - "m.* - all widget instance properties and methods"
+  atOperatorAccess: "viewModelState properties only (automatic prefix)"
+  stringInterpolationAccess: "Any expression: m.props, m.viewModelState, m.*, function calls"
+
+specialOperators:
+  l10n: "@l10n - Access i18n translations. Example: @l10n.menu.home, `@l10n.${m.props.key}`"
+  dynamicPaths: "Use interpolation for dynamic property access. Example: `@l10n.menu.${m.props.currentPage}.title`"
+  ternary: "Supported in function expressions. Example: return m.viewModelState.isActive ? '#00FF00' : '#FF0000'"
+
+performanceConsiderations:
+  - "Function expressions re-execute on every widget update"
+  - "@ operator values re-evaluated when viewModelState changes"
+  - "String interpolation re-computed on updates"
+  - "Pre-compute expensive operations in ViewModel lifecycle methods"
+  - "Cache computed values in viewModelState when possible"
+
+api:
+  fieldApplication: "Fields applied via node.setFields() after all processing"
+  updateTrigger: "Field expressions re-execute when widget.render() called with field updates"
+  scopeBinding: "Function expressions executed with m = widget (bound scope)"
+```

@@ -1,0 +1,280 @@
+```yaml
+ctx: Internationalization (i18n) Support
+type: localization / translation
+scope:
+  service: Rotor Framework I18nService
+  consumers:
+    - ViewModels via i18n template sections
+    - Widget fields using @l10n references
+  features:
+    - "Multi-language support with nested translation structures"
+    - "Automatic ViewModel integration with viewModelState.l10n"
+    - "Variable interpolation with @l10n references"
+    - "Dynamic key path resolution"
+    - "Translation caching for performance"
+    - "RTL language detection (Arabic, Hebrew, Persian, Urdu)"
+core:
+  translationStructure: |
+    BrightScript associative arrays with locale-rooted structure:
+    {
+      "en_US": {
+        "app": { "title": "My Application", "version": "1.0.0" },
+        "navigation": { "home": "Home", "settings": "Settings" },
+        "buttons": { "save": "Save", "cancel": "Cancel" }
+      },
+      "es_ES": {
+        "app": { "title": "Mi Aplicación", "version": "1.0.0" },
+        "navigation": { "home": "Inicio", "settings": "Configuración" },
+        "buttons": { "save": "Guardar", "cancel": "Cancelar" }
+      }
+    }
+  initialization: |
+    sub init()
+      m.framework = new Rotor.Framework()
+      translations = getTranslations()
+      currentLocale = "en_US"
+      m.framework.i18nService.setL10n(translations[currentLocale])
+    end sub
+api:
+  setL10n:
+    syntax: "i18nService.setL10n(translations[locale])"
+    description: "Load translations for active locale. Call during app init."
+  getL10n:
+    syntax: "i18nService.getL10n([keyPath])"
+    description: "Fetch full bundle or nested key paths. Can pass string or array of paths to merge sections."
+  setLocale:
+    syntax: "i18nService.setLocale(locale)"
+    description: "Switch locale. Runtime switching limited - prefer setting at startup."
+  getLocale:
+    syntax: "i18nService.getLocale()"
+    description: "Get current locale string (e.g., 'en_US')."
+  getIsRtl:
+    syntax: "i18nService.getIsRtl()"
+    description: "Return RTL boolean. Auto-detected based on locale (ar, he, fa, ur)."
+  extendL10n:
+    syntax: "i18nService.extendL10n(additionalTranslations)"
+    description: "Extend existing translations with additional sections."
+  ViewModelConfig:
+    path: "Single translation section path (e.g., i18n: { path: 'navigation' }). Scopes @l10n to that section."
+    paths: "Multiple translation section paths merged at root (e.g., i18n: { paths: ['navigation', 'buttons'] })."
+    includeIsRtl: "Include RTL flag in viewModelState (i18n: { includeIsRtl: true })."
+    includeLocale: "Include locale string in viewModelState (i18n: { includeLocale: true })."
+viewModelIntegration:
+  basicConfiguration: |
+    class NavigationMenu extends Rotor.ViewModel
+      override function template() as object
+        return {
+          nodeType: "Group",
+          i18n: { path: "navigation" },
+          children: [{
+            nodeType: "Label",
+            fields: { text: m.viewModelState.l10n.home }
+          }]
+        }
+      end function
+    end class
+  multiplePathsConfiguration: |
+    {
+      nodeType: "Group",
+      i18n: { paths: ["navigation", "buttons"] },
+      children: [{
+        nodeType: "Label",
+        fields: { text: "@l10n.home" } ' From navigation
+      }, {
+        nodeType: "Label",
+        fields: { text: "@l10n.save" } ' From buttons
+      }]
+    }
+  localeAccess: |
+    {
+      nodeType: "Group",
+      i18n: {
+        path: "navigation",
+        includeLocale: true,
+        includeIsRtl: true
+      }
+    }
+    override sub onCreateView()
+      currentLocale = m.viewModelState.locale  ' "en_US"
+      isRTL = m.viewModelState.isRTL          ' false for LTR, true for RTL
+    end sub
+variableInterpolation:
+  scopingRules: |
+    Configuration | @l10n Scope | Example
+    No i18n config | Full translation object | @l10n.app.title
+    path: "app" | Scoped to "app" section | @l10n.title
+    paths: ["app", "buttons"] | Merged sections at root | @l10n.title and @l10n.save
+  staticKeyReferences: |
+    Without path (full key path required):
+    { fields: { text: "@l10n.app.title" } }
+
+    With path (scoped to path):
+    { i18n: { path: "app" }, fields: { text: "@l10n.title" } }
+  dynamicKeyPaths: |
+    class MenuItem extends Rotor.ViewModel
+      override function template() as object
+        return {
+          nodeType: "Label",
+          i18n: { path: "navigation" },
+          fields: { text: `@l10n.${m.props.menuKey}` }
+        }
+      end function
+    end class
+    Usage: { viewModel: ViewModels.MenuItem, props: { menuKey: "home" } }
+  multipleReferences: |
+    Without path: { fields: { text: `@l10n.app.title - @l10n.app.version` } }
+    With path: { i18n: { path: "app" }, fields: { text: `@l10n.title - @l10n.version` } }
+  nestedInterpolation: |
+    {
+      i18n: { path: "messages" },
+      fields: { text: `@l10n.${m.props.messageType}.${m.props.severity}` }
+    }
+directAccess:
+  inViewModels: |
+    class ConfirmDialog extends Rotor.ViewModel
+      override sub onCreateView()
+        ' With path, l10n is scoped
+        titleText = m.viewModelState.l10n.title       ' dialog.title
+        messageText = m.viewModelState.l10n.message   ' dialog.message
+      end sub
+      override function template() as object
+        return {
+          nodeType: "Group",
+          i18n: { path: "dialog" },
+          children: [{
+            nodeType: "Label",
+            fields: {
+              text: function() as string
+                if m.props.isError
+                  return m.viewModelState.l10n.errorTitle
+                else
+                  return m.viewModelState.l10n.title
+                end if
+              end function
+            }
+          }]
+        }
+      end function
+    end class
+  withoutI18nConfig: |
+    Without i18n config, full path required:
+    override sub onCreateView()
+      titleText = m.viewModelState.l10n.dialog.title
+      buttonText = m.viewModelState.l10n.buttons.save
+    end sub
+patterns:
+  menuSystem: |
+    class Menu extends Rotor.ViewModel
+      override function template() as object
+        menuItems = ["home", "settings", "about"]
+        children = []
+        for each itemKey in menuItems
+          children.push({
+            viewModel: ViewModels.MenuItem,
+            props: { itemKey: itemKey }
+          })
+        end for
+        return { nodeType: "Group", i18n: { path: "navigation" }, children: children }
+      end function
+    end class
+  buttonLabels: |
+    {
+      nodeType: "Group",
+      i18n: { path: "buttons" },
+      children: [
+        { viewModel: ViewModels.Button, props: { label: "@l10n.save" } },
+        { viewModel: ViewModels.Button, props: { label: "@l10n.cancel" } }
+      ]
+    }
+  conditionalLocalization: |
+    {
+      i18n: { paths: ["messages", "buttons"] },
+      fields: {
+        text: function() as string
+          if m.props.isLoading
+            return m.viewModelState.l10n.messages.loading
+          else if m.props.hasError
+            return m.viewModelState.l10n.messages.error
+          else
+            return m.viewModelState.l10n.messages.welcome
+          end if
+        end function
+      }
+    }
+rtlSupport:
+  detection: "Framework auto-detects RTL for ar (Arabic), he (Hebrew), fa (Persian), ur (Urdu) locales."
+  usage: |
+    i18nService.setLocale("ar_SA")
+    isRTL = i18nService.getIsRtl()  ' Returns true
+
+    {
+      i18n: { path: "app", includeIsRtl: true }
+    }
+    override sub onCreateView()
+      if m.viewModelState.isRTL
+        ' Apply RTL-specific layout adjustments
+      else
+        ' Apply LTR layout
+      end if
+    end sub
+  note: "RTL detection implemented. Full RTL layout mirroring requires application-level implementation."
+bestPractices:
+  - "Organize translations hierarchically (ui.forms.login vs flat loginUsername)."
+  - "Define translations per locale; keep keys consistent across locales."
+  - "Initialize i18nService with current locale before rendering ViewModels."
+  - "Use ViewModel i18n.path to limit loaded sections for performance."
+  - "Prefer template string interpolation for dynamic keys."
+  - "Use dynamic keys for reusable components (@l10n.status.${m.props.statusType})."
+  - "For RTL locales, request includeIsRtl and adjust layouts manually."
+rules:
+  - "Define translations per locale; keep keys consistent across locales."
+  - "Initialize i18nService with current locale before rendering ViewModels."
+  - "Use ViewModel i18n.path to limit loaded sections for performance."
+  - "Prefer template string interpolation for dynamic keys: `@l10n.${m.props.key}`"
+  - "For RTL locales, request includeIsRtl and adjust layouts manually."
+  - "Set locale during app init; runtime switching not fully implemented."
+limitations:
+  runtimeLocaleSwitching: "Changing locale at runtime not fully implemented. Set locale during app init."
+  advancedFormatting: "Currency, date/time, number formatting with locale-specific separators not available."
+  pluralForms: "Plural forms handling not implemented."
+pitfalls:
+  - "Runtime locale switching not fully implemented; set locale at startup."
+  - "Advanced formatting (currency/date/number pluralization) unsupported."
+  - "Missing translations lead to undefined keys; debug via getL10n()."
+  - "Variable interpolation fails if key path or template syntax incorrect."
+  - "Ensure @l10n references are in template strings: `@l10n.key` not @l10n.key"
+troubleshooting:
+  missingTranslation: |
+    sub debugTranslation(keyPath as string)
+      i18nService = m.framework.i18nService
+      fullL10n = i18nService.getL10n()
+      print "Translation keys:"
+      for each key in fullL10n
+        print "  " + key
+      end for
+      result = i18nService.getL10n(keyPath)
+      print "Path '" + keyPath + "': " + FormatJson(result)
+    end sub
+  interpolationNotWorking:
+    - "Check @l10n reference is in template string: `@l10n.key`"
+    - "Verify key path exists in translation file"
+    - "Confirm ViewModel has i18n configuration with correct path"
+    - "Check translation section is loaded (inspect viewModelState.l10n)"
+  performanceIssues:
+    - "Load only required translation sections using specific paths"
+    - "Cache translations in ViewModel state"
+    - "Avoid complex nested key resolution in frequently called functions"
+lifecycle:
+  - "Load translation bundles from source"
+  - "Call setL10n(localeBundle) with active locale"
+  - "Configure ViewModel i18n path/paths/include options"
+  - "Bind @l10n field references during render"
+  - "Access translations in ViewModel via viewModelState.l10n"
+  - "Optional RTL/layout adjustments based on isRTL flag"
+pipeline:
+  - "Fetch translations for current locale"
+  - "Set locale bundle via i18nService.setL10n()"
+  - "Merge i18n sections per ViewModel configuration"
+  - "Render fields with @l10n references"
+  - "Optional RTL/layout adjustments"
+```

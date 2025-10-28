@@ -1,0 +1,78 @@
+title: "Rotor Framework - AI Documentation Index"
+description: "Token-optimized documentation summaries for AI assistants"
+version: "1.0"
+base_path: "docs/ai/"
+
+usage:
+  description: "This index helps AI assistants navigate the Rotor Framework documentation efficiently"
+  recommended_approach: |
+    1. Start by reading this index to understand available documentation
+    2. Load relevant YAML files based on the user's question
+    3. Each YAML file is token-optimized with structured summaries
+
+documents:
+  core:
+    - file: "readme.opt.yaml"
+      title: "Framework Overview & Quick Start"
+      topics: ["introduction", "installation", "quickstart", "architecture"]
+      description: "Main introduction to Rotor Framework"
+
+    - file: "cross-thread-mvi.opt.yaml"
+      title: "Cross-Thread MVI Architecture"
+      topics: ["architecture", "threading", "state-management", "reactive"]
+      description: "How Rotor implements reactive MVI across threads"
+
+  view_builder:
+    - file: "view-builder-overview.opt.yaml"
+      title: "ViewBuilder Overview"
+      topics: ["declarative-ui", "view-builder", "kotlin-dsl"]
+      description: "Introduction to declarative UI building with ViewBuilder"
+
+    - file: "view-builder-widget-reference.opt.yaml"
+      title: "Widget Reference"
+      topics: ["widgets", "components", "ui-elements", "api"]
+      description: "Complete reference of available widgets and their properties"
+
+    - file: "view-builder-viewmodel-reference.opt.yaml"
+      title: "ViewModel Reference"
+      topics: ["viewmodel", "state", "actions", "data-binding"]
+      description: "ViewModel API and state management patterns"
+
+  plugins:
+    - file: "view-builder-fields-plugin.opt.yaml"
+      title: "Fields Plugin"
+      topics: ["forms", "input", "validation", "fields"]
+      description: "Form field components and validation"
+
+    - file: "view-builder-focus-plugin.opt.yaml"
+      title: "Focus Plugin"
+      topics: ["focus", "navigation", "accessibility"]
+      description: "Focus management and keyboard navigation"
+
+    - file: "view-builder-fontstyle-plugin.opt.yaml"
+      title: "FontStyle Plugin"
+      topics: ["typography", "styling", "fonts"]
+      description: "Text styling and typography system"
+
+    - file: "view-builder-observer-plugin.opt.yaml"
+      title: "Observer Plugin"
+      topics: ["observers", "lifecycle", "reactive"]
+      description: "Component lifecycle observers and reactive patterns"
+
+  features:
+    - file: "i18n-support.opt.yaml"
+      title: "Internationalization Support"
+      topics: ["i18n", "localization", "translations"]
+      description: "Multi-language support and localization features"
+
+all_files:
+  - "readme.opt.yaml"
+  - "cross-thread-mvi.opt.yaml"
+  - "view-builder-overview.opt.yaml"
+  - "view-builder-widget-reference.opt.yaml"
+  - "view-builder-viewmodel-reference.opt.yaml"
+  - "view-builder-fields-plugin.opt.yaml"
+  - "view-builder-focus-plugin.opt.yaml"
+  - "view-builder-fontstyle-plugin.opt.yaml"
+  - "view-builder-observer-plugin.opt.yaml"
+  - "i18n-support.opt.yaml"

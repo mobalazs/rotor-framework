@@ -12,11 +12,13 @@ namespace tests
         removedObservers as object
 
         protected override function beforeEach()
-            m.deregisteredId = ""
             m.addedObservers = []
             m.removedObservers = []
+            m.deregisteredId = ""
 
             m.frameworkStub = {
+                addedObservers: m.addedObservers,
+                removedObservers: m.removedObservers,
                 addObserver: sub(fieldId, node)
                     m.addedObservers.push({ fieldId: fieldId, node: node })
                 end sub,
@@ -25,8 +27,9 @@ namespace tests
                 end sub,
                 dispatcherProvider: {
                     mockDispatchers: {},
+                    testSuite: m,
                     deregisterDispatcher: sub(id)
-                        m.top.deregisteredId = id
+                        m.testSuite.deregisteredId = id
                     end sub,
                     get: function(id)
                         return m.mockDispatchers[id]

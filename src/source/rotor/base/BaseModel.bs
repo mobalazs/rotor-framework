@@ -1,30 +1,34 @@
-'--------------------------------------------------------------------------
-' @class Model
-' @description Base model class that holds the application state for the Rotor framework.
-'              Models are immutable containers for state data that work with dispatchers
-'              and reducers to manage application state changes.
-'--------------------------------------------------------------------------
-class Model
+namespace Rotor
 
     '--------------------------------------------------------------------------
-    ' @constructor new
-    ' @description Initializes the model with an optional initial state
-    ' @param {Object} state - Optional initial state object. If not provided, state remains uninitialized
+    ' @class Model
+    ' @description Base model class that holds the application state for the Rotor framework.
+    '              Models are immutable containers for state data that work with dispatchers
+    '              and reducers to manage application state changes.
     '--------------------------------------------------------------------------
-    sub new(state = invalid as object)
-        if state <> invalid
-            m.state = state
-        end if
-    end sub
+    class Model
 
-    state as object
+        '--------------------------------------------------------------------------
+        ' @constructor new
+        ' @description Initializes the model with an optional initial state
+        ' @param {Object} state - Optional initial state object. If not provided, state remains uninitialized
+        '--------------------------------------------------------------------------
+        sub new(state = invalid as object)
+            if state <> invalid
+                m.state = state
+            end if
+        end sub
 
-    '--------------------------------------------------------------------------
-    ' @method destroy
-    ' @description Cleans up the model by invalidating the state reference
-    '--------------------------------------------------------------------------
-    sub destroy()
-        m.state = invalid
-    end sub
+        state as object
 
-end class
+        '--------------------------------------------------------------------------
+        ' @method destroy
+        ' @description Cleans up the model by invalidating the state reference
+        '--------------------------------------------------------------------------
+        sub destroy()
+            m.state = invalid
+        end sub
+
+    end class
+
+end namespace

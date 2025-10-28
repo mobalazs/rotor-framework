@@ -1,583 +1,652 @@
-# Rotor Framework Internationalization (i18n) Support - Complete Guide
+# Internationalization (i18n) Support
 
-← [Back to Documentation](../README.md#-learn-more)
+<div style="display:flex; justify-content:space-between; align-items:center;">
+  <span>← <a href="../README.md#-learn-more">README.md</a></span>
+  <span><a href="./ai/i18n-support.opt.yaml">🌱</a></span>
+</div>
 
 ## Overview
 
-The Rotor Framework provides built-in internationalization (i18n) support through the `I18nService` class. This system enables multi-language applications with automatic locale management, translation loading, and easy text localization throughout the application. The i18n system integrates seamlessly with ViewModels and supports variable interpolation in translations.
+The Rotor Framework provides built-in internationalization (i18n) support through the `I18nService`. The system enables multi-language applications with automatic locale management, translation loading, and variable interpolation.
 
 ## Key Features
 
-- **Multi-Language Support**: Manage multiple locales and translations
-- **Automatic Integration**: ViewModels automatically receive localized content
-- **Variable Interpolation**: Dynamic text with `@l10n` variable references
-- **Caching System**: Efficient translation caching for performance
-- **Template String Support**: Dynamic key paths for flexible translations
-- **Locale Detection**: Automatic locale detection (currently defaults to en_US)
-- **Easy Asset Management**: JavaScript-to-BrightScript translation compilation
-
-## Current Limitations
-
-- **RTL Support**: Right-to-left (RTL) languages are not currently supported
-- **Dynamic Locale Switching**: Runtime locale changes are not fully implemented
-- **Advanced Formatting**: Currency, date, and number formatting features are planned but not yet available
+- Multi-language support with nested translation structures
+- Automatic ViewModel integration
+- Variable interpolation with `@l10n` references
+- Dynamic key path resolution
+- Translation caching for performance
 
 ## Translation Setup
 
-### 1. JavaScript Translation Files
+### Translation File Structure
 
-Define translations in JavaScript for easy management:
-
-```javascript
-// File: assetsJs/translation.js
-module.exports = function () {
-    let appTitle = 'Rotor Framework POC';
-    
-    let en_US = {
-        appTitle: appTitle,
-        helloWorld: 'Hello World!',
-        menuItems: {
-            home: {
-                text: 'Home'
-            },
-            movies: {
-                text: 'Movies'
-            },
-            series: {
-                text: 'Series'
-            },
-            settings: {
-                text: 'Settings'
-            },
-            exitApp: {
-                text: 'Exit POC'
-            }
-        },
-        loadingScreen: {
-            almostDone: "Almost done...",
-            loading: "LOADING"
-        },
-        settings: {
-            languagePicker: {
-                headlineText: 'Languages:'
-            }
-        },
-        dialog: {
-            cancelButton: 'Cancel',
-            okButton: 'OK',
-            exitAppTitle: 'Exit App',
-            confirmExitAppMessage: 'Are you sure you want to exit POC App?',
-            exitAppButton: 'Exit'
-        },
-        promoButtonTexts: {
-            limitedTimeOffer: 'Limited-Time Offers!',
-            learnMore: 'Learn more'
-        }
-    };
-    
-    // Add more languages as needed
-    let es_ES = {
-        appTitle: appTitle,
-        helloWorld: '�Hola Mundo!',
-        menuItems: {
-            home: { text: 'Inicio' },
-            movies: { text: 'Pel�culas' },
-            series: { text: 'Series' },
-            settings: { text: 'Configuraci�n' },
-            exitApp: { text: 'Salir POC' }
-        }
-        // ... more translations
-    };
-    
-    return {
-        en_US: en_US,
-        es_ES: es_ES
-    };
-};
-```
-
-### 2. Compiled BrightScript Translations
-
-The JavaScript translations are automatically compiled to BrightScript:
+Define translations in BrightScript associative arrays:
 
 ```brightscript
-// File: https://github.com/mobalazs/poc-rotor-framework/blob/main/src/assets/generated/aaTranslation.brs (auto-generated)
-function get_aaTranslation() as Object
+function getTranslations() as object
     return {
         "en_US": {
-            "appTitle": "Rotor Framework POC",
-            "helloWorld": "Hello World!",
-            "menuItems": {
-                "home": {
-                    "text": "Home"
-                },
-                "movies": {
-                    "text": "Movies"
-                }
-                // ... etc
+            "app": {
+                "title": "My Application",
+                "version": "1.0.0"
+            },
+            "navigation": {
+                "home": "Home",
+                "settings": "Settings",
+                "about": "About"
+            },
+            "buttons": {
+                "save": "Save",
+                "cancel": "Cancel",
+                "delete": "Delete"
+            },
+            "messages": {
+                "welcome": "Welcome!",
+                "loading": "Loading...",
+                "error": "An error occurred"
+            }
+        },
+        "es_ES": {
+            "app": {
+                "title": "Mi Aplicación",
+                "version": "1.0.0"
+            },
+            "navigation": {
+                "home": "Inicio",
+                "settings": "Configuración",
+                "about": "Acerca de"
+            },
+            "buttons": {
+                "save": "Guardar",
+                "cancel": "Cancelar",
+                "delete": "Eliminar"
+            },
+            "messages": {
+                "welcome": "¡Bienvenido!",
+                "loading": "Cargando...",
+                "error": "Ocurrió un error"
             }
         }
     }
 end function
 ```
 
-## ViewModel i18n Integration
+### Initializing Translations
 
-### 1. Basic i18n Configuration
-
-ViewModels automatically receive i18n support through configuration:
+Initialize translations during application startup:
 
 ```brightscript
-// Basic ViewModel with i18n
-{
-    id: "localizedWidget",
-    viewModel: ViewModels.LocalizedWidget,
-    i18n: {
-        path: "menuItems"  // Load menuItems section
-    }
-}
+sub init()
+    m.framework = new Rotor.Framework()
+
+    ' Load translations
+    translations = getTranslations()
+    currentLocale = "en_US"
+
+    ' Set translations for current locale
+    m.framework.i18nService.setL10n(translations[currentLocale])
+end sub
 ```
 
-### 2. Advanced i18n Configuration
+## ViewModel Integration
+
+### Basic Configuration
+
+Configure i18n in ViewModel template to load specific translation sections:
 
 ```brightscript
-// Advanced i18n configuration
-{
-    id: "advancedLocalizedWidget", 
-    viewModel: ViewModels.AdvancedWidget,
-    i18n: {
-        paths: ["menuItems", "dialog", "settings"],  // Multiple sections
-        includeIsRtl: true,     // Include RTL flag (currently always false)
-        includeLocale: true     // Include current locale string
-    }
-}
-```
+class NavigationMenu extends Rotor.ViewModel
 
-### 3. Accessing i18n Data in ViewModels
-
-```brightscript
-// File: https://github.com/mobalazs/poc-rotor-framework/blob/main/src/components/app/renderThread/viewModels/myLocalizedWidget.bs
-namespace ViewModels
-    class MyLocalizedWidget extends ViewModel
-        
-        override sub onCreateView()
-            ' Access localization data
-            appTitle = m.viewModelState.l10n.appTitle
-            homeText = m.viewModelState.l10n.menuItems.home.text
-            
-            ' Access RTL and locale (if enabled)
-            if m.viewModelState.isRTL <> invalid
-                isRightToLeft = m.viewModelState.isRTL  ' Currently always false
-            end if
-            
-            if m.viewModelState.locale <> invalid
-                currentLocale = m.viewModelState.locale  ' e.g., "en_US"
-            end if
-        end sub
-        
-        override function template() as object
-            return {
-                nodeType: "Group",
-                children: [
-                    {
-                        id: "titleLabel",
-                        nodeType: "Label",
-                        fields: {
-                            text: m.viewModelState.l10n.appTitle,
-                            color: "#FFFFFF"
-                        }
+    override function template() as object
+        return {
+            nodeType: "Group",
+            i18n: {
+                path: "navigation"
+            },
+            children: [
+                {
+                    id: "homeLabel",
+                    nodeType: "Label",
+                    fields: {
+                        text: m.viewModelState.l10n.home
                     }
-                ]
+                },
+                {
+                    id: "settingsLabel",
+                    nodeType: "Label",
+                    fields: {
+                        text: m.viewModelState.l10n.settings
+                    }
+                }
+            ]
+        }
+    end function
+end class
+```
+
+### Advanced Configuration
+
+Load multiple translation sections (merged into single l10n object):
+
+```brightscript
+{
+    nodeType: "Group",
+    i18n: {
+        paths: ["navigation", "buttons"]
+    },
+    children: [
+        {
+            nodeType: "Label",
+            fields: {
+                ' Access merged sections at root level
+                text: "@l10n.home"  ' From navigation
             }
-        end function
-    end class
-end namespace
+        },
+        {
+            nodeType: "Label",
+            fields: {
+                text: "@l10n.save"  ' From buttons
+            }
+        }
+    ]
+}
+```
+
+**Note**: With `paths` (plural), all sections are merged at the root level of `@l10n`. Ensure keys don't conflict across sections.
+
+Access locale information:
+
+```brightscript
+{
+    nodeType: "Group",
+    i18n: {
+        path: "navigation",
+        includeLocale: true,
+        includeIsRtl: true
+    }
+}
+```
+
+Access in ViewModel:
+
+```brightscript
+override sub onCreateView()
+    currentLocale = m.viewModelState.locale  ' "en_US"
+    isRTL = m.viewModelState.isRTL          ' false for LTR languages, true for RTL
+end sub
 ```
 
 ## Variable Interpolation
 
-### 1. Using @l10n References
+The `@l10n` scope depends on whether an `i18n` configuration is specified:
 
-The most powerful feature is using `@l10n` variable references in field values:
+| Configuration | @l10n Scope | Example |
+|---------------|-------------|---------|
+| No `i18n` config | Full translation object | `@l10n.app.title` |
+| `path: "app"` | Scoped to "app" section | `@l10n.title` |
+| `paths: ["app", "buttons"]` | Merged sections at root | `@l10n.title` and `@l10n.save` |
 
-```brightscript
-// File: https://github.com/mobalazs/poc-rotor-framework/blob/main/src/components/app/renderThread/viewModels/layout/pageMenu/pageMenuItem.bs
-{
-    id: "menuItemLabel",
-    nodeType: "Label",
-    fontStyle: UI.components.pageMenu.fontStyle_aa,
-    fields: {
-        // Direct reference to localized text
-        text: `@l10n.menuItems.${m.props.optionKey}.text`,
-        color: function() as string
-            if m.viewModelState.isFocused
-                return UI.components.pageMenu.textColor.focused
-            else
-                return UI.components.pageMenu.textColor.default
-            end if
-        end function
-    }
-}
-```
+### Static Key References
 
-### 2. Dynamic Key Path Resolution
+Use `@l10n` to reference translation keys in field values.
+
+**Without i18n path** (full key path required):
 
 ```brightscript
-// Dynamic key paths with props
-{
-    nodeType: "Label", 
-    fields: {
-        text: `@l10n.menuItems.${m.props.pageKey}.text`  // Uses props.pageKey
-    }
-}
-
-// Examples of resolved paths:
-// If props.pageKey = "home" � resolves to l10n.menuItems.home.text
-// If props.pageKey = "movies" � resolves to l10n.menuItems.movies.text
-```
-
-### 3. Complex Variable Interpolation
-
-```brightscript
-// Multiple variable references in one string
 {
     nodeType: "Label",
     fields: {
-        text: `@l10n.dialog.${m.props.dialogType}Title - @l10n.appTitle`
-    }
-}
-
-// Conditional localization
-{
-    nodeType: "Label", 
-    fields: {
-        text: function() as string
-            if m.props.showFullTitle
-                return m.viewModelState.l10n.dialog.exitAppTitle
-            else
-                return m.viewModelState.l10n.dialog.okButton
-            end if
-        end function
+        text: "@l10n.app.title"  ' Full path: app.title
     }
 }
 ```
 
-## Common Usage Patterns
-
-### 1. Menu System Localization
+**With i18n path** (scoped to path):
 
 ```brightscript
-// File: https://github.com/mobalazs/poc-rotor-framework/blob/main/src/components/app/renderThread/viewModels/layout/pageMenu/pageMenu.bs
-namespace ViewModels
-    class PageMenu extends ViewModel
-        
-        override function template() as object
-            return {
-                nodeType: "Group",
-                i18n: {
-                    path: "menuItems"  // Load menu translations
-                },
-                children: [
-                    {
-                        id: "homeMenuItem",
-                        viewModel: ViewModels.PageMenuItem,
-                        props: {
-                            optionKey: "home"  // Used in @l10n reference
-                        }
-                    },
-                    {
-                        id: "moviesMenuItem", 
-                        viewModel: ViewModels.PageMenuItem,
-                        props: {
-                            optionKey: "movies"
-                        }
-                    }
-                ]
-            }
-        end function
-    end class
-end namespace
-```
-
-### 2. Dialog Localization
-
-```brightscript
-// Localized dialog system
 {
-    id: "exitDialog",
-    viewModel: ViewModels.Dialog,
+    nodeType: "Label",
     i18n: {
-        path: "dialog"
+        path: "app"
     },
+    fields: {
+        text: "@l10n.title"  ' Scoped: only "title" (within "app")
+    }
+}
+```
+
+### Dynamic Key Paths
+
+Build dynamic key paths using template strings and props:
+
+```brightscript
+class MenuItem extends Rotor.ViewModel
+
+    override function template() as object
+        return {
+            nodeType: "Label",
+            i18n: {
+                path: "navigation"  ' Scopes @l10n to "navigation"
+            },
+            fields: {
+                ' Dynamic key based on props (within "navigation" scope)
+                text: `@l10n.${m.props.menuKey}`
+            }
+        }
+    end function
+end class
+
+' Usage:
+{
+    viewModel: ViewModels.MenuItem,
     props: {
-        dialogType: "exitApp"
-    },
-    children: [
-        {
-            id: "dialogTitle",
-            nodeType: "Label",
-            fields: {
-                text: "@l10n.exitAppTitle",
-                fontStyle: UI.fontStyles.H2_aa
-            }
-        },
-        {
-            id: "dialogMessage",
-            nodeType: "Label", 
-            fields: {
-                text: "@l10n.confirmExitAppMessage"
-            }
-        },
-        {
-            id: "cancelButton",
-            viewModel: ViewModels.Button,
-            props: {
-                text: "@l10n.cancelButton"
-            }
-        },
-        {
-            id: "exitButton",
-            viewModel: ViewModels.Button,
-            props: {
-                text: "@l10n.exitAppButton"
-            }
-        }
-    ]
+        menuKey: "home"  ' Resolves to navigation.home
+    }
 }
 ```
 
-### 3. Loading Screen Localization
+### Multiple References
+
+Combine multiple translation references:
+
+**Without path** (full paths):
 
 ```brightscript
-// Loading screen with dynamic text
 {
-    id: "loadingScreen",
-    viewModel: ViewModels.LoadingScreen,
-    i18n: {
-        path: "loadingScreen"
-    },
-    children: [
-        {
-            id: "loadingLabel",
-            nodeType: "Label",
-            fields: {
-                text: function() as string
-                    if m.props.isAlmostDone
-                        return m.viewModelState.l10n.almostDone
-                    else
-                        return m.viewModelState.l10n.loading
-                    end if
-                end function
-            }
-        }
-    ]
+    nodeType: "Label",
+    fields: {
+        text: `@l10n.app.title - @l10n.app.version`
+    }
 }
 ```
 
-## I18n Service API
+**With path** (scoped references):
+
+```brightscript
+{
+    nodeType: "Label",
+    i18n: {
+        path: "app"
+    },
+    fields: {
+        text: `@l10n.title - @l10n.version`  ' Both within "app" scope
+    }
+}
+```
+
+### Nested Interpolation
+
+Access nested translation structures:
+
+```brightscript
+{
+    nodeType: "Label",
+    i18n: {
+        path: "messages"
+    },
+    fields: {
+        text: `@l10n.${m.props.messageType}.${m.props.severity}`
+    }
+}
+
+' Translation structure:
+' messages: {
+'     user: {
+'         info: "User information",
+'         warning: "User warning"
+'     },
+'     system: {
+'         info: "System information",
+'         error: "System error"
+'     }
+' }
+```
+
+## Direct Access in Code
+
+### Accessing Translations in ViewModels
+
+Access translations directly in ViewModel logic. The `viewModelState.l10n` follows the same scoping rules as `@l10n`:
+
+```brightscript
+class ConfirmDialog extends Rotor.ViewModel
+
+    override sub onCreateView()
+        ' With i18n path: "dialog", l10n is scoped to dialog section
+        titleText = m.viewModelState.l10n.title       ' dialog.title
+        messageText = m.viewModelState.l10n.message   ' dialog.message
+
+        ' Use in logic
+        if m.props.showFullMessage
+            m.displayMessage(titleText + ": " + messageText)
+        end if
+    end sub
+
+    override function template() as object
+        return {
+            nodeType: "Group",
+            i18n: {
+                path: "dialog"  ' Scopes l10n to "dialog"
+            },
+            children: [
+                {
+                    nodeType: "Label",
+                    fields: {
+                        text: function() as string
+                            if m.props.isError
+                                return m.viewModelState.l10n.errorTitle
+                            else
+                                return m.viewModelState.l10n.title
+                            end if
+                        end function
+                    }
+                }
+            ]
+        }
+    end function
+end class
+```
+
+**Without i18n config**, access full path:
+
+```brightscript
+override sub onCreateView()
+    ' No i18n config - full path required
+    titleText = m.viewModelState.l10n.dialog.title
+    buttonText = m.viewModelState.l10n.buttons.save
+end sub
+```
+
+## I18nService API
 
 ### Core Methods
 
 ```brightscript
-// Framework automatically provides I18nService instance
-i18nService = m.getFrameworkInstance().i18nService
+' Get framework i18n service
+i18nService = m.framework.i18nService
 
-// Get current locale
-currentLocale = i18nService.getLocale()  // Returns "en_US"
+' Get current locale
+locale = i18nService.getLocale()  ' Returns "en_US"
 
-// Get RTL status (currently always false)
-isRTL = i18nService.getIsRtl()  // Returns false
+' Get RTL status (auto-detected based on locale)
+isRTL = i18nService.getIsRtl()  ' false for en_US, true for ar_SA
 
-// Get full l10n object
+' Get entire l10n object
 allTranslations = i18nService.getL10n()
 
-// Get specific translation section
-menuTranslations = i18nService.getL10n("menuItems")
+' Get specific section
+navigationTranslations = i18nService.getL10n("navigation")
 
-// Get multiple sections merged
-multipleSection = i18nService.getL10n(["menuItems", "dialog"])
+' Get multiple sections merged
+merged = i18nService.getL10n(["navigation", "buttons"])
 ```
 
-### Service Configuration
+### Setting Translations
 
 ```brightscript
-// Service initialization (handled by framework)
-i18nService = new Rotor.ViewBuilder.I18nService()
-i18nService.init(frameworkInstance)
+' Set translations for locale
+translations = getTranslations()
+i18nService.setL10n(translations["en_US"])
 
-// Set translations (done automatically during app startup)
-translations = get_aaTranslation()
-i18nService.setL10n(translations[currentLocale])
-
-// Extend existing translations
+' Extend existing translations
 additionalTranslations = {
-    newSection: {
-        newKey: "New Value"
+    "newSection": {
+        "key": "value"
     }
 }
 i18nService.extendL10n(additionalTranslations)
 ```
 
-## Asset Compilation Process
+## Common Patterns
 
-### 1. Development Workflow
+### Menu System
 
-```bash
-# 1. Edit translations in JavaScript
-# Edit: assetsJs/translation.js
+```brightscript
+class Menu extends Rotor.ViewModel
 
-# 2. Run precompiler to generate BrightScript
-npm run precompiler
+    override function template() as object
+        menuItems = ["home", "settings", "about"]
 
-# 3. Generated file appears at:
-# https://github.com/mobalazs/poc-rotor-framework/blob/main/src/assets/generated/aaTranslation.brs
-```
+        children = []
+        for each itemKey in menuItems
+            children.push({
+                viewModel: ViewModels.MenuItem,
+                props: {
+                    itemKey: itemKey
+                }
+            })
+        end for
 
-### 2. Build Integration
-
-The translation compilation is automatically integrated into the build process:
-
-```json
-// package.json scripts
-{
-    "precompiler": "node scripts/precompiler.js",
-    "build-dev": "npm run precompiler && bsc --project bsconfig-dev.json",
-    "build-tests": "npm run precompiler && bsc --project bsconfig-tests.json"
-}
-```
-
-## Best Practices
-
-### 1. Translation Key Organization
-
-```javascript
-// Good: Hierarchical organization
-let translations = {
-    ui: {
-        buttons: {
-            save: "Save",
-            cancel: "Cancel"
-        },
-        labels: {
-            username: "Username",
-            password: "Password"
+        return {
+            nodeType: "Group",
+            i18n: {
+                path: "navigation"
+            },
+            children: children
         }
+    end function
+end class
+
+class MenuItem extends Rotor.ViewModel
+
+    override function template() as object
+        return {
+            nodeType: "Label",
+            fields: {
+                text: `@l10n.${m.props.itemKey}`
+            }
+        }
+    end function
+end class
+```
+
+### Button Labels
+
+```brightscript
+class ActionButtons extends Rotor.ViewModel
+
+    override function template() as object
+        return {
+            nodeType: "Group",
+            i18n: {
+                path: "buttons"
+            },
+            children: [
+                {
+                    id: "saveButton",
+                    viewModel: ViewModels.Button,
+                    props: {
+                        label: "@l10n.save"
+                    }
+                },
+                {
+                    id: "cancelButton",
+                    viewModel: ViewModels.Button,
+                    props: {
+                        label: "@l10n.cancel"
+                    }
+                }
+            ]
+        }
+    end function
+end class
+```
+
+### Conditional Localization
+
+```brightscript
+{
+    nodeType: "Label",
+    i18n: {
+        paths: ["messages", "buttons"]
     },
-    messages: {
-        errors: {
-            networkError: "Network connection failed",
-            validationError: "Please check your input"
-        },
-        success: {
-            dataSaved: "Data saved successfully"
-        }
-    }
-};
-
-// Avoid: Flat structure
-let badTranslations = {
-    saveButton: "Save",
-    cancelButton: "Cancel", 
-    usernameLabel: "Username",
-    networkErrorMessage: "Network connection failed"
-};
-```
-
-### 2. Dynamic Key Usage
-
-```brightscript
-// Good: Use props for dynamic keys
-{
-    fields: {
-        text: `@l10n.buttons.${m.props.buttonType}`  // Flexible
-    }
-}
-
-// Good: Consistent naming patterns
-{
-    fields: {
-        text: `@l10n.menuItems.${m.props.optionKey}.text`
-    }
-}
-```
-
-### 3. Fallback Strategies
-
-```brightscript
-// Provide fallbacks for missing translations
-{
     fields: {
         text: function() as string
-            translatedText = m.viewModelState.l10n?.menuItems?[m.props.optionKey]?.text
-            if translatedText <> invalid
-                return translatedText
+            if m.props.isLoading
+                return m.viewModelState.l10n.messages.loading
+            else if m.props.hasError
+                return m.viewModelState.l10n.messages.error
             else
-                return m.props.fallbackText ?? "Missing Translation"
+                return m.viewModelState.l10n.messages.welcome
             end if
         end function
     }
 }
 ```
 
-## Current Limitations and Future Plans
+## Best Practices
 
-### Limitations
-
-1. **RTL Support**: Right-to-left languages are not supported
-   ```brightscript
-   // Currently always returns false
-   isRTL = i18nService.getIsRtl()  // Always false
-   ```
-
-2. **Runtime Locale Switching**: Cannot change locale after app startup
-3. **Advanced Formatting**: No built-in support for:
-   - Currency formatting
-   - Date/time formatting
-   - Number formatting with locale-specific separators
-   - Plural forms handling
-
-### Planned Features
+### Organize Translations Hierarchically
 
 ```brightscript
-// Future API improvements (not yet implemented)
-i18nService.getDecimalSeparator()      // "." or ","
-i18nService.getThousandSeparator()     // "," or "."
-i18nService.getCurrencyCode()          // "USD", "EUR", etc.
-i18nService.getPluralCategory(count)   // "one", "few", "many"
-i18nService.formatCurrency(amount)     // "$1,234.56"
-i18nService.formatDate(date, format)   // Localized date formatting
+' Good: Logical grouping
+{
+    "ui": {
+        "forms": {
+            "login": {
+                "username": "Username",
+                "password": "Password"
+            }
+        },
+        "buttons": {
+            "submit": "Submit",
+            "reset": "Reset"
+        }
+    }
+}
+
+' Avoid: Flat structure
+{
+    "loginUsername": "Username",
+    "loginPassword": "Password",
+    "submitButton": "Submit"
+}
 ```
 
-## Troubleshooting
+### Use Dynamic Keys for Reusability
 
-### Common Issues
-
-#### Translation Not Found
 ```brightscript
-// Debug missing translations
-sub debugTranslation(keyPath as string)
-    i18nService = m.getFrameworkInstance().i18nService
-    fullL10n = i18nService.getL10n()
-    
-    print "Available keys at root:"
-    for each key in fullL10n
-        print "  " + key
-    end for
-    
-    print "Looking for: " + keyPath
-    result = i18nService.getL10n(keyPath)
-    print "Result: " + FormatJson(result)
+' Good: Reusable component
+{
+    viewModel: ViewModels.StatusMessage,
+    props: {
+        statusType: "success"  ' or "error", "warning"
+    },
+    fields: {
+        text: `@l10n.status.${m.props.statusType}`
+    }
+}
+```
+
+## RTL (Right-to-Left) Support
+
+The framework automatically detects RTL languages based on the locale. RTL languages include:
+- Arabic (ar)
+- Hebrew (he)
+- Persian/Farsi (fa)
+- Urdu (ur)
+
+```brightscript
+' Set Arabic locale
+i18nService.setLocal("ar_SA")
+
+' RTL is automatically detected
+isRTL = i18nService.getIsRtl()  ' Returns true
+
+' Set English locale
+i18nService.setLocal("en_US")
+isRTL = i18nService.getIsRtl()  ' Returns false
+```
+
+Access RTL flag in ViewModels:
+
+```brightscript
+{
+    nodeType: "Group",
+    i18n: {
+        path: "app",
+        includeIsRtl: true
+    }
+}
+
+override sub onCreateView()
+    if m.viewModelState.isRTL
+        ' Apply RTL-specific layout adjustments
+    else
+        ' Apply LTR layout
+    end if
 end sub
 ```
 
-#### Variable Interpolation Issues
-- Ensure `@l10n` references are in template strings: `\`@l10n.key\``
-- Check that the key path exists in your translations
-- Verify the ViewModel has i18n configuration
+**Note**: While RTL detection is implemented, full RTL layout mirroring (UI element positioning) requires additional implementation at the application level.
 
-#### Performance Issues
-- Use specific key paths instead of loading entire translation object
-- Cache frequently accessed translations in ViewModel state
+## Limitations
+
+### Runtime Locale Switching
+
+Changing locale at runtime is not fully implemented. Set the locale during application initialization.
+
+### Advanced Formatting
+
+The following features are not yet available:
+- Currency formatting
+- Date/time formatting
+- Number formatting with locale-specific separators
+- Plural forms handling
+
+## Troubleshooting
+
+### Missing Translation
+
+Debug translation paths:
+
+```brightscript
+sub debugTranslation(keyPath as string)
+    i18nService = m.framework.i18nService
+    fullL10n = i18nService.getL10n()
+
+    print "Translation keys:"
+    for each key in fullL10n
+        print "  " + key
+    end for
+
+    result = i18nService.getL10n(keyPath)
+    print "Path '" + keyPath + "': " + FormatJson(result)
+end sub
+```
+
+### Variable Interpolation Not Working
+
+Check:
+- `@l10n` reference is in template string: `` `@l10n.key` ``
+- Key path exists in translation file
+- ViewModel has `i18n` configuration with correct path
+- Translation section is loaded (check `viewModelState.l10n`)
+
+### Performance Issues
+
+- Load only required translation sections using specific paths
+- Cache translations in ViewModel state
 - Avoid complex nested key resolution in frequently called functions
 
-The Rotor Framework's i18n system provides a solid foundation for building multi-language applications. While RTL support and advanced formatting features are planned for future releases, the current system effectively handles most common localization needs with a clean, developer-friendly API.
+
+---
+
+## 📚 Learn More
+
+**NEXT STEP: [Cross-Thread MVI design pattern](./cross-thread-mvi.md)**
+
+**Reference Documentation:**
+- [ViewBuilder Overview](./view-builder-overview.md) - High-level architecture and concepts
+- [Widget Reference](./view-builder-widget-reference.md) - Complete Widget properties, methods, and usage patterns
+- [ViewModel Reference](./view-builder-viewmodel-reference.md) - Complete ViewModel structure, lifecycle, and state management
+
+**Plugin Documentation:**
+- [Fields Plugin](./view-builder-fields-plugin.md) - Field management with expressions and interpolation
+- [FontStyle Plugin](./view-builder-fontstyle-plugin.md) - Typography and font styling
+- [Observer Plugin](./view-builder-observer-plugin.md) - Field observation patterns
+- [Focus Plugin](./view-builder-focus-plugin.md) - Focus management and navigation
+
+**Additional Documentation:**
+- [Cross-Thread MVI design pattern](./cross-thread-mvi.md) - State management across threads

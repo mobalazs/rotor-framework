@@ -1,0 +1,151 @@
+```yaml
+ctx: ViewBuilder FontStyle Plugin
+type: typography / label-styling
+scope:
+  nodeType: Label widgets only
+  usage: "Declarative font management for Label nodes. Apply font styles via fontStyle property, supports static objects, @ operator references, function expressions for conditional typography."
+
+core:
+  valueTypes:
+    staticObject: "{ uri: 'pkg:/fonts/Roboto.ttf', size: 32 } - Direct font definition"
+    atOperator: "@fontStyleVar - Reference viewModelState font object"
+    functionExpression: "function() as object - Dynamic font selection based on state/props"
+  features:
+    - "Automatic font node creation and application during lifecycle"
+    - "Supports typecast m as Rotor.Widget for IDE tooling"
+    - "Reusable typography systems via shared UI.fontStyles"
+    - "Conditional font switching based on state"
+
+props:
+  fontObject:
+    uri: "string - Font file path (pkg:/fonts/...). Must be TTF format."
+    size: "integer - Font size in pixels"
+  contextAccess:
+    viewModelState: "Source for @ operator variables"
+    props: "Conditional font selection based on widget properties"
+
+valueTypes:
+  staticFont: |
+    fontStyle: { uri: "pkg:/fonts/Roboto-Bold.ttf", size: 48 }
+  atOperator: |
+    m.viewModelState.titleFont = { uri: "pkg:/fonts/Roboto-Bold.ttf", size: 48 }
+    fontStyle: "@titleFont"  (references viewModelState.titleFont)
+  functionExpression: |
+    fontStyle: function() as object typecast m as Rotor.Widget
+      if m.viewModelState.isHighlighted
+        return { uri: "pkg:/fonts/Roboto-Bold.ttf", size: 36 }
+      else
+        return { uri: "pkg:/fonts/Roboto-Regular.ttf", size: 32 }
+      end if
+    end function
+
+typecast:
+  feature: "BrighterScript V1 feature for IDE type information"
+  optional: "No runtime effect, only improves IDE experience"
+  usage: "function() as object typecast m as Rotor.Widget"
+  note: "Use for autocomplete and type safety during development"
+
+lifecycle:
+  beforeMount: "Resolve fontStyle value and apply initial font to Label node"
+  beforeUpdate: "Reapply font if fontStyle configuration changes"
+  beforeDestroy: "Clear font node references (automatic cleanup)"
+
+pipeline:
+  1: "Confirm widget is Label (fontStyle ignored on other node types)"
+  2: "Resolve fontStyle value (static object, @ operator, or function)"
+  3: "Evaluate expressions with widget context (m.viewModelState, m.props)"
+  4: "Create or reuse Font node with uri and size"
+  5: "Assign Font node to Label.node.font"
+  6: "Reapply on updates when fontStyle changes"
+
+patterns:
+  typographySystem: |
+    UI.fontStyles = {
+      h1: { uri: "pkg:/fonts/Roboto-Bold.ttf", size: 48 }
+      h2: { uri: "pkg:/fonts/Roboto-Bold.ttf", size: 36 }
+      body: { uri: "pkg:/fonts/Roboto-Regular.ttf", size: 24 }
+      caption: { uri: "pkg:/fonts/Roboto-Light.ttf", size: 18 }
+    }
+    m.viewModelState.headerFont = UI.fontStyles.h1
+    fontStyle: "@headerFont"
+  dynamicStateSelection: |
+    fontStyle: function() as object
+      if m.viewModelState.isSelected
+        return { uri: "pkg:/fonts/Roboto-Bold.ttf", size: 32 }
+      else if m.viewModelState.isDisabled
+        return { uri: "pkg:/fonts/Roboto-Light.ttf", size: 28 }
+      else
+        return { uri: "pkg:/fonts/Roboto-Regular.ttf", size: 30 }
+      end if
+    end function
+  propsBasedFont: |
+    fontStyle: function() as object
+      if m.props.category = "title"
+        return { uri: "pkg:/fonts/Roboto-Bold.ttf", size: 48 }
+      else if m.props.category = "subtitle"
+        return { uri: "pkg:/fonts/Roboto-Medium.ttf", size: 32 }
+      else
+        return { uri: "pkg:/fonts/Roboto-Regular.ttf", size: 24 }
+      end if
+    end function
+  highlightOnFocus: |
+    fontStyle: function() as object
+      if m.viewModelState.isFocused
+        return { uri: "pkg:/fonts/Roboto-Bold.ttf", size: 36 }  (bold when focused)
+      else
+        return { uri: "pkg:/fonts/Roboto-Regular.ttf", size: 32 }
+      end if
+    end function
+
+bestPractices:
+  reuseTypographySystem: "Define centralized UI.fontStyles. Reuse font objects to avoid redundant Font node creation."
+  useFunctionExpressionsForConditional: "Dynamic font switching based on state. Cleaner than manual updates."
+  limitFontVariants: "Limit to essential font set for performance. Loading many fonts increases memory usage."
+  preloadFonts: "Load essential fonts early in app lifecycle to avoid delays."
+
+pitfalls:
+  nonLabelNodeTypes: "fontStyle ignored on non-Label nodes. Solution: Only apply to Label nodeType."
+  missingFontFiles: "Missing font files cause runtime errors. Solution: Verify pkg:/fonts/ structure before deployment."
+  unsupportedFormats: "Non-TTF formats fail to load. Solution: Use TTF format only."
+  unnecessaryFontCreation: "Creating new font objects on every render. Solution: Cache font objects in viewModelState or UI.fontStyles."
+  functionScopeIssues: "Function expressions lacking widget scope. Solution: Add typecast m as Rotor.Widget if needed."
+
+troubleshooting:
+  fontNotApplying:
+    checks:
+      - "Verify widget nodeType is Label"
+      - "Check font file exists at uri path"
+      - "Inspect widget.node.font to see applied font"
+      - "Print fontStyle config: FormatJson(widget.fontStyle)"
+    debug: |
+      sub debugFont(widget as object)
+        if widget.nodeType <> "Label"
+          print "ERROR: fontStyle only works on Label nodes"
+        print "FontStyle config: " + FormatJson(widget.fontStyle)
+        if widget.node.font <> invalid
+          print "Applied font uri: " + widget.node.font.uri
+          print "Applied font size: " + widget.node.font.size.toStr()
+        else
+          print "ERROR: No font applied to node"
+  atOperatorNotWorking:
+    - "Check viewModelState property exists: m.viewModelState.fontVar set in ViewModel"
+    - "Verify syntax: @fontVar (no quotes, no prefix)"
+    - "Ensure font object has uri and size properties"
+    - "Test with function expression: Compare @ vs function() -> return m.viewModelState.fontVar"
+  performanceIssues:
+    - "Profile font loading: Measure font file load times"
+    - "Preload essential fonts: Load in app initialization"
+    - "Cache style objects: Store in UI.fontStyles or viewModelState"
+    - "Limit font variants: Use only necessary font weights/sizes"
+
+fontManagement:
+  supportedFormats: "TTF (TrueType Font) only"
+  fontLocation: "pkg:/fonts/ directory recommended"
+  fontNode: "Font SceneGraph node created automatically by plugin"
+  caching: "Reuse font objects across widgets to avoid duplicate Font nodes"
+
+api:
+  fontApplication: "Font node assigned to Label.node.font"
+  updateTrigger: "Font re-applied when widget.render() called with fontStyle changes"
+  scopeBinding: "Function expressions executed with m = widget (bound scope)"
+```
