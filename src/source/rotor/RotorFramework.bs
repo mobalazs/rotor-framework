@@ -4,7 +4,7 @@
 ' ▐▛▀▚▖▐▌ ▐▌ █ ▐▌ ▐▌▐▛▀▚▖    ▐▛▀▀▘▐▛▀▚▖▐▛▀▜▌▐▌  ▐▌▐▛▀▀▘▐▌ ▐▌▐▌ ▐▌▐▛▀▚▖▐▛▚▖
 ' ▐▌ ▐▌▝▚▄▞▘ █ ▝▚▄▞▘▐▌ ▐▌    ▐▌   ▐▌ ▐▌▐▌ ▐▌▐▌  ▐▌▐▙▄▄▖▐▙█▟▌▝▚▄▞▘▐▌ ▐▌▐▌ ▐▌
 ' Rotor Framework™               © 2025 Balázs Molnár. All rights reserved.
-' Version 0.2.4
+' Version 0.2.5
 '''''''''
 
 ' constants
@@ -89,7 +89,7 @@ namespace Rotor
     class Framework
 
         name = "Rotor Framework"
-        version = "0.2.4"
+        version = "0.2.5"
 
         config = {
             tasks: invalid, ' @array    (optional)
