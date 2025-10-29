@@ -100,6 +100,12 @@ namespace Rotor
                 animatorId: animatorId,
                 scope: scope,
 
+                ' ---------------------------------------------------------------------
+                ' create - Creates a single animation instance
+                '
+                ' @param {object} params - Animation parameters (target, duration, easing, etc.)
+                ' @returns {object} Animation control object with play method
+                '
                 create: function(params)
 
                     ' destroy before create
@@ -145,6 +151,12 @@ namespace Rotor
 
                 end function,
 
+                ' ---------------------------------------------------------------------
+                ' timeline - Creates a timeline for multiple sequential/parallel animations
+                '
+                ' @param {object} params - Timeline parameters
+                ' @returns {object} Timeline control object with add, getAnimation, and play methods
+                '
                 timeline: function(params)
 
                     ' destroy before create

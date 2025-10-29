@@ -82,7 +82,7 @@ namespace Rotor.Utils
     ' min - Returns the minimum of two values
     '
     ' @param {dynamic} a - First value
-    '** @param {dynamic} b - Second value
+    ' @param {dynamic} b - Second value
     ' @returns {dynamic} Minimum value
     '
     function min(a, b)
@@ -97,7 +97,7 @@ namespace Rotor.Utils
     ' max - Returns the maximum of two values
     '
     ' @param {dynamic} a - First value
-    '** @param {dynamic} b - Second value
+    ' @param {dynamic} b - Second value
     ' @returns {dynamic} Maximum value
     '
     function max(a, b)
@@ -112,11 +112,11 @@ namespace Rotor.Utils
     ' rotateSegment - Rotates a line segment around a center point
     '
     ' @param {float} x1 - X coordinate of first point
-    '** @param {float} y1 - Y coordinate of first point
-    '** @param {float} x2 - X coordinate of second point
-    '** @param {float} y2 - Y coordinate of second point
-    '** @param {dynamic} rotation - Rotation angle in radians
-    '** @param {dynamic} center - Center point array [x, y]
+    ' @param {float} y1 - Y coordinate of first point
+    ' @param {float} x2 - X coordinate of second point
+    ' @param {float} y2 - Y coordinate of second point
+    ' @param {dynamic} rotation - Rotation angle in radians
+    ' @param {dynamic} center - Center point array [x, y]
     ' @returns {object} Object with rotated coordinates {x1, y1, x2, y2}
     '
     function rotateSegment(x1 as float, y1 as float, x2 as float, y2 as float, rotation, center)

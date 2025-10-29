@@ -40,9 +40,9 @@ namespace Rotor.Utils
 
     ' ---------------------------------------------------------------------
     ' setCustomFields - Sets custom fields on a SceneGraph node
-    '**
-    '** Dynamically adds fields if they don't exist, then sets their values.
-    '** Uses addField to enable alwaysNotify feature for runtime field creation.
+    '
+    ' Dynamically adds fields if they don't exist, then sets their values.
+    ' Uses addField to enable alwaysNotify feature for runtime field creation.
     '
     ' @param {object} node - SceneGraph node to modify
     ' @param {object} fields - Fields to set (key-value pairs)
@@ -77,9 +77,9 @@ namespace Rotor.Utils
 
     ' ---------------------------------------------------------------------
     ' callbackScoped - Invokes a callback function in a specific scope
-    '**
-    '** Supports both function references and method name strings.
-    '** Automatically handles 0-2 payload parameters.
+    '
+    ' Supports both function references and method name strings.
+    ' Automatically handles 0-2 payload parameters.
     '
     ' @param {dynamic} callback - Function reference or method name string
     ' @param {object} scope - Scope (m) in which to execute the callback
@@ -153,9 +153,9 @@ namespace Rotor.Utils
 
     ' ---------------------------------------------------------------------
     ' convertIntrinsicType - Converts BrightScript intrinsic type to field type string
-    '**
-    '** Converts type strings like "roInt" to "integer", "roAssocArray" to "assocarray", etc.
-    '** Used for dynamic field creation via addField.
+    '
+    ' Converts type strings like "roInt" to "integer", "roAssocArray" to "assocarray", etc.
+    ' Used for dynamic field creation via addField.
     '
     ' @param {string} typeKey - Intrinsic type string (e.g., "roInt", "roAssocArray")
     ' @returns {string} Converted field type string
