@@ -3,202 +3,201 @@
 
 namespace Rotor
 
-    '******************************************************************
-    '** @class FocusPlugin
-    '** @brief A Brighterscript class for handling focus logic,
-    '** focus groups, and spatial navigation within the Rotor framework.
-    '**
-    '** ═══════════════════════════════════════════════════════════════
-    '** CONCEPTUAL OVERVIEW: BUBBLING vs CAPTURING
-    '** ═══════════════════════════════════════════════════════════════
-    '**
-    '** This plugin implements two complementary focus resolution strategies:
-    '**
-    '** 1. BUBBLING FOCUS (bubblingFocus) - "Upward Search"
-    '**    ┌─────────────────────────────────────────────────────────┐
-    '**    │ WHEN: User interaction (key press) cannot find target   │
-    '**    │ DIRECTION: Child → Parent → Grandparent (upward)        │
-    '**    │ PURPOSE: "I can't navigate further, ask my parents"     │
-    '**    └─────────────────────────────────────────────────────────┘
-    '**
-    '**    Example: User presses UP from a focused item, but there's
-    '**    no item above. The plugin "bubbles up" through ancestor
-    '**    groups to find an alternative navigation path defined at
-    '**    a higher level.
-    '**
-    '** 2. CAPTURING FOCUS (capturingFocus_recursively) - "Downward Rescue"
-    '**    ┌─────────────────────────────────────────────────────────┐
-    '**    │ WHEN: Need to resolve abstract target to concrete item  │
-    '**    │ DIRECTION: Group → Nested Group → FocusItem (downward)  │
-    '**    │ PURPOSE: "Found a group/ID, find the actual item"       │
-    '**    └─────────────────────────────────────────────────────────┘
-    '**
-    '**    This is a "rescue operation" that converts:
-    '**    - Group reference → concrete FocusItem
-    '**    - ID string → actual widget with focus capability
-    '**
-    '**    Example: Bubbling found "menuGroup", but we need a specific
-    '**    focusable item. Capturing recursively descends through the
-    '**    group's defaultFocusId chain until it finds a real FocusItem.
-    '**
-    '**
-    '** DEEP SEARCH ENHANCEMENT:
-    '**    The capturing process now searches deeply in hierarchies.
-    '**    If defaultFocusId doesn't match immediate children, it will:
-    '**    - Search all descendant FocusItems (any depth)
-    '**    - Search all nested Groups (any depth)
-    '**    - Apply fallback logic if a matching Group is found
-    '**
-    '**    This means defaultFocusId: "deepItem" will find "deepItem"
-    '**    even if it's 3+ levels deep in the hierarchy!
-    '**
-    '** TOGETHER THEY WORK AS:
-    '**    User Action → Bubbling (↑ find alternative) → Capturing (↓ resolve target)
-    '**
-    '** ═══════════════════════════════════════════════════════════════
-    '** COMPLETE RULES REFERENCE
-    '** ═══════════════════════════════════════════════════════════════
-    '**
-    '** RULE #1: Widget Types
-    '**   - focus: { group: {...} } → Group (container)
-    '**   - focus: {...} (no group key) → FocusItem (focusable element)
-    '**   - No focus config → Not part of focus system
-    '**
-    '** RULE #2: FocusItem Direction Values
-    '**   - String (Node ID): Static navigation to that element
-    '**   - Function: Dynamic, evaluated at runtime
-    '**   - false: Blocks the direction (nothing happens)
-    '**   - true/undefined/empty string: Spatial navigation attempts
-    '**
-    '** RULE #3: Navigation Priority (Decreasing Order)
-    '**   1. FocusItem static direction (left: "button2")
-    '**   2. Spatial navigation (within group only)
-    '**   3. BubblingFocus (ask parent groups)
-    '**
-    '** RULE #4: Spatial Navigation Scope
-    '**   - ONLY works within a single group
-    '**   - Cannot cross into sibling or parent groups
-    '**   - Searches only possibleFocusItems from group.getGroupMembersHIDs()
-    '**
-    '** RULE #5: Group Direction Activation
-    '**   Group direction triggers ONLY when:
-    '**   - FocusItem has NO static direction
-    '**   - Spatial navigation found NOTHING
-    '**   - BubblingFocus reaches this group
-    '**
-    '** RULE #6: Group Direction Values
-    '**   - String (Node ID): Navigate to that group/item (may EXIT group)
-    '**   - true: BLOCKS (stays on current element)
-    '**   - false/undefined: Continue bubbling to next ancestor
-    '**
-    '** RULE #7: Group Direction Does NOT Block Spatial Navigation
-    '**   Setting group.right = true does NOT prevent spatial navigation
-    '**   INSIDE the group. It only blocks EXITING the group when spatial
-    '**   navigation finds nothing.
-    '**
-    '** RULE #8: Exiting a Group - 3 Methods
-    '**   Method 1: FocusItem explicit direction
-    '**     focusItem.right = "otherGroupItem" → EXITS immediately
-    '**   Method 2: Group direction (via BubblingFocus)
-    '**     group.right = "otherGroup" → EXITS when spatial nav fails
-    '**   Method 3: Ancestor group direction
-    '**     parentGroup.right = "otherGroup" → EXITS when child groups pass
-    '**
-    '** RULE #9: Blocking Group Exit
-    '**   To prevent exit: group.left = true, group.right = true
-    '**   Exception: FocusItem explicit directions still work!
-    '**
-    '** RULE #10: BubblingFocus Flow
-    '**   FocusItem (no direction) → Spatial nav (nothing) → Group.direction?
-    '**     - "nodeId" → CapturingFocus(nodeId) [EXIT]
-    '**     - true → STOP (stay on current)
-    '**     - false/undefined → Continue to parent group
-    '**     - No more ancestors → Stay on current
-    '**
-    '** RULE #11: CapturingFocus Priority
-    '**   1. group.lastFocusedHID (if exists) [AUTO-SAVED]
-    '**   2. group.defaultFocusId [CONFIGURED]
-    '**   3. Deep search (if defaultFocusId not found immediately)
-    '**
-    '** RULE #12: DefaultFocusId Targets
-    '**   - FocusItem node ID → Focus goes directly to it
-    '**   - Group node ID → Capturing continues on that group
-    '**   - Non-existent ID → Deep search attempts
-    '**
-    '** RULE #13: Deep Search Activation
-    '**   Triggers when:
-    '**   - CapturingFocus doesn't find defaultFocusId in immediate children
-    '**   - defaultFocusId is not empty
-    '**   Searches:
-    '**   1. All descendant FocusItems (any depth)
-    '**   2. All nested Groups (any depth, applies their fallback)
-    '**
-    '** RULE #14: Spatial Enter
-    '**   When enableSpatialEnter = true on a group:
-    '**   - Entering the group uses spatial navigation from the direction
-    '**   - Finds geometrically closest item instead of defaultFocusId
-    '**   - Falls back to defaultFocusId if spatial finds nothing
-    '**
-    '** RULE #15: Navigation Decision Tree Summary
-    '**   User presses direction key:
-    '**     1. FocusItem.direction exists? → Use it (may EXIT group)
-    '**     2. Spatial nav finds item? → Navigate (STAYS in group)
-    '**     3. BubblingFocus: Group.direction?
-    '**        - "nodeId" → EXIT to that target
-    '**        - true → BLOCK (stay)
-    '**        - undefined → Continue to ancestor
-    '**     4. No more ancestors? → STAY on current item
-    '**
-    '** COMMON PATTERNS:
-    '**   Sidebar + Content:
-    '**     sidebar: { group: { right: true } }
-    '**     menuItem1: { right: "contentFirst" } [explicit exit]
-    '**
-    '**   Modal Dialog (locked):
-    '**     modal: { group: { left: true, right: true, up: true, down: true } }
-    '**
-    '**   Nested Navigation:
-    '**     innerGroup: { group: { down: undefined } } [no direction]
-    '**     outerGroup: { group: { down: "bottomBar" } } [catches bubbling]
-    '**
-    '** @namespace Rotor
-    '** @extends Rotor.BasePlugin
-    '******************************************************************
+    ' =====================================================================
+    ' FocusPlugin - Handles focus logic, focus groups, and spatial navigation
+    '
+    ' A Brighterscript class for handling focus logic, focus groups,
+    ' and spatial navigation within the Rotor framework.
+    '
+    ' ═══════════════════════════════════════════════════════════════
+    ' CONCEPTUAL OVERVIEW: BUBBLING vs CAPTURING
+    ' ═══════════════════════════════════════════════════════════════
+    '
+    ' This plugin implements two complementary focus resolution strategies:
+    '
+    ' 1. BUBBLING FOCUS (bubblingFocus) - "Upward Search"
+    '    ┌─────────────────────────────────────────────────────────┐
+    '    │ WHEN: User interaction (key press) cannot find target   │
+    '    │ DIRECTION: Child → Parent → Grandparent (upward)        │
+    '    │ PURPOSE: "I can't navigate further, ask my parents"     │
+    '    └─────────────────────────────────────────────────────────┘
+    '
+    '    Example: User presses UP from a focused item, but there's
+    '    no item above. The plugin "bubbles up" through ancestor
+    '    groups to find an alternative navigation path defined at
+    '    a higher level.
+    '
+    ' 2. CAPTURING FOCUS (capturingFocus_recursively) - "Downward Rescue"
+    '    ┌─────────────────────────────────────────────────────────┐
+    '    │ WHEN: Need to resolve abstract target to concrete item  │
+    '    │ DIRECTION: Group → Nested Group → FocusItem (downward)  │
+    '    │ PURPOSE: "Found a group/ID, find the actual item"       │
+    '    └─────────────────────────────────────────────────────────┘
+    '
+    '    This is a "rescue operation" that converts:
+    '    - Group reference → concrete FocusItem
+    '    - ID string → actual widget with focus capability
+    '
+    '    Example: Bubbling found "menuGroup", but we need a specific
+    '    focusable item. Capturing recursively descends through the
+    '    group's defaultFocusId chain until it finds a real FocusItem.
+    '
+    '
+    ' DEEP SEARCH ENHANCEMENT:
+    '    The capturing process now searches deeply in hierarchies.
+    '    If defaultFocusId doesn't match immediate children, it will:
+    '    - Search all descendant FocusItems (any depth)
+    '    - Search all nested Groups (any depth)
+    '    - Apply fallback logic if a matching Group is found
+    '
+    '    This means defaultFocusId: "deepItem" will find "deepItem"
+    '    even if it's 3+ levels deep in the hierarchy!
+    '
+    ' TOGETHER THEY WORK AS:
+    '    User Action → Bubbling (↑ find alternative) → Capturing (↓ resolve target)
+    '
+    ' ═══════════════════════════════════════════════════════════════
+    ' COMPLETE RULES REFERENCE
+    ' ═══════════════════════════════════════════════════════════════
+    '
+    ' RULE #1: Widget Types
+    '   - focus: { group: {...} } → Group (container)
+    '   - focus: {...} (no group key) → FocusItem (focusable element)
+    '   - No focus config → Not part of focus system
+    '
+    ' RULE #2: FocusItem Direction Values
+    '   - String (Node ID): Static navigation to that element
+    '   - Function: Dynamic, evaluated at runtime
+    '   - false: Blocks the direction (nothing happens)
+    '   - true/undefined/empty string: Spatial navigation attempts
+    '
+    ' RULE #3: Navigation Priority (Decreasing Order)
+    '   1. FocusItem static direction (left: "button2")
+    '   2. Spatial navigation (within group only)
+    '   3. BubblingFocus (ask parent groups)
+    '
+    ' RULE #4: Spatial Navigation Scope
+    '   - ONLY works within a single group
+    '   - Cannot cross into sibling or parent groups
+    '   - Searches only possibleFocusItems from group.getGroupMembersHIDs()
+    '
+    ' RULE #5: Group Direction Activation
+    '   Group direction triggers ONLY when:
+    '   - FocusItem has NO static direction
+    '   - Spatial navigation found NOTHING
+    '   - BubblingFocus reaches this group
+    '
+    ' RULE #6: Group Direction Values
+    '   - String (Node ID): Navigate to that group/item (may EXIT group)
+    '   - true: BLOCKS (stays on current element)
+    '   - false/undefined: Continue bubbling to next ancestor
+    '
+    ' RULE #7: Group Direction Does NOT Block Spatial Navigation
+    '   Setting group.right = true does NOT prevent spatial navigation
+    '   INSIDE the group. It only blocks EXITING the group when spatial
+    '   navigation finds nothing.
+    '
+    ' RULE #8: Exiting a Group - 3 Methods
+    '   Method 1: FocusItem explicit direction
+    '     focusItem.right = "otherGroupItem" → EXITS immediately
+    '   Method 2: Group direction (via BubblingFocus)
+    '     group.right = "otherGroup" → EXITS when spatial nav fails
+    '   Method 3: Ancestor group direction
+    '     parentGroup.right = "otherGroup" → EXITS when child groups pass
+    '
+    ' RULE #9: Blocking Group Exit
+    '   To prevent exit: group.left = true, group.right = true
+    '   Exception: FocusItem explicit directions still work!
+    '
+    ' RULE #10: BubblingFocus Flow
+    '   FocusItem (no direction) → Spatial nav (nothing) → Group.direction?
+    '     - "nodeId" → CapturingFocus(nodeId) [EXIT]
+    '     - true → STOP (stay on current)
+    '     - false/undefined → Continue to parent group
+    '     - No more ancestors → Stay on current
+    '
+    ' RULE #11: CapturingFocus Priority
+    '   1. group.lastFocusedHID (if exists) [AUTO-SAVED]
+    '   2. group.defaultFocusId [CONFIGURED]
+    '   3. Deep search (if defaultFocusId not found immediately)
+    '
+    ' RULE #12: DefaultFocusId Targets
+    '   - FocusItem node ID → Focus goes directly to it
+    '   - Group node ID → Capturing continues on that group
+    '   - Non-existent ID → Deep search attempts
+    '
+    ' RULE #13: Deep Search Activation
+    '   Triggers when:
+    '   - CapturingFocus doesn't find defaultFocusId in immediate children
+    '   - defaultFocusId is not empty
+    '   Searches:
+    '   1. All descendant FocusItems (any depth)
+    '   2. All nested Groups (any depth, applies their fallback)
+    '
+    ' RULE #14: Spatial Enter
+    '   When enableSpatialEnter = true on a group:
+    '   - Entering the group uses spatial navigation from the direction
+    '   - Finds geometrically closest item instead of defaultFocusId
+    '   - Falls back to defaultFocusId if spatial finds nothing
+    '
+    ' RULE #15: Navigation Decision Tree Summary
+    '   User presses direction key:
+    '     1. FocusItem.direction exists? → Use it (may EXIT group)
+    '     2. Spatial nav finds item? → Navigate (STAYS in group)
+    '     3. BubblingFocus: Group.direction?
+    '        - "nodeId" → EXIT to that target
+    '        - true → BLOCK (stay)
+    '        - undefined → Continue to ancestor
+    '     4. No more ancestors? → STAY on current item
+    '
+    ' COMMON PATTERNS:
+    '   Sidebar + Content:
+    '     sidebar: { group: { right: true } }
+    '     menuItem1: { right: "contentFirst" } [explicit exit]
+    '
+    '   Modal Dialog (locked):
+    '     modal: { group: { left: true, right: true, up: true, down: true } }
+    '
+    '   Nested Navigation:
+    '     innerGroup: { group: { down: undefined } } [no direction]
+    '     outerGroup: { group: { down: "bottomBar" } } [catches bubbling]
+    '
+    ' =====================================================================
     class FocusPlugin extends Rotor.BasePlugin
 
-        '**
-        '** new - Constructor for the FocusPlugin
-        '**
-        '** @param {string} key - The key to identify this plugin instance (default: "focus")
-        '**
+        ' ---------------------------------------------------------------------
+        ' new - Constructor for the FocusPlugin
+        '
+        ' @param {string} key - The key to identify this plugin instance (default: "focus")
+        '
         sub new(key = "focus" as string)
             super(key)
         end sub
 
         ' Framework lifecycle hooks
         hooks = {
-            '----------------------------------------------------------------------
-            '** beforeMount - Hook executed before a widget is mounted
-            '**
-            '** Sets initial focus config.
-            '**
-            '** @param {object} scope - The plugin scope (this instance)
-            '** @param {object} widget - The widget being mounted
-            '----------------------------------------------------------------------
+            ' ---------------------------------------------------------------------
+            ' beforeMount - Hook executed before a widget is mounted
+            '
+            ' Sets initial focus config.
+            '
+            ' @param {object} scope - The plugin scope (this instance)
+            ' @param {object} widget - The widget being mounted
+            '
             beforeMount: sub(scope as object, widget as object)
                 scope.setFocusConfig(widget, widget[scope.key])
             end sub,
 
-            '----------------------------------------------------------------------
-            '** beforeUpdate - Hook executed before a widget is updated
-            '**
-            '** Removes old config, applies new.
-            '**
-            '** @param {object} scope - The plugin scope (this instance)
-            '** @param {object} widget - The widget being updated
-            '** @param {dynamic} newValue - The new plugin configuration value
-            '** @param {object} oldValue - The previous plugin configuration value (default: {})
-            '----------------------------------------------------------------------
+            ' ---------------------------------------------------------------------
+            ' beforeUpdate - Hook executed before a widget is updated
+            '
+            ' Removes old config, applies new.
+            '
+            ' @param {object} scope - The plugin scope (this instance)
+            ' @param {object} widget - The widget being updated
+            ' @param {dynamic} newValue - The new plugin configuration value
+            ' @param {object} oldValue - The previous plugin configuration value (default: {})
+            '
             beforeUpdate: sub(scope as object, widget as object, newValue, oldValue = {})
                 ' Remove previous config before applying the update
                 scope.removeFocusConfig(widget.HID)
@@ -208,14 +207,14 @@ namespace Rotor
                 scope.setFocusConfig(widget, widget[scope.key])
             end sub,
 
-            '----------------------------------------------------------------------
-            '** beforeDestroy - Hook executed before a widget is destroyed
-            '**
-            '** Removes focus config.
-            '**
-            '** @param {object} scope - The plugin scope (this instance)
-            '** @param {object} widget - The widget being destroyed
-            '----------------------------------------------------------------------
+            ' ---------------------------------------------------------------------
+            ' beforeDestroy - Hook executed before a widget is destroyed
+            '
+            ' Removes focus config.
+            '
+            ' @param {object} scope - The plugin scope (this instance)
+            ' @param {object} widget - The widget being destroyed
+            '
             beforeDestroy: sub(scope as object, widget as object)
                 scope.removeFocusConfig(widget.HID)
             end sub
@@ -224,35 +223,35 @@ namespace Rotor
         ' Widget methods - Injected into widgets managed by this plugin
         widgetMethods = {
 
-            '**
-            '** enableFocusNavigation - Enables or disables focus navigation globally for this plugin
-            '**
-            '** @param {boolean} enableFocusNavigation - True to enable, false to disable (default: true)
-            '**
+            ' ---------------------------------------------------------------------
+            ' enableFocusNavigation - Enables or disables focus navigation globally for this plugin
+            '
+            ' @param {boolean} enableFocusNavigation - True to enable, false to disable (default: true)
+            '
             enableFocusNavigation: sub(enableFocusNavigation = true as boolean)
                 globalScope = GetGlobalAA()
                 pluginKey = m.pluginKey ' Plugin's key in the widget's plugin dictionary.
                 globalScope.rotor_framework_helper.frameworkInstance.plugins[pluginKey].enableFocusNavigation = enableFocusNavigation
             end sub,
 
-            '**
-            '** isFocusNavigationEnabled - Checks if focus navigation is currently enabled globally
-            '**
-            '** @returns {boolean} True if enabled, false otherwise
-            '**
+            ' ---------------------------------------------------------------------
+            ' isFocusNavigationEnabled - Checks if focus navigation is currently enabled globally
+            '
+            ' @returns {boolean} True if enabled, false otherwise
+            '
             isFocusNavigationEnabled: function() as boolean
                 globalScope = GetGlobalAA()
                 pluginKey = m.pluginKey ' Plugin's key in the widget's plugin dictionary.
                 return globalScope.rotor_framework_helper.frameworkInstance.plugins[pluginKey].enableFocusNavigation
             end function,
 
-            '**
-            '** setFocus - Sets focus to this widget or another specified widget
-            '**
-            '** @param {dynamic} isFocused - Boolean to focus/blur current widget, or string ID/HID of widget to focus
-            '** @param {boolean} enableNativeFocus - If true, allows setting native focus on the underlying node
-            '** @returns {boolean} True if focus state was changed successfully, false otherwise
-            '**
+            ' ---------------------------------------------------------------------
+            ' setFocus - Sets focus to this widget or another specified widget
+            '
+            ' @param {dynamic} isFocused - Boolean to focus/blur current widget, or string ID/HID of widget to focus
+            ' @param {boolean} enableNativeFocus - If true, allows setting native focus on the underlying node
+            ' @returns {boolean} True if focus state was changed successfully, false otherwise
+            '
             setFocus: function(command = true as dynamic, enableNativeFocus = false as boolean) as boolean
                 globalScope = GetGlobalAA()
                 pluginKey = m.pluginKey ' Plugin's key in the widget's plugin dictionary.
@@ -268,45 +267,45 @@ namespace Rotor
                 end if
             end function,
 
-            '**
-            '** getFocusedWidget - Retrieves the currently focused widget managed by this plugin
-            '**
-            '** @returns {object} The widget instance that currently holds focus, or invalid
-            '**
+            ' ---------------------------------------------------------------------
+            ' getFocusedWidget - Retrieves the currently focused widget managed by this plugin
+            '
+            ' @returns {object} The widget instance that currently holds focus, or invalid
+            '
             getFocusedWidget: function() as object ' Params isFocused, enableNativeFocus seem unused here
                 globalScope = GetGlobalAA()
                 pluginKey = m.pluginKey ' Plugin's key in the widget's plugin dictionary.
                 return globalScope.rotor_framework_helper.frameworkInstance.plugins[pluginKey].getFocusedWidget()
             end function,
 
-            '**
-            '** proceedLongPress - Manually triggers the navigation action associated with the current long-press key
-            '**
-            '** @returns {object} The result of the executed navigation action (see parseOnKeyEventResult)
-            '**
+            ' ---------------------------------------------------------------------
+            ' proceedLongPress - Manually triggers the navigation action associated with the current long-press key
+            '
+            ' @returns {object} The result of the executed navigation action (see parseOnKeyEventResult)
+            '
             proceedLongPress: function() as object ' Params isFocused, enableNativeFocus seem unused here
                 globalScope = GetGlobalAA()
                 pluginKey = m.pluginKey ' Plugin's key in the widget's plugin dictionary.
                 return globalScope.rotor_framework_helper.frameworkInstance.plugins[pluginKey].proceedLongPress()
             end function,
 
-            '**
-            '** isLongPressActive - Checks if a long press action is currently active
-            '**
-            '** @returns {boolean} True if a long press is active, false otherwise
-            '**
+            ' ---------------------------------------------------------------------
+            ' isLongPressActive - Checks if a long press action is currently active
+            '
+            ' @returns {boolean} True if a long press is active, false otherwise
+            '
             isLongPressActive: function() as boolean ' Params isFocused, enableNativeFocus seem unused here
                 globalScope = GetGlobalAA()
                 pluginKey = m.pluginKey ' Plugin's key in the widget's plugin dictionary.
                 return globalScope.rotor_framework_helper.frameworkInstance.plugins[pluginKey].isLongPress
             end function,
 
-            '**
-            '** triggerKeyPress - Simulate key press
-            '**
-            '** @param {string} key - Pressed key
-            '** @returns {object} The widget instance that currently holds focus, or invalid
-            '**
+            ' ---------------------------------------------------------------------
+            ' triggerKeyPress - Simulate key press
+            '
+            ' @param {string} key - Pressed key
+            ' @returns {object} The widget instance that currently holds focus, or invalid
+            '
             triggerKeyPress: function(key) as object
                 globalScope = GetGlobalAA()
                 pluginKey = m.pluginKey
@@ -336,11 +335,11 @@ namespace Rotor
         distanceCalculator = new Rotor.FocusPluginHelper.ClosestSegmentToPointCalculatorClass()
         longPressTimer = CreateObject("roSGNode", "Timer")
 
-        '**
-        '** init - Initializes the plugin instance
-        '**
-        '** Sets up internal state and helpers.
-        '**
+        ' ---------------------------------------------------------------------
+        ' init - Initializes the plugin instance
+        '
+        ' Sets up internal state and helpers.
+        '
         sub init ()
             m.widgetTree = m.frameworkInstance.builder.widgetTree ' Reference to the main widget tree
             m.longPressTimer.addField("pluginKey", "string", false)
@@ -352,42 +351,42 @@ namespace Rotor
             m.longPressTimer.observeFieldScoped("fire", "Rotor_FocusPluginHelper_longPressObserverCallback", ["pluginKey"])
         end sub
 
-        '**
-        '** storeGlobalFocusHID - Stores the globally focused widget's HID and ID
-        '**
-        '** @param {string} HID - The Hierarchical ID of the focused widget
-        '** @param {string} id - The regular ID of the focused widget
-        '**
+        '
+        ' storeGlobalFocusHID - Stores the globally focused widget's HID and ID
+        '
+        ' @param {string} HID - The Hierarchical ID of the focused widget
+        ' @param {string} id - The regular ID of the focused widget
+        '
         sub storeGlobalFocusHID(HID as string, id as string)
             ' Store focus reference within the plugin
             m.globalFocusHID = HID
             m.globalFocusId = id
         end sub
 
-        '**
-        '** getFocusedWidget - Gets the widget instance that currently holds global focus
-        '**
-        '** @returns {object} The focused widget object, or invalid if none
-        '**
+        '
+        ' getFocusedWidget - Gets the widget instance that currently holds global focus
+        '
+        ' @returns {object} The focused widget object, or invalid if none
+        '
         function getFocusedWidget() as object
             return m.getFocusedItem()?.widget
         end function
 
-        '**
-        '** getFocusedItem - Gets the FocusItem instance corresponding to the globally focused widget
-        '**
-        '** @returns {object} The FocusItem instance, or invalid if none
-        '**
+        '
+        ' getFocusedItem - Gets the FocusItem instance corresponding to the globally focused widget
+        '
+        ' @returns {object} The FocusItem instance, or invalid if none
+        '
         function getFocusedItem() as object
             return m.focusItemStack.get(m.globalFocusHID)
         end function
 
-        '**
-        '** setFocusConfig - Configures focus properties (FocusItem and/or Group) for a widget
-        '**
-        '** @param {object} widget - The widget to configure
-        '** @param {object} pluginConfig - The focus configuration object from the widget's spec
-        '**
+        '
+        ' setFocusConfig - Configures focus properties (FocusItem and/or Group) for a widget
+        '
+        ' @param {object} widget - The widget to configure
+        ' @param {object} pluginConfig - The focus configuration object from the widget's spec
+        '
         sub setFocusConfig(widget as object, pluginConfig as object)
 
             if pluginConfig = invalid then return ' No config provided
@@ -414,13 +413,13 @@ namespace Rotor
             end if
         end sub
 
-        '**
-        '** setupGroup - Creates and registers a new Focus Group based on configuration
-        '**
-        '** @param {string} HID - The Hierarchical ID of the widget acting as the group root
-        '** @param {object} config - The full focus configuration for the widget
-        '** @param {object} widget - The widget instance itself
-        '**
+        '
+        ' setupGroup - Creates and registers a new Focus Group based on configuration
+        '
+        ' @param {string} HID - The Hierarchical ID of the widget acting as the group root
+        ' @param {object} config - The full focus configuration for the widget
+        ' @param {object} widget - The widget instance itself
+        '
         sub setupGroup(HID as string, config as object, widget as object)
             groupConfig = config[Rotor.Const.GROUP_CONFIG_KEY]
             ' Copy essential info to the group-specific config
@@ -434,13 +433,13 @@ namespace Rotor
             m.groupStack.set(config.HID, newGroup) ' Register the new group
         end sub
 
-        '**
-        '** setupFocusItem - Creates and registers a new Focus Item based on configuration
-        '**
-        '** @param {string} HID - The Hierarchical ID of the focusItem widget
-        '** @param {object} config - The full focus configuration for the widget
-        '** @param {object} widget - The widget instance itself
-        '**
+        '
+        ' setupFocusItem - Creates and registers a new Focus Item based on configuration
+        '
+        ' @param {string} HID - The Hierarchical ID of the focusItem widget
+        ' @param {object} config - The full focus configuration for the widget
+        ' @param {object} widget - The widget instance itself
+        '
         sub setupFocusItem(HID as string, config as object, widget as object)
             config.widget = widget ' Ensure widget reference is in the config
 
@@ -449,12 +448,12 @@ namespace Rotor
             m.focusItemStack.set(HID, newFocusItem)
         end sub
 
-        '**
-        '** findAncestorGroups - Finds all ancestor groups for a given widget HID
-        '**
-        '** @param {string} HID - The Hierarchical ID of the widget
-        '** @returns {object} An roArray of ancestor group HIDs, sorted with the immediate parent first (descending HID length)
-        '**
+        '
+        ' findAncestorGroups - Finds all ancestor groups for a given widget HID
+        '
+        ' @param {string} HID - The Hierarchical ID of the widget
+        ' @returns {object} An roArray of ancestor group HIDs, sorted with the immediate parent first (descending HID length)
+        '
         function findAncestorGroups(HID as string) as object
             allGroups = m.groupStack.getAll() ' Get all registered groups
             ancestorGroups = []
@@ -474,11 +473,11 @@ namespace Rotor
             return ancestorGroups
         end function
 
-        '**
-        '** removeFocusConfig - Removes focus configuration (Group and/or FocusItem) for a widget
-        '**
-        '** @param {string} HID - The Hierarchical ID of the widget whose config should be removed
-        '**
+        '
+        ' removeFocusConfig - Removes focus configuration (Group and/or FocusItem) for a widget
+        '
+        ' @param {string} HID - The Hierarchical ID of the widget whose config should be removed
+        '
         sub removeFocusConfig(HID as string)
             ' Remove associated group, if it exists
             if m.groupStack.has(HID)
@@ -490,16 +489,16 @@ namespace Rotor
             end if
         end sub
 
-        '**
-        '** setFocus - Sets or removes focus from a specific widget or group
-        '**
-        '** Handles focus state changes, callbacks, and native focus interaction.
-        '**
-        '** @param {dynamic} ref - The target: HID (string) of a FocusItem or Group, or Node ID (string) of a Group
-        '** @param {boolean} isFocused - True to set focus, false to remove focus (default: true)
-        '** @param {boolean} enableNativeFocus - If true, allows setting native focus on the underlying node (default: false)
-        '** @returns {boolean} True if the focus state was successfully changed, false otherwise
-        '**
+        '
+        ' setFocus - Sets or removes focus from a specific widget or group
+        '
+        ' Handles focus state changes, callbacks, and native focus interaction.
+        '
+        ' @param {dynamic} ref - The target: HID (string) of a FocusItem or Group, or Node ID (string) of a Group
+        ' @param {boolean} isFocused - True to set focus, false to remove focus (default: true)
+        ' @param {boolean} enableNativeFocus - If true, allows setting native focus on the underlying node (default: false)
+        ' @returns {boolean} True if the focus state was successfully changed, false otherwise
+        '
         function setFocus(ref as dynamic, isFocused = true as boolean, enableNativeFocus = false as boolean) as boolean
 
             ' Resolve reference (HID or ID) to a focusItem item.
@@ -614,12 +613,12 @@ namespace Rotor
 
         end function
 
-        '**
-        '** notifyFocusAtAncestorGroups - Applies the correct focus state (in focus chain or not) to a list of group HIDs
-        '**
-        '** @param {string} HID - The HID of the item that ultimately received/lost focus
-        '** @param {object} groupHIDs - An roArray of group HIDs to notify
-        '**
+        '
+        ' notifyFocusAtAncestorGroups - Applies the correct focus state (in focus chain or not) to a list of group HIDs
+        '
+        ' @param {string} HID - The HID of the item that ultimately received/lost focus
+        ' @param {object} groupHIDs - An roArray of group HIDs to notify
+        '
         sub notifyFocusAtAncestorGroups(HID as string, groupHIDs = [] as object)
 
             ' Notify all ancestor groups
@@ -741,13 +740,13 @@ namespace Rotor
             return newHID
         end function
 
-        '**
-        '** deepSearchFocusItemByNodeId - Deep search for a FocusItem or Group by nodeId within a group hierarchy
-        '**
-        '** @param {string} groupHID - The HID of the group to search within
-        '** @param {string} nodeId - The node ID to search for
-        '** @returns {string} The HID of the found FocusItem or Group, or empty string if not found
-        '**
+        '
+        ' deepSearchFocusItemByNodeId - Deep search for a FocusItem or Group by nodeId within a group hierarchy
+        '
+        ' @param {string} groupHID - The HID of the group to search within
+        ' @param {string} nodeId - The node ID to search for
+        ' @returns {string} The HID of the found FocusItem or Group, or empty string if not found
+        '
         function deepSearchFocusItemByNodeId(groupHID as string, nodeId as string) as string
             if nodeId = "" then return ""
 
@@ -1243,11 +1242,11 @@ namespace Rotor
                 return collection
             end function
 
-            '**
-            '** getFallbackNodeId - Returns the nodeId to use for fallback (defaultFocusId or lastFocusedHID)
-            '**
-            '** @returns {string} The nodeId to use for fallback, or empty string if none
-            '**
+            '
+            ' getFallbackNodeId - Returns the nodeId to use for fallback (defaultFocusId or lastFocusedHID)
+            '
+            ' @returns {string} The nodeId to use for fallback, or empty string if none
+            '
             function getFallbackNodeId() as string
                 if m.lastFocusedHID <> ""
                     ' Note: lastFocusedHID is already a HID, not a nodeId, so we need to get the nodeId

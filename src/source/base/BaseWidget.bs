@@ -1,26 +1,22 @@
 namespace Rotor
 
-    '==========================================================================
-    '** Widget (BaseWidget)
-    '**
-    '** Base class for UI components in the Rotor framework.
-    '**
-    '** Widgets are the fundamental building blocks of the UI tree, providing:
-    '**   - Lifecycle management (mount, update, destroy)
-    '**   - Tree navigation methods
-    '**   - State access (viewModelState, props)
-    '**   - Rendering and updates
-    '**   - Plugin integration
-    '**
-    '** IMPORTANT: Many properties and methods are injected/decorated by the
-    '** framework builder and plugins during widget instantiation.
-    '**
-    '** Widget Creation Flow:
-    '**   1. builder.WidgetTreeBase.add() - Registers widget in tree
-    '**   2. builder.processor.createWidget() - Decorates with methods
-    '**
-    '** @namespace Rotor
-    '==========================================================================
+    ' =====================================================================
+    ' Widget (BaseWidget) - Base class for UI components in the Rotor framework
+    '
+    ' Widgets are the fundamental building blocks of the UI tree, providing:
+    '   - Lifecycle management (mount, update, destroy)
+    '   - Tree navigation methods
+    '   - State access (viewModelState, props)
+    '   - Rendering and updates
+    '   - Plugin integration
+    '
+    ' IMPORTANT: Many properties and methods are injected/decorated by the
+    ' framework builder and plugins during widget instantiation.
+    '
+    ' Widget Creation Flow:
+    '   1. builder.WidgetTreeBase.add() - Registers widget in tree
+    '   2. builder.processor.createWidget() - Decorates with methods
+    ' =====================================================================
     class Widget
 
         ' =============================================================

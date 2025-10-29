@@ -2,25 +2,24 @@ import "../base/BasePlugin.bs"
 
 namespace Rotor
 
-    '==========================================================================
-    '** FontStylePlugin
-    '**
-    '** Rotor Framework plugin for handling dynamic font styling on Label nodes.
-    '**
-    '** Key Features:
-    '**   - Applies font styles specifically to Label nodes
-    '**   - Evaluates function-based font style values
-    '**   - Interpolates @-prefixed expressions for dynamic font selection
-    '**   - Automatically updates font styles on widget lifecycle changes
-    '**
-    '** Expression Syntax:
-    '**   @key.path - Resolves from widget.viewModelState
-    '**
-    '** Note: Only affects widgets with nodeType = "Label"
-    '**
-    '** @namespace Rotor
-    '** @extends BasePlugin
-    '==========================================================================
+    ' =====================================================================
+    ' FontStylePlugin - Rotor Framework plugin for font styling on Labels
+    '
+    ' Handles dynamic font styling on Label nodes with function evaluation
+    ' and @-prefixed expression interpolation for dynamic font selection.
+    ' Automatically updates font styles on widget lifecycle changes.
+    '
+    ' Key Features:
+    '   - Applies font styles specifically to Label nodes
+    '   - Evaluates function-based font style values
+    '   - Interpolates @-prefixed expressions for dynamic font selection
+    '   - Automatically updates font styles on widget lifecycle changes
+    '
+    ' Expression Syntax:
+    '   @key.path - Resolves from widget.viewModelState
+    '
+    ' Note: Only affects widgets with nodeType = "Label"
+    ' =====================================================================
     class FontStylePlugin extends Rotor.BasePlugin
 
         ' =============================================================
@@ -38,11 +37,11 @@ namespace Rotor
         ' CONSTRUCTOR
         ' =============================================================
 
-        '----------------------------------------------------------------------
-        '** Constructor - Initializes the FontStylePlugin instance
-        '**
-        '** @param {string} key - Plugin identifier (default: "fontStyle")
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' new - Initializes the FontStylePlugin instance
+        '
+        ' @param {string} key - Plugin identifier (default: "fontStyle")
+        '
         sub new(key = "fontStyle" as string)
             super(key)
         end sub
@@ -52,28 +51,28 @@ namespace Rotor
         ' =============================================================
 
         hooks = {
-            '----------------------------------------------------------------------
-            '** beforeMount - Sets font style when widget is mounted
-            '**
-            '** Evaluates and applies font style after Label widget creation.
-            '**
-            '** @param {object} scope - Plugin instance (m)
-            '** @param {object} widget - Widget being mounted
-            '----------------------------------------------------------------------
+            ' ---------------------------------------------------------------------
+            ' beforeMount - Sets font style when widget is mounted
+            '
+            ' Evaluates and applies font style after Label widget creation.
+            '
+            ' @param {object} scope - Plugin instance (m)
+            ' @param {object} widget - Widget being mounted
+            '
             beforeMount: sub(scope as object, widget as object)
                 scope.setFontAttribute(widget)
             end sub,
 
-            '----------------------------------------------------------------------
-            '** beforeUpdate - Updates font style when widget config changes
-            '**
-            '** Re-evaluates and applies font style when fontStyle property changes.
-            '**
-            '** @param {object} scope - Plugin instance (m)
-            '** @param {object} widget - Widget being updated
-            '** @param {dynamic} newValue - New font style configuration
-            '** @param {dynamic} oldValue - Previous font style configuration
-            '----------------------------------------------------------------------
+            ' ---------------------------------------------------------------------
+            ' beforeUpdate - Updates font style when widget config changes
+            '
+            ' Re-evaluates and applies font style when fontStyle property changes.
+            '
+            ' @param {object} scope - Plugin instance (m)
+            ' @param {object} widget - Widget being updated
+            ' @param {dynamic} newValue - New font style configuration
+            ' @param {dynamic} oldValue - Previous font style configuration
+            '
             beforeUpdate: sub(scope as object, widget as object, newValue, oldValue)
                 widget[scope.key] = newValue ?? ""
                 scope.setFontAttribute(widget)
@@ -84,21 +83,21 @@ namespace Rotor
         ' FONT STYLE PROCESSING
         ' =============================================================
 
-        '**
-        '** setFontAttribute - Evaluates and applies font style to Label node
-        '**
-        '** Processing logic:
-        '**   1. Checks if widget is a Label node (only Labels support font styles)
-        '**   2. Resolves font style value through function evaluation or interpolation
-        '**   3. Applies resolved font style to the node
-        '**
-        '** Font Style Resolution:
-        '**   - Functions are executed in widget scope
-        '**   - @-prefixed strings are interpolated from viewModelState
-        '**   - Direct strings are used as-is
-        '**
-        '** @param {object} widget - Widget instance
-        '**
+        ' ---------------------------------------------------------------------
+        ' setFontAttribute - Evaluates and applies font style to Label node
+        '
+        ' Processing logic:
+        '   1. Checks if widget is a Label node (only Labels support font styles)
+        '   2. Resolves font style value through function evaluation or interpolation
+        '   3. Applies resolved font style to the node
+        '
+        ' Font Style Resolution:
+        '   - Functions are executed in widget scope
+        '   - @-prefixed strings are interpolated from viewModelState
+        '   - Direct strings are used as-is
+        '
+        ' @param {object} widget - Widget instance
+        '
         sub setFontAttribute(widget as object)
             ' Font styles only apply to Label nodes
             if widget.nodeType = "Label"

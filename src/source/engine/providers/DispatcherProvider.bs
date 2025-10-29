@@ -1,36 +1,35 @@
 
 namespace Rotor
 
-    '==========================================================================
-    '** @class DispatcherProvider
-    '** @description Manages a collection of dispatcher instances and provides facade access
-    '**              to dispatchers. Extends BaseStack to store and organize dispatchers by ID.
-    '**              Handles both internal and external dispatcher registration/deregistration.
-    '** @extends Rotor.BaseStack
-    '** @note The class name can be used as a type when declaring variables throughout the framework.
-    '==========================================================================
+    ' =====================================================================
+    ' DispatcherProvider - Manages a collection of dispatcher instances and provides facade access
+    '
+    ' Manages a collection of dispatcher instances and provides facade access
+    ' to dispatchers. Extends BaseStack to store and organize dispatchers by ID.
+    ' Handles both internal and external dispatcher registration/deregistration.
+    ' =====================================================================
     class DispatcherProvider extends Rotor.BaseStack
 
         threadType as string
 
-        '----------------------------------------------------------------------
-        '** @constructor
-        '** @description Initializes the dispatcher provider with thread type
-        '** @param {string} threadType - Type of thread this provider operates on (render/task)
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' new - Initializes the dispatcher provider with thread type
+        '
+        ' @param {string} threadType - Type of thread this provider operates on (render/task)
+        '
         sub new(threadType as string)
             super()
             m.threadType = threadType
         end sub
 
-        '----------------------------------------------------------------------
-        '** @method getFacade
-        '** @description Returns a dispatcher facade for the requested dispatcher ID
-        '** @param {string} dispatcherId - The unique identifier for the dispatcher
-        '** @param {object} listenerScope - Optional scope for the listener (default: invalid)
-        '** @returns {object} Dispatcher facade instance
-        '** @throws {object} Error if dispatcher ID is not registered (debug mode only)
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' getFacade - Returns a dispatcher facade for the requested dispatcher ID
+        '
+        ' @param {string} dispatcherId - The unique identifier for the dispatcher
+        ' @param {object} listenerScope - Optional scope for the listener (default: invalid)
+        ' @returns {object} Dispatcher facade instance
+        ' @throws {object} Error if dispatcher ID is not registered (debug mode only)
+        '
         function getFacade(dispatcherId as string, listenerScope = invalid as object) as object
             listenerId = Rotor.Utils.getUUIDHex(32)
 
@@ -47,24 +46,24 @@ namespace Rotor
             return dispatcherFacadeInstance
         end function
 
-        '----------------------------------------------------------------------
-        '** @method registerDispatcher
-        '** @description Registers a dispatcher instance with the provider
-        '** @param {object} dispatcherInstance - The dispatcher instance to register
-        '** @param {string} id - The unique identifier for the dispatcher
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' registerDispatcher - Registers a dispatcher instance with the provider
+        '
+        ' @param {object} dispatcherInstance - The dispatcher instance to register
+        ' @param {string} id - The unique identifier for the dispatcher
+        '
         override sub registerDispatcher(dispatcherInstance, id as string)
 
             m.set(id, dispatcherInstance)
 
         end sub
 
-        '----------------------------------------------------------------------
-        '** @method registerExternalDispatchers
-        '** @description Registers external dispatchers from another thread
-        '** @param {dynamic} dispatcherIds - Single ID string or array of dispatcher IDs
-        '** @param {object} taskNode - The task node for cross-thread communication
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' registerExternalDispatchers - Registers external dispatchers from another thread
+        '
+        ' @param {dynamic} dispatcherIds - Single ID string or array of dispatcher IDs
+        ' @param {object} taskNode - The task node for cross-thread communication
+        '
         sub registerExternalDispatchers(dispatcherIds as dynamic, taskNode as object)
             dispatcherIds = Rotor.Utils.ensureArray(dispatcherIds)
             for each dispatcherId in dispatcherIds
@@ -73,19 +72,18 @@ namespace Rotor
             end for
         end sub
 
-        '----------------------------------------------------------------------
-        '** @method deregisterDispatcher
-        '** @description Removes a dispatcher from the provider
-        '** @param {dynamic} dispatcherId - The ID of the dispatcher to remove
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' deregisterDispatcher - Removes a dispatcher from the provider
+        '
+        ' @param {dynamic} dispatcherId - The ID of the dispatcher to remove
+        '
         sub deregisterDispatcher(dispatcherId as dynamic)
             m.remove(dispatcherId)
         end sub
 
-        '----------------------------------------------------------------------
-        '** @method destroy
-        '** @description Destroys all registered dispatchers and cleans up resources
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' destroy - Destroys all registered dispatchers and cleans up resources
+        '
         sub destroy()
             dispatchers = m.getAll()
             for each dispatcherId in dispatchers

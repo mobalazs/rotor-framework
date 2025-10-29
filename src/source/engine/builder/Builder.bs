@@ -10,14 +10,12 @@ import "PluginAdapter.bs"
 
 namespace Rotor.ViewBuilder
 
-    '==========================================================================
-    '** @class Builder
-    '** @description Core ViewBuilder engine that orchestrates widget lifecycle operations.
-    '**              Manages widget tree, node pool, plugin adapter, and rendering queue.
-    '**              Handles create, update, and remove operations with post-processing support.
-    '** @namespace Rotor.ViewBuilder
-    '** @note The class name can be used as a type when declaring variables throughout the framework.
-    '==========================================================================
+    ' =====================================================================
+    ' Builder - Core ViewBuilder engine that orchestrates widget lifecycle operations
+    '
+    ' Manages widget tree, node pool, plugin adapter, and rendering queue.
+    ' Handles create, update, and remove operations with post-processing support.
+    ' =====================================================================
     class Builder
 
         widgetTree = new Rotor.ViewBuilder.WidgetTree()
@@ -36,11 +34,11 @@ namespace Rotor.ViewBuilder
         renderQueue = []
         callbackQueue = []
 
-        '----------------------------------------------------------------------
-        '** @method init
-        '** @description Initializes the builder and all its subsystems
-        '** @param {object} frameworkInstance - Reference to the framework instance
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' init - Initializes the builder and all its subsystems
+        '
+        ' @param {object} frameworkInstance - Reference to the framework instance
+        '
         sub init(frameworkInstance as object)
             m.frameworkInstance = frameworkInstance
             m.nodePool.init(frameworkInstance)
@@ -51,10 +49,9 @@ namespace Rotor.ViewBuilder
             m.postProcessBuffer.init(frameworkInstance)
         end sub
 
-        '----------------------------------------------------------------------
-        '** @method destroy
-        '** @description Destroys the builder and cleans up all resources
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' destroy - Destroys the builder and cleans up all resources
+        '
         sub destroy()
             ' remove all widgets
             rootKeys = m.widgetTree.tree.children.Keys()
@@ -72,10 +69,9 @@ namespace Rotor.ViewBuilder
 
         timer = CreateObject("roTimespan")
 
-        '----------------------------------------------------------------------
-        '** @method renderQueueFlush
-        '** @description Flushes the render queue and processes next queued render
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' renderQueueFlush - Flushes the render queue and processes next queued render
+        '
         sub renderQueueFlush()
             m.frameworkInstance.enableRendering = true
             if m.renderQueue.Count() > 0
@@ -84,12 +80,12 @@ namespace Rotor.ViewBuilder
             end if
         end sub
 
-        '----------------------------------------------------------------------
-        '** @method render
-        '** @description Public render method that processes payloads through the render processor
-        '** @param {dynamic} payloads - Widget configuration payload(s) to render
-        '** @param {object} params - Optional rendering parameters (default: {})
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' render - Public render method that processes payloads through the render processor
+        '
+        ' @param {dynamic} payloads - Widget configuration payload(s) to render
+        ' @param {object} params - Optional rendering parameters (default: {})
+        '
         sub render(payloads as dynamic, params = {} as object)
             ' for each payload in Rotor.Utils.ensureArray(payloads)
             ' m.renderProcessor(payload, params)
@@ -97,13 +93,13 @@ namespace Rotor.ViewBuilder
             ' end for
         end sub
 
-        '----------------------------------------------------------------------
-        '** @method renderProcessor
-        '** @description Core rendering processor that handles queuing and execution
-        '** @param {dynamic} payload - Widget configuration payload to process
-        '** @param {object} params - Rendering parameters (default: {})
-        '** @param {boolean} isNextProcess - Whether this is next in queue (default: false)
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' renderProcessor - Core rendering processor that handles queuing and execution
+        '
+        ' @param {dynamic} payload - Widget configuration payload to process
+        ' @param {object} params - Rendering parameters (default: {})
+        ' @param {boolean} isNextProcess - Whether this is next in queue (default: false)
+        '
         sub renderProcessor(payload as dynamic, params = {} as object, isNextProcess = false as boolean)
             ' call custom callback
             if Rotor.Utils.isValid(params.callback)
@@ -147,13 +143,13 @@ namespace Rotor.ViewBuilder
 
         end sub
 
-        '----------------------------------------------------------------------
-        '** @method erase
-        '** @description Erases widgets from the tree by ID or configuration
-        '** @param {dynamic} payload - Widget ID(s) or configuration object(s) to erase
-        '** @param {boolean} shouldSkipNodePool - Whether to skip returning nodes to pool (default: false)
-        '** @param {string} HID - Hierarchical ID context for search (default: "0")
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' erase - Erases widgets from the tree by ID or configuration
+        '
+        ' @param {dynamic} payload - Widget ID(s) or configuration object(s) to erase
+        ' @param {boolean} shouldSkipNodePool - Whether to skip returning nodes to pool (default: false)
+        ' @param {string} HID - Hierarchical ID context for search (default: "0")
+        '
         sub erase (payload as dynamic, shouldSkipNodePool = false as boolean, HID = "0" as string)
 
             ' normalize shortcuts

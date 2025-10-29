@@ -1,24 +1,20 @@
 namespace Rotor
 
-    '==========================================================================
-    '** BaseStack
-    '**
-    '** Generic stack/collection base class for managing keyed items.
-    '**
-    '** Provides:
-    '**   - Add/set items by ID
-    '**   - Get items by ID (case-insensitive)
-    '**   - Remove items by ID
-    '**   - Clear all items
-    '**   - Check item existence
-    '**
-    '** Used by:
-    '**   - ObserverStack (observer management)
-    '**   - FocusStack (focus state management)
-    '**   - Other framework collection needs
-    '**
-    '** @namespace Rotor
-    '==========================================================================
+    ' =====================================================================
+    ' BaseStack - Generic stack/collection base class for managing keyed items
+    '
+    ' Provides:
+    '   - Add/set items by ID
+    '   - Get items by ID (case-insensitive)
+    '   - Remove items by ID
+    '   - Clear all items
+    '   - Check item existence
+    '
+    ' Used by:
+    '   - ObserverStack (observer management)
+    '   - FocusStack (focus state management)
+    '   - Other framework collection needs
+    ' =====================================================================
     class BaseStack
 
         ' =============================================================
@@ -31,14 +27,14 @@ namespace Rotor
         ' STACK OPERATIONS
         ' =============================================================
 
-        '----------------------------------------------------------------------
-        '** set - Adds or replaces item in stack
-        '**
-        '** If item exists, removes old item first.
-        '**
-        '** @param {string} id - Item identifier
-        '** @param {object} newItem - Item to store
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' set - Adds or replaces item in stack
+        '
+        ' If item exists, removes old item first.
+        '
+        ' @param {string} id - Item identifier
+        ' @param {object} newItem - Item to store
+        '
         sub set(id as string, newItem as object)
             if m.has(id) = true
                 m.remove(id)
@@ -46,47 +42,47 @@ namespace Rotor
             m.stack[id] = newItem
         end sub
 
-        '----------------------------------------------------------------------
-        '** get - Retrieves item by ID (case-insensitive)
-        '**
-        '** @param {string} id - Item identifier
-        '** @returns {object} Item if found, or invalid
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' get - Retrieves item by ID (case-insensitive)
+        '
+        ' @param {string} id - Item identifier
+        ' @returns {object} Item if found, or invalid
+        '
         function get(id as string) as object
             return m.stack.LookupCI(id)
         end function
 
-        '----------------------------------------------------------------------
-        '** getAll - Returns all items in stack
-        '**
-        '** @returns {object} Associative array of all items
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' getAll - Returns all items in stack
+        '
+        ' @returns {object} Associative array of all items
+        '
         function getAll() as object
             return m.stack
         end function
 
-        '----------------------------------------------------------------------
-        '** remove - Removes item from stack
-        '**
-        '** @param {string} id - Item identifier to remove
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' remove - Removes item from stack
+        '
+        ' @param {string} id - Item identifier to remove
+        '
         sub remove(id as string)
             m.stack.delete(id)
         end sub
 
-        '----------------------------------------------------------------------
-        '** clear - Removes all items from stack
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' clear - Removes all items from stack
+        '
         sub clear()
             m.stack.Clear()
         end sub
 
-        '----------------------------------------------------------------------
-        '** has - Checks if item exists in stack
-        '**
-        '** @param {string} id - Item identifier to check
-        '** @returns {boolean} True if item exists
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' has - Checks if item exists in stack
+        '
+        ' @param {string} id - Item identifier to check
+        ' @returns {boolean} True if item exists
+        '
         function has(id as string) as boolean
             return m.stack.doesExist(id)
         end function

@@ -1,14 +1,9 @@
 ' ===== POST PROCESSOR =====
 namespace Rotor.ViewBuilder
 
-    '==========================================================================
-    '** @class postProcessBuffer
-    '** @description Manages lifecycle hook buffers with priority-based execution ordering.
-    '**              Maintains separate buffers for root and default priority processes,
-    '**              organizing hooks by lifecycle type for sequential execution.
-    '** @namespace Rotor.ViewBuilder
-    '** @note The class name can be used as a type when declaring variables throughout the framework.
-    '==========================================================================
+    ' =====================================================================
+    ' postProcessBuffer - Manages lifecycle hook buffers with priority-based execution ordering. Maintains separate buffers for root and default priority processes, organizing hooks by lifecycle type for sequential execution.
+    ' =====================================================================
     class postProcessBuffer
 
         frameworkInstance as Rotor.Framework
@@ -21,10 +16,11 @@ namespace Rotor.ViewBuilder
 
         orderedHookPriorities = invalid
 
-        '----------------------------------------------------------------------
-        '** @constructor
-        '** @description Initializes buffer structures and lifecycle hook ordering
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' new - Initializes the instance
+        '
+        ' @description Initializes buffer structures and lifecycle hook ordering
+        ' ---------------------------------------------------------------------
         sub new()
             ' initialize ordered hook collections
             m.buffers = {}
@@ -52,20 +48,21 @@ namespace Rotor.ViewBuilder
             m.createLifeCycleBuffers()
         end sub
 
-        '----------------------------------------------------------------------
-        '** @method createLifeCycleBuffers
-        '** @description Creates buffer structures for all priority types
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' createLifeCycleBuffers - Creates buffer structures for all priority types
+        ' ---------------------------------------------------------------------
         sub createLifeCycleBuffers()
             for each priority in m.orderedHookPriorities
                 m.buffers[priority] = m.createBuffers()
             end for
         end sub
 
-        '----------------------------------------------------------------------
-        '** @method clearLifeCycleBuffers
-        '** @description Clears all lifecycle buffers and iteration flags
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        '
+
+        ' clearLifeCycleBuffers - Clears all lifecycle buffers and iteration flags
+        '
+        ' ---------------------------------------------------------------------
         sub clearLifeCycleBuffers()
             for each priority in m.orderedHookPriorities
                 m.clearBuffers(m.buffers[priority])
@@ -76,11 +73,12 @@ namespace Rotor.ViewBuilder
             end for
         end sub
 
-        '----------------------------------------------------------------------
-        '** @method createBuffers
-        '** @description Creates buffers for all lifecycle hook types
-        '** @returns {object} Buffer object with roList for each hook type
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' createBuffers - Creates buffers for all lifecycle hook types
+        '
+
+        ' @returns {object} Buffer object with roList for each hook type
+        ' ---------------------------------------------------------------------
         function createBuffers() as object
             buffer = {}
             for each hookType in m.orderedLifeCycleHookType
@@ -90,23 +88,25 @@ namespace Rotor.ViewBuilder
             return buffer
         end function
 
-        '----------------------------------------------------------------------
-        '** @method clearBuffers
-        '** @description Clears all buffers in a priority container
-        '** @param {object} priorityContainer - Container with lifecycle hook buffers
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' clearBuffers - Clears all buffers in a priority container
+        '
+
+        ' @param {object} priorityContainer - Container with lifecycle hook buffers
+        ' ---------------------------------------------------------------------
         sub clearBuffers(priorityContainer)
             for each hookType in m.orderedLifeCycleHookType
                 priorityContainer[hookType].Clear()
             end for
         end sub
 
-        '----------------------------------------------------------------------
-        '** @method add
-        '** @description Adds processes to appropriate buffers based on priority and type
-        '** @param {object} newProcesses - Process or array of processes to add
-        '** @param {boolean} isHandledRootChild - Whether this is a root child (default: false)
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' add - Adds processes to appropriate buffers based on priority and type
+        '
+
+        ' @param {object} newProcesses - Process or array of processes to add
+        ' @param {boolean} isHandledRootChild - Whether this is a root child (default: false)
+        ' ---------------------------------------------------------------------
         sub add (newProcesses as object, isHandledRootChild = false as boolean)
 
             processesToAdd = Rotor.Utils.ensureArray(newProcesses)
@@ -132,41 +132,38 @@ namespace Rotor.ViewBuilder
             end for
         end sub
 
-        '----------------------------------------------------------------------
-        '** @method init
-        '** @description Initializes the buffer with framework instance reference
-        '** @param {Rotor.Framework} frameworkInstance - Framework instance reference
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' init - Initializes the buffer with framework instance reference
+        '
+
+        ' @param {Rotor.Framework} frameworkInstance - Framework instance reference
+        ' ---------------------------------------------------------------------
         sub init(frameworkInstance as Rotor.Framework)
             m.frameworkInstance = frameworkInstance
         end sub
 
-        '----------------------------------------------------------------------
-        '** @method destroy
-        '** @description Cleans up framework instance reference
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' destroy - Cleans up framework instance reference
+        ' ---------------------------------------------------------------------
         sub destroy()
             m.frameworkInstance = invalid
         end sub
     end class
 
-    '==========================================================================
-    '** @class PostProcessor
-    '** @description Executes lifecycle hooks and plugin processes in priority order.
-    '**              Handles widget lifecycle operations like mount, update, destroy,
-    '**              and manages SceneGraph node operations.
-    '** @namespace Rotor.ViewBuilder
-    '** @note The class name can be used as a type when declaring variables throughout the framework.
-    '==========================================================================
+    ' =====================================================================
+    ' PostProcessor - Executes lifecycle hooks and plugin processes in priority order. Handles widget lifecycle operations like mount, update, destroy, and manages SceneGraph node operations.
+    ' =====================================================================
     class PostProcessor
 
         frameworkInstance as Rotor.Framework
 
-        '----------------------------------------------------------------------
-        '** @method run
-        '** @description Executes all processes from the buffer in priority and hook type order
-        '** @param {object} postProcessBuffer - Buffer containing processes to execute
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        '
+
+        ' run - Executes all processes from the buffer in priority and hook type order
+        '
+        ' @param {object} postProcessBuffer - Buffer containing processes to execute
+        ' ---------------------------------------------------------------------
         sub run(postProcessBuffer as object)
 
             for each priorityType in postProcessBuffer.orderedHookPriorities
@@ -185,11 +182,12 @@ namespace Rotor.ViewBuilder
 
         end sub
 
-        '----------------------------------------------------------------------
-        '** @method executeGeneralProcess
-        '** @description Executes a single process based on its hook type
-        '** @param {object} process - Process object with hookType and widget
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' executeGeneralProcess - Executes a single process based on its hook type
+        '
+
+        ' @param {object} process - Process object with hookType and widget
+        ' ---------------------------------------------------------------------
         sub executeGeneralProcess(process as object)
             widget = process.widget
 
@@ -244,15 +242,16 @@ namespace Rotor.ViewBuilder
             end if
         end sub
 
-        '----------------------------------------------------------------------
-        '** @method runPluginHookHandler
-        '** @description Executes plugin hook handler with appropriate parameters
-        '** @param {string} LifeCycleHookTypeType - Lifecycle hook type identifier
-        '** @param {object} pluginHook - Plugin hook configuration
-        '** @param {object} widget - Widget instance (default: invalid)
-        '** @param {dynamic} newValue - New value for update hooks (default: invalid)
-        '** @param {dynamic} oldValue - Old value for update hooks (default: invalid)
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' runPluginHookHandler - Executes plugin hook handler with appropriate parameters
+        '
+
+        ' @param {string} LifeCycleHookTypeType - Lifecycle hook type identifier
+        ' @param {object} pluginHook - Plugin hook configuration
+        ' @param {object} widget - Widget instance (default: invalid)
+        ' @param {dynamic} newValue - New value for update hooks (default: invalid)
+        ' @param {dynamic} oldValue - Old value for update hooks (default: invalid)
+        ' ---------------------------------------------------------------------
         sub runPluginHookHandler(LifeCycleHookTypeType as string, pluginHook as object, widget = invalid as object, newValue = invalid as dynamic, oldValue = invalid as dynamic)
             pluginKey = pluginHook.pluginKey
             scope = m.frameworkInstance.plugins[pluginKey]
@@ -265,11 +264,12 @@ namespace Rotor.ViewBuilder
             end if
         end sub
 
-        '----------------------------------------------------------------------
-        '** @method appendNodeAtZIndex
-        '** @description Appends a node to its parent at the correct z-index position
-        '** @param {object} process - Process containing widget and zIndex information
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' appendNodeAtZIndex - Appends a node to its parent at the correct z-index position
+        '
+
+        ' @param {object} process - Process containing widget and zIndex information
+        ' ---------------------------------------------------------------------
         sub appendNodeAtZIndex (process as object)
 
             widget = process.widget
@@ -305,19 +305,20 @@ namespace Rotor.ViewBuilder
             end if
         end sub
 
-        '----------------------------------------------------------------------
-        '** @method init
-        '** @description Initializes the post processor with framework instance reference
-        '** @param {Rotor.Framework} frameworkInstance - Framework instance reference
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' init - Initializes the post processor with framework instance reference
+        '
+
+        ' @param {Rotor.Framework} frameworkInstance - Framework instance reference
+        ' ---------------------------------------------------------------------
         sub init(frameworkInstance as Rotor.Framework)
             m.frameworkInstance = frameworkInstance
         end sub
 
-        '----------------------------------------------------------------------
-        '** @method destroy
-        '** @description Cleans up framework instance reference
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' destroy - Cleans up framework instance reference
+        '
+        ' ---------------------------------------------------------------------
         sub destroy()
             m.frameworkInstance = invalid
         end sub

@@ -1,13 +1,8 @@
 namespace Rotor.ViewBuilder
 
-    '==========================================================================
-    '** @class Processor
-    '** @description Core processor that orchestrates widget lifecycle operations.
-    '**              Routes widget configurations to appropriate handlers (create, update, remove)
-    '**              and recursively processes widget trees.
-    '** @namespace Rotor.ViewBuilder
-    '** @note The class name can be used as a type when declaring variables throughout the framework.
-    '==========================================================================
+    ' =====================================================================
+    ' Processor - Core processor that orchestrates widget lifecycle operations. Routes widget configurations to appropriate handlers (create, update, remove) and recursively processes widget trees.
+    ' =====================================================================
     class Processor
 
         createWidget = Rotor.ViewBuilder.CreateWidget
@@ -16,16 +11,17 @@ namespace Rotor.ViewBuilder
 
         frameworkInstance as Rotor.Framework
 
-        '----------------------------------------------------------------------
-        '** @method childProcessor
-        '** @description Processes a single widget configuration (create, update, or remove)
-        '** @param {object} postProcessBuffer - Buffer for lifecycle hooks
-        '** @param {object} config - Widget configuration object
-        '** @param {string} parentHID - Parent's Hierarchical ID (default: "0")
-        '** @param {boolean} createFlow - Whether in create-only mode
-        '** @param {object} params - Processing parameters (default: {})
-        '** @returns {object} Post-process buffer reference
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' childProcessor - Processes a single widget configuration (create, update, or remove)
+        '
+
+        ' @param {object} postProcessBuffer - Buffer for lifecycle hooks
+        ' @param {object} config - Widget configuration object
+        ' @param {string} parentHID - Parent's Hierarchical ID (default: "0")
+        ' @param {boolean} createFlow - Whether in create-only mode
+        ' @param {object} params - Processing parameters (default: {})
+        ' @returns {object} Post-process buffer reference
+        ' ---------------------------------------------------------------------
         function childProcessor(postProcessBuffer as object, config as object, parentHID = "0" as string, createFlow = false, params = {} as object) as object
 
             if config?.parentHID <> invalid and config?.parentHID <> "0" then parentHID = config.parentHID
@@ -77,15 +73,16 @@ namespace Rotor.ViewBuilder
 
         end function
 
-        '----------------------------------------------------------------------
-        '** @method run
-        '** @description Main entry point for processing widget configurations
-        '** @param {object} postProcessBuffer - Buffer for lifecycle hooks
-        '** @param {string} parentHID - Parent's Hierarchical ID
-        '** @param {object} children - Child widget configurations
-        '** @param {object} params - Processing parameters (default: {})
-        '** @param {boolean} createFlow - Whether in create-only mode (default: false)
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' run - Main entry point for processing widget configurations
+        '
+
+        ' @param {object} postProcessBuffer - Buffer for lifecycle hooks
+        ' @param {string} parentHID - Parent's Hierarchical ID
+        ' @param {object} children - Child widget configurations
+        ' @param {object} params - Processing parameters (default: {})
+        ' @param {boolean} createFlow - Whether in create-only mode (default: false)
+        ' ---------------------------------------------------------------------
         sub run(postProcessBuffer as object, parentHID as string, children as object, params = {} as object, createFlow = false as boolean)
             if children.Count() = 0 then return
 
@@ -119,12 +116,13 @@ namespace Rotor.ViewBuilder
 
         end sub
 
-        '----------------------------------------------------------------------
-        '** @method checkIdAutoId
-        '** @description Ensures widget has an ID, generating one if missing
-        '** @param {object} config - Widget configuration object
-        '** @returns {object} Updated configuration with guaranteed ID
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' checkIdAutoId - Ensures widget has an ID, generating one if missing
+        '
+
+        ' @param {object} config - Widget configuration object
+        ' @returns {object} Updated configuration with guaranteed ID
+        ' ---------------------------------------------------------------------
         function checkIdAutoId(config as object) as object
             hasHID = config.DoesExist("HID")
             if not hasHID and (config.id = invalid or config.id = "")
@@ -134,19 +132,20 @@ namespace Rotor.ViewBuilder
             return config
         end function
 
-        '----------------------------------------------------------------------
-        '** @method init
-        '** @description Initializes the processor with framework instance reference
-        '** @param {Rotor.Framework} frameworkInstance - Framework instance reference
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' init - Initializes the processor with framework instance reference
+        '
+
+        ' @param {Rotor.Framework} frameworkInstance - Framework instance reference
+        ' ---------------------------------------------------------------------
         sub init(frameworkInstance as Rotor.Framework)
             m.frameworkInstance = frameworkInstance
         end sub
 
-        '----------------------------------------------------------------------
-        '** @method destroy
-        '** @description Cleans up framework instance reference
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' destroy - Cleans up framework instance reference
+        '
+        ' ---------------------------------------------------------------------
         sub destroy()
             m.frameworkInstance = invalid
         end sub

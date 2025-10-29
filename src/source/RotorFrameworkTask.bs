@@ -27,48 +27,45 @@ import "utils/NodeUtils.bs"
 import "utils/ArrayUtils.bs"
 
 namespace Rotor
-    '==========================================================================
-    '** FrameworkTask
-    '**
-    '** Task thread version of the Rotor Framework that enables cross-thread MVI
-    '** (Model-View-Intent) architecture. This class manages state and dispatchers
-    '** on a separate task thread, allowing heavy computations and state management
-    '** to run off the render thread for better performance.
-    '**
-    '** @param {object} config - Configuration object with the following properties:
-    '**   - tasks (array, optional): List of additional task node names to synchronize with.
-    '**                              Allows multiple task threads to communicate and share
-    '**                              dispatchers across different threads.
-    '**
-    '** USAGE NOTES:
-    '** The FrameworkTask must be instantiated in the task's init() function and the sync()
-    '** method MUST be called at the end of your task function to establish the message loop.
-    '**
-    '** IMPORTANT: The sync() method creates an infinite loop that handles cross-thread
-    '** communication and dispatcher synchronization. This call should be the LAST statement
-    '** in your task function, after all dispatcher initialization.
-    '**
-    '** @example
-    '**   ' File: MyTask.task.bs
-    '**   import "pkg:/source/RotorFrameworkTask.bs"
-    '**   import "pkg:/source/MyDispatcher.bs"
-    '**
-    '**   sub init()
-    '**       m.top.functionName = "task"
-    '**       m.appFw = new Rotor.FrameworkTask({
-    '**           tasks: ["AnotherTask"] ' optional - other tasks to sync with
-    '**       })
-    '**   end sub
-    '**
-    '**   sub task()
-    '**       ' Initialize your dispatchers
-    '**       m.fooDispatcher = createFooDispatcher()
-    '**       m.barDispatcher = createBarDispatcher()
-    '**
-    '**       ' IMPORTANT: sync() must be the last call - it starts the message loop
-    '**       m.appFw.sync()
-    '**   end sub
-    '==========================================================================
+    ' =====================================================================
+    ' FrameworkTask - Task thread version of Rotor Framework for MVI
+    '
+    ' Task thread version of the Rotor Framework that enables cross-thread MVI
+    ' (Model-View-Intent) architecture. This class manages state and dispatchers
+    ' on a separate task thread, allowing heavy computations and state management
+    ' to run off the render thread for better performance.
+    '
+    ' Configuration:
+    '   - tasks (array, optional): List of additional task node names to synchronize with.
+    '                             Allows multiple task threads to communicate and share
+    '                             dispatchers across different threads.
+    '
+    ' USAGE NOTES:
+    ' The FrameworkTask must be instantiated in the task's init() function and the sync()
+    ' method MUST be called at the end of your task function to establish the message loop.
+    '
+    ' IMPORTANT: The sync() method creates an infinite loop that handles cross-thread
+    ' communication and dispatcher synchronization. This call should be the LAST statement
+    ' in your task function, after all dispatcher initialization.
+    '
+    ' Example:
+    '   File: MyTask.task.bs
+    '   import "pkg:/source/RotorFrameworkTask.bs"
+    '   import "pkg:/source/MyDispatcher.bs"
+    '
+    '   sub init()
+    '       m.top.functionName = "task"
+    '       m.appFw = new Rotor.FrameworkTask({
+    '           tasks: ["AnotherTask"]
+    '       })
+    '   end sub
+    '
+    '   sub task()
+    '       m.fooDispatcher = createFooDispatcher()
+    '       m.barDispatcher = createBarDispatcher()
+    '       m.appFw.sync()
+    '   end sub
+    ' =====================================================================
     class FrameworkTask
 
         name = "Rotor Framework"
@@ -89,14 +86,14 @@ namespace Rotor
         dispatcherProvider as object
         port as object
 
-        '----------------------------------------------------------------------
-        '** Constructor - Initializes the FrameworkTask instance
-        '**
-        '** Sets up the task thread dispatcher provider, message port, and
-        '** global framework helper for cross-thread communication.
-        '**
-        '** @param {object} config - Configuration object (see class documentation)
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' new - Initializes the FrameworkTask instance
+        '
+        ' Sets up the task thread dispatcher provider, message port, and
+        ' global framework helper for cross-thread communication.
+        '
+        ' @param {object} config - Configuration object (see class documentation)
+        '
         sub new(config = {} as object)
 
             Rotor.Utils.deepExtendAA(m.config, config)
@@ -116,32 +113,32 @@ namespace Rotor
 
         end sub
 
-        '======================================================================
+        ' =====================================================================
         ' PUBLIC API
-        '======================================================================
+        ' =====================================================================
 
-        '----------------------------------------------------------------------
-        '** getDispatcher - Gets dispatcher facade by ID
-        '**
-        '** @param {string} dispatcherId - Dispatcher identifier
-        '** @returns {object} Dispatcher facade instance
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' getDispatcher - Gets dispatcher facade by ID
+        '
+        ' @param {string} dispatcherId - Dispatcher identifier
+        ' @returns {object} Dispatcher facade instance
+        '
         public function getDispatcher(dispatcherId as string) as object
             return m.dispatcherProvider.getFacade(dispatcherId, GetGlobalAA())
         end function
 
-        '----------------------------------------------------------------------
-        '** sync - Starts the message loop for cross-thread communication
-        '**
-        '** IMPORTANT: This method creates an infinite loop that handles:
-        '**   - Intent dispatching from render thread
-        '**   - External dispatcher registration
-        '**   - State change notifications
-        '**   - Async reducer callbacks
-        '**
-        '** This method MUST be the last call in your task function, as it
-        '** blocks execution until the framework is destroyed.
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' sync - Starts the message loop for cross-thread communication
+        '
+        ' IMPORTANT: This method creates an infinite loop that handles:
+        '   - Intent dispatching from render thread
+        '   - External dispatcher registration
+        '   - State change notifications
+        '   - Async reducer callbacks
+        '
+        ' This method MUST be the last call in your task function, as it
+        ' blocks execution until the framework is destroyed.
+        '
         sub sync()
             m.notifySyncStatus(Rotor.Const.ThreadSyncType.TASK_SYNCING)
 
@@ -202,17 +199,17 @@ namespace Rotor
             m.destroy()
         end sub
 
-        '======================================================================
+        ' =====================================================================
         ' INTERNAL METHODS
-        '======================================================================
+        ' =====================================================================
 
-        '----------------------------------------------------------------------
-        '** notifySyncStatus - Notifies render thread of sync status
-        '**
-        '** Sends sync status message to render thread via rotorSync field.
-        '**
-        '** @param {string} status - Sync status type (TASK_SYNCING or TASK_SYNCED)
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' notifySyncStatus - Notifies render thread of sync status
+        '
+        ' Sends sync status message to render thread via rotorSync field.
+        '
+        ' @param {string} status - Sync status type (TASK_SYNCING or TASK_SYNCED)
+        '
         sub notifySyncStatus(status as string)
 
             payload = {
@@ -231,35 +228,35 @@ namespace Rotor
 
         end sub
 
-        '----------------------------------------------------------------------
-        '** addObserver - Adds field observer to task thread message port
-        '**
-        '** @param {string} fieldId - Field name to observe
-        '** @param {object} node - SceneGraph node to observe
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' addObserver - Adds field observer to task thread message port
+        '
+        ' @param {string} fieldId - Field name to observe
+        ' @param {object} node - SceneGraph node to observe
+        '
         sub addObserver(fieldId as string, node)
             node.observeFieldScoped(fieldId, m.port)
         end sub
 
-        '----------------------------------------------------------------------
-        '** removeObserver - Removes field observer from node
-        '**
-        '** @param {string} fieldId - Field name to stop observing
-        '** @param {object} node - SceneGraph node to unobserve
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' removeObserver - Removes field observer from node
+        '
+        ' @param {string} fieldId - Field name to stop observing
+        ' @param {object} node - SceneGraph node to unobserve
+        '
         sub removeObserver(fieldId as string, node)
             node.unobserveFieldScoped(fieldId)
         end sub
 
-        '======================================================================
+        ' =====================================================================
         ' CLEANUP
-        '======================================================================
+        ' =====================================================================
 
-        '----------------------------------------------------------------------
-        '** destroy - Cleans up task thread resources
-        '**
-        '** Destroys dispatcher provider and clears global framework helper.
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' destroy - Cleans up task thread resources
+        '
+        ' Destroys dispatcher provider and clears global framework helper.
+        '
         public sub destroy()
             m.dispatcherProvider.destroy()
 

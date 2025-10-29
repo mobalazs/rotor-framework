@@ -1,17 +1,16 @@
 ' ===== I18N SERVICE =====
 namespace Rotor.ViewBuilder
 
-    '==========================================================================
-    '** @class I18nService
-    '** @description Internationalization service for managing locales and localized content.
-    '**              Provides l10n (localization) data access, RTL detection, and caching.
-    '** @namespace Rotor.ViewBuilder
-    '** @note The class name can be used as a type when declaring variables throughout the framework.
-    '** @future Implement more static data and expressions like dateFormat, timeFormat,
-    '**         currencySymbol, decimalSeparator, thousandsSeparator.
-    '**         Examples: getDecimalSeparator(), getThousandSeparator(),
-    '**         getCurrencyCode(), getPluralCategory(count)
-    '==========================================================================
+    ' =====================================================================
+    ' I18nService - Internationalization service for managing locales and localized content
+    '
+    ' Provides l10n (localization) data access, RTL detection, and caching.
+    '
+    ' @future Implement more static data and expressions like dateFormat, timeFormat,
+    '         currencySymbol, decimalSeparator, thousandsSeparator.
+    '         Examples: getDecimalSeparator(), getThousandSeparator(),
+    '         getCurrencyCode(), getPluralCategory(count)
+    ' =====================================================================
     class I18nService
 
 
@@ -24,11 +23,11 @@ namespace Rotor.ViewBuilder
         ' RTL language codes
         RTL_LANGUAGES = ["ar", "he", "fa", "ur"]
 
-        '----------------------------------------------------------------------
-        '** @method init
-        '** @description Initializes the i18n service with default locale
-        '** @param {Rotor.Framework} frameworkInstance - Framework instance reference
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' init - Initializes the i18n service with default locale
+        '
+        ' @param {Rotor.Framework} frameworkInstance - Framework instance reference
+        '
         sub init(frameworkInstance as Rotor.Framework)
             m.locale = "en_US"
             m.isRTL = m.detectRTL(m.locale)
@@ -36,32 +35,32 @@ namespace Rotor.ViewBuilder
             ' m.frameworkInstance = frameworkInstance
         end sub
 
-        '----------------------------------------------------------------------
-        '** @method setLocal
-        '** @description Sets the current locale and updates RTL flag
-        '** @param {string} locale - Locale string (e.g., "en_US", "ar_SA")
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' setLocal - Sets the current locale and updates RTL flag
+        '
+        ' @param {string} locale - Locale string (e.g., "en_US", "ar_SA")
+        '
         sub setLocal(locale as string)
             m.locale = locale
             m.isRTL = m.detectRTL(locale)
         end sub
 
-        '----------------------------------------------------------------------
-        '** @method getLocale
-        '** @description Gets the current locale string
-        '** @returns {string} Current locale (e.g., "en_US")
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' getLocale - Gets the current locale string
+        '
+        ' @returns {string} Current locale (e.g., "en_US")
+        '
         function getLocale() as string
             return m.locale
         end function
 
-        '----------------------------------------------------------------------
-        '** @method detectRTL
-        '** @description Detects if locale uses RTL (Right-to-Left) direction
-        '** @param {string} locale - Locale string to check
-        '** @returns {boolean} True if locale is RTL, false otherwise
-        '** @private
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' detectRTL - Detects if locale uses RTL (Right-to-Left) direction
+        '
+        ' @param {string} locale - Locale string to check
+        ' @returns {boolean} True if locale is RTL, false otherwise
+        ' @private
+        '
         private function detectRTL(locale as string) as boolean
             if locale = invalid or locale = "" then return false
 
@@ -76,41 +75,40 @@ namespace Rotor.ViewBuilder
             return false
         end function
 
-        '----------------------------------------------------------------------
-        '** @method setL10n
-        '** @description Sets the localization data and refreshes cache
-        '** @param {object} l10n - Localization data object
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' setL10n - Sets the localization data and refreshes cache
+        '
+        ' @param {object} l10n - Localization data object
+        '
         sub setL10n(l10n as object)
             m.l10n = l10n
             m.refreshCache()
         end sub
 
-        '----------------------------------------------------------------------
-        '** @method extendL10n
-        '** @description Extends the existing localization data and refreshes cache
-        '** @param {object} l10n - Localization data to merge
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' extendL10n - Extends the existing localization data and refreshes cache
+        '
+        ' @param {object} l10n - Localization data to merge
+        '
         sub extendL10n(l10n as object)
             Rotor.Utils.deepExtendAA(m.l10n, l10n)
             m.refreshCache()
         end sub
 
-        '----------------------------------------------------------------------
-        '** @method destroy
-        '** @description Cleans up cache and l10n data
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' destroy - Cleans up cache and l10n data
+        '
         sub destroy()
             ' m.frameworkInstance = invalid
             m.cache.Clear()
             m.l10n.Clear()
         end sub
 
-        '----------------------------------------------------------------------
-        '** @method refreshCache
-        '** @description Refreshes the l10n cache by re-cloning all cached key paths
-        '** @private
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' refreshCache - Refreshes the l10n cache by re-cloning all cached key paths
+        '
+        ' @private
+        '
         sub refreshCache()
             m.cache.Clear()
             for each cacheKey in m.cache
@@ -118,21 +116,21 @@ namespace Rotor.ViewBuilder
             end for
         end sub
 
-        '----------------------------------------------------------------------
-        '** @method getIsRtl
-        '** @description Gets whether current locale is RTL
-        '** @returns {boolean} True if current locale is RTL
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' getIsRtl - Gets whether current locale is RTL
+        '
+        ' @returns {boolean} True if current locale is RTL
+        '
         public function getIsRtl() as boolean
             return m.isRTL
         end function
 
-        '----------------------------------------------------------------------
-        '** @method getL10n
-        '** @description Gets localization data by key path or entire l10n object
-        '** @param {dynamic} keyPath - Key path string or invalid for entire l10n
-        '** @returns {object} Localization data (reference if invalid, cloned if keyPath provided)
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' getL10n - Gets localization data by key path or entire l10n object
+        '
+        ' @param {dynamic} keyPath - Key path string or invalid for entire l10n
+        ' @returns {object} Localization data (reference if invalid, cloned if keyPath provided)
+        '
         public function getL10n(keyPath) as object
             ' Best for regular use cases
             if keyPath = invalid then return m.l10n ' Return just reference to l10n
@@ -143,13 +141,13 @@ namespace Rotor.ViewBuilder
 
         end function
 
-        '----------------------------------------------------------------------
-        '** @method getAssetByKeyPath
-        '** @description Gets and caches localization data by one or more key paths
-        '** @param {dynamic} keyPath - Single key path string or array of key paths
-        '** @returns {object} Merged localization data from all key paths
-        '** @private
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' getAssetByKeyPath - Gets and caches localization data by one or more key paths
+        '
+        ' @param {dynamic} keyPath - Single key path string or array of key paths
+        ' @returns {object} Merged localization data from all key paths
+        ' @private
+        '
         function getAssetByKeyPath(keyPath as dynamic) as object
             keysPaths = Rotor.Utils.ensureArray(keyPath)
             asset = {}

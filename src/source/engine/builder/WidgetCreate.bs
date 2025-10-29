@@ -1,20 +1,13 @@
 namespace Rotor.ViewBuilder
 
-    '==========================================================================
-    '** @function createWidget
-    '** @description Creates and initializes a widget instance.
-    '**              Core widget factory function that handles the complete widget creation lifecycle:
-    '**              1. Widget tree registration
-    '**              2. Decorator method injection
-    '**              3. ViewModel initialization (if applicable)
-    '**              4. SceneGraph node creation
-    '**              5. Plugin registration and lifecycle hooks
-    '** @param {object} postProcessBuffer - Buffer for deferred plugin/lifecycle operations
-    '** @param {object} config - Widget configuration object
-    '** @param {string} parentHID - Parent's Hierarchical ID (default: "0" for root)
-    '** @returns {object} Widget metadata { HID, children, parentHID, id }
-    '** @namespace Rotor.ViewBuilder
-    '==========================================================================
+    ' =====================================================================
+    ' createWidget - Creates and initializes a widget instance. Core widget factory function that handles the complete widget creation lifecycle: 1. Widget tree registration 2. Decorator method injection 3. ViewModel initialization (if applicable) 4. SceneGraph node creation 5. Plugin registration and lifecycle hooks
+    '
+    ' @param {object} postProcessBuffer - Buffer for deferred plugin/lifecycle operations
+    ' @param {object} config - Widget configuration object
+    ' @param {string} parentHID - Parent's Hierarchical ID (default: "0" for root)
+    ' @returns {object} Widget metadata { HID, children, parentHID, id }
+    ' =====================================================================
     function createWidget(postProcessBuffer as object, config as object, parentHID = "0" as string) as object
 
         ' Extract and remove ViewModel class from config
@@ -38,17 +31,17 @@ namespace Rotor.ViewBuilder
         ' These methods provide widget API for tree navigation,
         ' rendering, state management, and framework integration
 
-        '** getFrameworkInstance - Returns framework instance *'
+        ' getFrameworkInstance - Returns framework instance *'
         widget.getFrameworkInstance = function() as object
             return GetGlobalAA().rotor_framework_helper.frameworkInstance
         end function
 
-        '** getInfo - Returns framework info *'
+        ' getInfo - Returns framework info *'
         widget.getInfo = function() as object
             return m.getFrameworkInstance().getInfo()
         end function
 
-        '** refresh - Refreshes specific widget properties by key paths *'
+        ' refresh - Refreshes specific widget properties by key paths *'
         widget.refresh = sub(featureKeyPaths as object)
             iterateKeyPaths = Rotor.Utils.ensureArray(featureKeyPaths)
             refreshObject = {}
@@ -58,17 +51,17 @@ namespace Rotor.ViewBuilder
             m.render(refreshObject)
         end sub
 
-        '** getWidget - Finds widget by search pattern from this widget's context *'
+        ' getWidget - Finds widget by search pattern from this widget's context *'
         widget.getWidget = function(searchPattern as string) as object
             return m.getFrameworkInstance().builder.widgetTree.get(searchPattern, m.HID)
         end function
 
-        '** getSiblingWidget - Gets sibling widget by ID *'
+        ' getSiblingWidget - Gets sibling widget by ID *'
         widget.getSiblingWidget = function(id as string) as object
             return m.parent.children[id]
         end function
 
-        '** getViewModel - Returns owning ViewModel (self if ViewModel, or parent VM) *'
+        ' getViewModel - Returns owning ViewModel (self if ViewModel, or parent VM) *'
         widget.getViewModel = function() as object
             if m.isViewModel = true
                 return m
@@ -77,33 +70,33 @@ namespace Rotor.ViewBuilder
             end if
         end function
 
-        '** getParentViewModel - Returns parent's ViewModel *'
+        ' getParentViewModel - Returns parent's ViewModel *'
         widget.getParentViewModel = function() as object
             return m.getViewModel().parent.getViewModel()
         end function
 
-        '** getRootWidget - Returns root widget (HID "0") *'
+        ' getRootWidget - Returns root widget (HID "0") *'
         widget.getRootWidget = function() as object
             return m.getFrameworkInstance().builder.widgetTree.getByHID("0")
         end function
 
-        '** findWidgets - Finds multiple widgets by search pattern *'
+        ' findWidgets - Finds multiple widgets by search pattern *'
         widget.findWidgets = function(searchPattern as string) as object
             return m.getFrameworkInstance().builder.widgetTree.find(searchPattern, m.HID)
         end function
 
-        '** getChildrenWidgets - Gets child widgets with optional pattern matching *'
+        ' getChildrenWidgets - Gets child widgets with optional pattern matching *'
         widget.getChildrenWidgets = function(matchingPattern = "" as string) as object
             return m.getFrameworkInstance().builder.widgetTree.getChildrenWidgets(m, matchingPattern)
         end function
 
-        '** getSubtreeClone - Creates a clone of widget subtree *'
+        ' getSubtreeClone - Creates a clone of widget subtree *'
         widget.getSubtreeClone = function(searchPattern = "" as string, keyPathList = [] as object) as object
             if searchPattern = "" then searchPattern = m.HID
             return m.getFrameworkInstance().builder.widgetTree.getSubtreeClone(searchPattern, keyPathList, m.parentHID)
         end function
 
-        '** render - Renders widget updates (self, descendants, or children) *'
+        ' render - Renders widget updates (self, descendants, or children) *'
         widget.render = sub(payloads as dynamic, params = {} as object)
             for each payload in Rotor.Utils.ensureArray(payloads)
                 if payload.DoesExist("id") = false
@@ -122,7 +115,7 @@ namespace Rotor.ViewBuilder
             m.getFrameworkInstance().builder.render(payloads, params)
         end sub
 
-        '** erase - Removes widget(s) from tree *'
+        ' erase - Removes widget(s) from tree *'
         widget.erase = sub(payloads = invalid as dynamic, shouldSkipNodePool = false as boolean)
             if payloads = invalid
                 ' Self destroy
@@ -135,12 +128,12 @@ namespace Rotor.ViewBuilder
             m.getFrameworkInstance().builder.erase(payloads, shouldSkipNodePool, parentHID)
         end sub
 
-        '** getDispatcher - Gets dispatcher facade by ID *'
+        ' getDispatcher - Gets dispatcher facade by ID *'
         widget.getDispatcher = function(dispatcherId as string) as object
             return m.getFrameworkInstance().dispatcherProvider.getFacade(dispatcherId, m)
         end function
 
-        '** animator - Gets animator factory by ID *'
+        ' animator - Gets animator factory by ID *'
         widget.animator = function(animatorId) as object
             return m.getFrameworkInstance().animatorProvider.getFactory(animatorId, m)
         end function

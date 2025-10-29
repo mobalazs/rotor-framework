@@ -420,12 +420,12 @@ namespace Rotor.Utils
     ' ARRAY HELPERS
     '==========================================================================
 
-    '----------------------------------------------------------------------
-    '** ensureArray - Ensures value is wrapped in array
-    '**
-    '** @param {dynamic} array - Input value or array
-    '** @returns {object} Array containing the value, or original if already array
-    '----------------------------------------------------------------------
+    ' ---------------------------------------------------------------------
+    ' ensureArray - Ensures value is wrapped in array
+    '
+    ' @param {dynamic} array - Input value or array
+    ' @returns {object} Array containing the value, or original if already array
+    '
     function ensureArray(array as dynamic) as object
         if isArray(array)
             resolvedArray = array

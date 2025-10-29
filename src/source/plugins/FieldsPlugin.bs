@@ -2,23 +2,21 @@ import "../base/BasePlugin.bs"
 
 namespace Rotor
 
-    '******************************************************************
-    '** FieldsPlugin
-    '**
-    '** Rotor Framework plugin for handling dynamic field expressions and interpolation.
-    '**
-    '** Key Features:
-    '**   - Evaluates function-based field values
-    '**   - Interpolates @-prefixed expressions (e.g., @viewModelState.value)
-    '**   - Supports dynamic field resolution from widget context
-    '**   - Automatically updates fields on widget lifecycle changes
-    '**
-    '** Expression Syntax:
-    '**   @key.path - Resolves from widget.viewModelState
-    '**
-    '** @namespace Rotor
-    '** @extends BasePlugin
-    '******************************************************************
+    ' =====================================================================
+    ' FieldsPlugin - Handles dynamic field expressions and interpolation
+    '
+    ' Rotor Framework plugin for handling dynamic field expressions and interpolation.
+    '
+    ' Key Features:
+    '   - Evaluates function-based field values
+    '   - Interpolates @-prefixed expressions (e.g., @viewModelState.value)
+    '   - Supports dynamic field resolution from widget context
+    '   - Automatically updates fields on widget lifecycle changes
+    '
+    ' Expression Syntax:
+    '   @key.path - Resolves from widget.viewModelState
+    '
+    ' =====================================================================
     class FieldsPlugin extends Rotor.BasePlugin
 
         ' =============================================================
@@ -33,12 +31,12 @@ namespace Rotor
         ' CONSTRUCTOR
         ' =============================================================
 
-        '**
-        '** Constructor - Initializes the FieldsPlugin instance
-        '**
-        '** @param {string} key - Plugin identifier (default: "fields")
-        '** @param {object} params - Additional parameters (unused)
-        '**
+        ' ---------------------------------------------------------------------
+        ' new - Initializes the FieldsPlugin instance
+        '
+        ' @param {string} key - Plugin identifier (default: "fields")
+        ' @param {object} params - Additional parameters (unused)
+        '
         sub new(key = "fields" as string, params = invalid as object)
             super(key)
         end sub
@@ -48,41 +46,41 @@ namespace Rotor
         ' =============================================================
 
         hooks = {
-            '----------------------------------------------------------------------
-            '** beforeMount - Sets custom fields when widget is mounted
-            '**
-            '** Evaluates and applies all field expressions after widget creation.
-            '**
-            '** @param {object} scope - Plugin instance (m)
-            '** @param {object} widget - Widget being mounted
-            '----------------------------------------------------------------------
+            ' ---------------------------------------------------------------------
+            ' beforeMount - Sets custom fields when widget is mounted
+            '
+            ' Evaluates and applies all field expressions after widget creation.
+            '
+            ' @param {object} scope - Plugin instance (m)
+            ' @param {object} widget - Widget being mounted
+            '
             beforeMount: sub(scope as object, widget as object)
                 value = widget[scope.key]
                 scope.setCustomFields(widget, value)
             end sub,
 
-            '----------------------------------------------------------------------
-            '** beforeUpdate - Updates custom fields when widget config changes
-            '**
-            '** Merges new field config with existing config and re-evaluates all fields.
-            '**
-            '** @param {object} scope - Plugin instance (m)
-            '** @param {object} widget - Widget being updated
-            '** @param {object} newValue - New field configuration
-            '** @param {object} oldValue - Previous field configuration
-            '----------------------------------------------------------------------
+            ' ---------------------------------------------------------------------
+            ' beforeUpdate - Updates custom fields when widget config changes
+            '
+            ' Merges new field config with existing config and re-evaluates all fields.
+            '
+            ' @param {object} scope - Plugin instance (m)
+            ' @param {object} widget - Widget being updated
+            ' @param {object} newValue - New field configuration
+            ' @param {object} oldValue - Previous field configuration
+            '
             beforeUpdate: sub(scope as object, widget as object, newValue = {}, oldValue = {})
                 ' Extend old config with new values
                 Rotor.Utils.deepExtendAA(widget[scope.key], newValue)
                 scope.setCustomFields(widget, newValue)
             end sub,
 
-            '----------------------------------------------------------------------
-            '** beforeDestroy - Clears field configuration on destruction
-            '**
-            '** @param {object} scope - Plugin instance (m)
-            '** @param {object} widget - Widget being destroyed
-            '----------------------------------------------------------------------
+            ' ---------------------------------------------------------------------
+            ' beforeDestroy - Clears field configuration on destruction
+            '
+            ' @param {object} scope - Plugin instance (m)
+            ' @param {object} widget - Widget being destroyed
+            '
             beforeDestroy: sub(scope as object, widget as object)
                 widget[scope.key].Clear()
             end sub
@@ -92,37 +90,37 @@ namespace Rotor
         ' FIELD PROCESSING
         ' =============================================================
 
-        '**
-        '** setCustomFields - Evaluates and applies fields to widget node
-        '**
-        '** Parses field expressions and sets the resolved values on the widget's SceneGraph node.
-        '**
-        '** @param {object} widget - Widget instance
-        '** @param {object} fields - Field configuration object
-        '**
+        ' ---------------------------------------------------------------------
+        ' setCustomFields - Evaluates and applies fields to widget node
+        '
+        ' Parses field expressions and sets the resolved values on the widget's SceneGraph node.
+        '
+        ' @param {object} widget - Widget instance
+        ' @param {object} fields - Field configuration object
+        '
         sub setCustomFields(widget as object, fields)
             parsedFields = m.parseFields(widget, fields)
             node = widget.node
             Rotor.Utils.setCustomFields(node, parsedFields, true)
         end sub
 
-        '**
-        '** parseFields - Parses and resolves field expressions
-        '**
-        '** Processes field values through multiple resolution strategies:
-        '**   1. Function values - Executes function in widget scope
-        '**   2. String interpolation - Resolves @-prefixed expressions
-        '**   3. Direct values - Passes through unchanged
-        '**
-        '** Expression Resolution:
-        '**   - @key.path resolves from widget.viewModelState
-        '**   - If result is string, performs string interpolation
-        '**   - If result is non-string, replaces entire value
-        '**
-        '** @param {object} widget - Widget instance providing context
-        '** @param {object} fields - Field configuration to parse
-        '** @returns {object} Parsed fields with resolved values
-        '**
+        ' ---------------------------------------------------------------------
+        ' parseFields - Parses and resolves field expressions
+        '
+        ' Processes field values through multiple resolution strategies:
+        '   1. Function values - Executes function in widget scope
+        '   2. String interpolation - Resolves @-prefixed expressions
+        '   3. Direct values - Passes through unchanged
+        '
+        ' Expression Resolution:
+        '   - @key.path resolves from widget.viewModelState
+        '   - If result is string, performs string interpolation
+        '   - If result is non-string, replaces entire value
+        '
+        ' @param {object} widget - Widget instance providing context
+        ' @param {object} fields - Field configuration to parse
+        ' @returns {object} Parsed fields with resolved values
+        '
         function parseFields(widget as object, fields as object) as object
             parsedFields = {}
 

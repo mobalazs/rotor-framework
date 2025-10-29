@@ -1,15 +1,9 @@
 ' ===== NODE POOL =====
 namespace Rotor.ViewBuilder
 
-    '==========================================================================
-    '** @class NodePool
-    '** @description Manages reusable pools of SceneGraph nodes to improve performance.
-    '**              Optimized for pooling Group nodes and types extending Group (like Poster),
-    '**              as well as other common nodes (e.g., Rectangle, Label).
-    '**              Includes node reset logic upon release.
-    '** @namespace Rotor.ViewBuilder
-    '** @note The class name can be used as a type when declaring variables throughout the framework.
-    '==========================================================================
+    ' =====================================================================
+    ' NodePool - Manages reusable pools of SceneGraph nodes to improve performance. Optimized for pooling Group nodes and types extending Group (like Poster), as well as other common nodes (e.g., Rectangle, Label). Includes node reset logic upon release.
+    ' =====================================================================
     class NodePool
 
         frameworkInstance as Rotor.Framework
@@ -39,36 +33,39 @@ namespace Rotor.ViewBuilder
             poolFulness: {} ' Current amount of nodes in each pool
         }
 
-        '----------------------------------------------------------------------
-        '** @constructor
-        '** @description Initializes the node pool
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' new - Initializes the instance
+        '
+        ' @description Initializes the node pool
+        ' ---------------------------------------------------------------------
         sub new()
         end sub
 
-        '----------------------------------------------------------------------
-        '** @method init
-        '** @description Initializes the pool with framework instance reference
-        '** @param {Rotor.Framework} frameworkInstance - Framework instance reference
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' init - Initializes the pool with framework instance reference
+        '
+
+        ' @param {Rotor.Framework} frameworkInstance - Framework instance reference
+        ' ---------------------------------------------------------------------
         sub init(frameworkInstance as Rotor.Framework)
             m.frameworkInstance = frameworkInstance
         end sub
 
-        '----------------------------------------------------------------------
-        '** @method destroy
-        '** @description Cleans up framework instance reference and pools
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' destroy - Cleans up framework instance reference and pools
+        ' ---------------------------------------------------------------------
         sub destroy()
             m.frameworkInstance = invalid
             m.pools.Clear()
         end sub
 
-        '----------------------------------------------------------------------
-        '** @method presetNodePool
-        '** @description Presets node pools with specified amounts of each node type
-        '** @param {object} config - Configuration with nodePool array
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        '
+
+        ' presetNodePool - Presets node pools with specified amounts of each node type
+        '
+        ' @param {object} config - Configuration with nodePool array
+        ' ---------------------------------------------------------------------
         sub presetNodePool(config)
             Rotor.Utils.deepExtendAA(m.config, config)
             for each thisPool in m.config.nodePool
@@ -85,12 +82,13 @@ namespace Rotor.ViewBuilder
             end for
         end sub
 
-        '----------------------------------------------------------------------
-        '** @method acquireNode
-        '** @description Acquires a node from the pool or creates a new one
-        '** @param {string} nodeType - Type of SceneGraph node to acquire
-        '** @returns {object} SceneGraph node instance
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' acquireNode - Acquires a node from the pool or creates a new one
+        '
+
+        ' @param {string} nodeType - Type of SceneGraph node to acquire
+        ' @returns {object} SceneGraph node instance
+        ' ---------------------------------------------------------------------
         function acquireNode(nodeType)
             if m.pools.doesExist(nodeType) and m.pools[nodeType].Count() > 0
                 node = m.pools[nodeType].pop()
@@ -109,12 +107,13 @@ namespace Rotor.ViewBuilder
             return node
         end function
 
-        '----------------------------------------------------------------------
-        '** @method releaseNodeBranch
-        '** @description Recursively releases a node and its children back to pools
-        '** @param {object} node - SceneGraph node to release
-        '** @param {object} parent - Parent node for removal (default: invalid)
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' releaseNodeBranch - Recursively releases a node and its children back to pools
+        '
+
+        ' @param {object} node - SceneGraph node to release
+        ' @param {object} parent - Parent node for removal (default: invalid)
+        ' ---------------------------------------------------------------------
         sub releaseNodeBranch(node as object, parent = invalid as object)
 
             children = node.getChildren(-1, 0)
@@ -141,12 +140,13 @@ namespace Rotor.ViewBuilder
 
         end sub
 
-        '----------------------------------------------------------------------
-        '** @method resetNode
-        '** @description Resets a node's properties to default values before returning to pool
-        '** @param {object} node - SceneGraph node to reset
-        '** @private
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' resetNode - Resets a node's properties to default values before returning to pool
+        '
+
+        ' @param {object} node - SceneGraph node to reset
+        ' @private
+        ' ---------------------------------------------------------------------
         private sub resetNode(node as object)
             if node = invalid then return
 
@@ -210,11 +210,12 @@ namespace Rotor.ViewBuilder
             end if
         end sub
 
-        '----------------------------------------------------------------------
-        '** @method getNodePoolInfo
-        '** @description Gets node pool statistics (debug mode only)
-        '** @returns {object} Pool information with counts and stats
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' getNodePoolInfo - Gets node pool statistics (debug mode only)
+        '
+
+        ' @returns {object} Pool information with counts and stats
+        ' ---------------------------------------------------------------------
         function getNodePoolInfo()
             info = {}
             #if debug

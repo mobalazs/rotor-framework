@@ -1,16 +1,13 @@
 namespace Rotor.ViewBuilder
 
-    '==========================================================================
-    '** @function updateWidget
-    '** @description Updates an existing widget with new configuration.
-    '**              Handles props updates, viewModelState changes, plugin lifecycle hooks,
-    '**              z-index changes, and custom lifecycle callbacks.
-    '** @param {object} postProcessBuffer - Buffer for deferred plugin/lifecycle operations
-    '** @param {object} widget - Existing widget instance to update
-    '** @param {object} newConfig - New configuration to apply
-    '** @returns {object} Object with children and HID for further processing
-    '** @namespace Rotor.ViewBuilder
-    '==========================================================================
+    ' =====================================================================
+    ' updateWidget - Updates an existing widget with new configuration. Handles props updates, viewModelState changes, plugin lifecycle hooks, z-index changes, and custom lifecycle callbacks.
+    '
+    ' @param {object} postProcessBuffer - Buffer for deferred plugin/lifecycle operations
+    ' @param {object} widget - Existing widget instance to update
+    ' @param {object} newConfig - New configuration to apply
+    ' @returns {object} Object with children and HID for further processing
+    ' =====================================================================
     function updateWidget(postProcessBuffer as object, widget as object, newConfig as object) as object
         HID = widget.HID
 

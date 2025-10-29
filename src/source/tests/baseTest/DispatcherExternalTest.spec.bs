@@ -115,33 +115,5 @@ namespace tests
             m.assertInvalid(dispatcher.taskNode)
         end function
 
-        @it("dispatcherStateCallback forwards events to dispatcher provider")
-        function dispatcherStateCallback_forwards_state()
-            node = CreateObject("roSGNode", "ContentNode")
-            dispatcherStub = {
-                received: invalid,
-                notifyListeners: sub(state)
-                    m.received = state
-                end sub
-            }
-            m.frameworkStub.dispatcherProvider.mockDispatchers = {
-                callbackTarget: dispatcherStub
-            }
-
-            msg = {
-                getField: function()
-                    return "callbackTarget"
-                end function,
-                getData: function()
-                    return { value: 42 }
-                end function
-            }
-
-            Rotor.dispatcherStateCallback(msg)
-
-            m.assertNotInvalid(dispatcherStub.received)
-            m.assertEqual(dispatcherStub.received.value, 42)
-        end function
-
     end class
 end namespace

@@ -2,13 +2,11 @@ import "TreeBase.bs"
 
 namespace Rotor.ViewBuilder
 
-    '==========================================================================
-    '** @class TreeRoot
-    '** @description Root node of the widget tree.
-    '**              Provides minimal API for rendering and erasing at the root level.
-    '** @namespace Rotor.ViewBuilder
-    '** @note The class name can be used as a type when declaring variables throughout the framework.
-    '==========================================================================
+    ' =====================================================================
+    ' TreeRoot - Root node of the widget tree
+    '
+    ' Provides minimal API for rendering and erasing at the root level.
+    ' =====================================================================
     class TreeRoot
 
         node as object
@@ -49,43 +47,38 @@ namespace Rotor.ViewBuilder
 
     end class
 
-    '==========================================================================
-    '** @class WidgetTree
-    '** @description Main widget tree implementation extending WidgetTreeBase.
-    '**              Manages widget hierarchy, parent-child relationships,
-    '**              and ViewModel scope propagation through the tree.
-    '** @extends Rotor.ViewBuilder.WidgetTreeBase
-    '** @namespace Rotor.ViewBuilder
-    '** @note The class name can be used as a type when declaring variables throughout the framework.
-    '==========================================================================
+    ' =====================================================================
+    ' WidgetTree - Main widget tree implementation extending WidgetTreeBase
+    '
+    ' Manages widget hierarchy, parent-child relationships,
+    ' and ViewModel scope propagation through the tree.
+    ' =====================================================================
     class WidgetTree extends Rotor.ViewBuilder.WidgetTreeBase
 
         ' sub new()
         ' end sub
 
-        '----------------------------------------------------------------------
-        '** @method init
-        '** @description Initializes the widget tree
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' init - Initializes the widget tree
+        '
         sub init()
         end sub
 
-        '----------------------------------------------------------------------
-        '** @method destroy
-        '** @description Destroys the widget tree and cleans up resources
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' destroy - Destroys the widget tree and cleans up resources
+        '
         sub destroy()
             m.tree.destroy()
             m.tree_HIDHash.stack.Clear()
         end sub
 
-        '----------------------------------------------------------------------
-        '** @method add
-        '** @description Adds a widget to the tree and returns the widget instance
-        '** @param {object} config - Widget configuration with id and parentHID
-        '** @param {object} ViewModelClass - Optional ViewModel class constructor (default: invalid)
-        '** @returns {object} Created widget instance with generated HID
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' add - Adds a widget to the tree and returns the widget instance
+        '
+        ' @param {object} config - Widget configuration with id and parentHID
+        ' @param {object} ViewModelClass - Optional ViewModel class constructor (default: invalid)
+        ' @returns {object} Created widget instance with generated HID
+        '
         function add(config as object, ViewModelClass = invalid) as object
 
             if Rotor.Utils.isFunction(ViewModelClass as function) ' Custom View extends Widget
@@ -137,13 +130,13 @@ namespace Rotor.ViewBuilder
             return widget
         end function
 
-        '----------------------------------------------------------------------
-        '** @method getChildrenWidgets
-        '** @description Gets child widgets of a parent in SceneGraph node order
-        '** @param {object} parentWidget - Parent widget to get children from
-        '** @param {string} matchingPattern - Optional glob pattern to filter children (default: "")
-        '** @returns {object} Array of child widgets in node order
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' getChildrenWidgets - Gets child widgets of a parent in SceneGraph node order
+        '
+        ' @param {object} parentWidget - Parent widget to get children from
+        ' @param {string} matchingPattern - Optional glob pattern to filter children (default: "")
+        ' @returns {object} Array of child widgets in node order
+        '
         function getChildrenWidgets(parentWidget as object, matchingPattern = "" as string) as object
 
             if parentWidget = invalid then return invalid
@@ -175,11 +168,11 @@ namespace Rotor.ViewBuilder
             return orderedWidgets
         end function
 
-        '----------------------------------------------------------------------
-        '** @method remove
-        '** @description Removes a widget from the tree by HID
-        '** @param {string} HID - Hierarchical ID of widget to remove
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' remove - Removes a widget from the tree by HID
+        '
+        ' @param {string} HID - Hierarchical ID of widget to remove
+        '
         sub remove (HID as string)
             widget = m.getByHID(HID)
             ' if widget = invalid then return
@@ -210,12 +203,12 @@ namespace Rotor.ViewBuilder
 
         ' ===== HELPER METHODS =====
 
-        '----------------------------------------------------------------------
-        '** @method isBranchOfRemove
-        '** @description Checks if widget is a top-level branch marked for removal
-        '** @param {object} widget - Widget to check
-        '** @returns {boolean} True if widget is removal branch root
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' isBranchOfRemove - Checks if widget is a top-level branch marked for removal
+        '
+        ' @param {object} widget - Widget to check
+        ' @returns {boolean} True if widget is removal branch root
+        '
         function isBranchOfRemove(widget as object) as boolean
             if false = widget.DoesExist("markedToRemove") then return false
             if widget.isRootChild = true
@@ -225,12 +218,12 @@ namespace Rotor.ViewBuilder
             return widget.parent.DoesExist("markedToRemove") ? false : true
         end function
 
-        '----------------------------------------------------------------------
-        '** @method isBranchOfAppend
-        '** @description Checks if widget is a top-level branch marked for append
-        '** @param {object} widget - Widget to check
-        '** @returns {boolean} True if widget is append branch root
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' isBranchOfAppend - Checks if widget is a top-level branch marked for append
+        '
+        ' @param {object} widget - Widget to check
+        ' @returns {boolean} True if widget is append branch root
+        '
         function isBranchOfAppend(widget as object) as boolean
             if false = widget.DoesExist("markedToAppend") then return false
             if widget.isRootChild = true
@@ -239,12 +232,12 @@ namespace Rotor.ViewBuilder
             return widget.parent.DoesExist("markedToAppend") ? false : true
         end function
 
-        '----------------------------------------------------------------------
-        '** @method getTreeItem
-        '** @description Gets tree item by HID or returns root if HID is empty
-        '** @param {string} HID - Hierarchical ID to lookup
-        '** @returns {object} Widget at HID or tree root
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' getTreeItem - Gets tree item by HID or returns root if HID is empty
+        '
+        ' @param {string} HID - Hierarchical ID to lookup
+        ' @returns {object} Widget at HID or tree root
+        '
         function getTreeItem(HID)
             return HID = "" ? m.tree : m.getByHID(HID)
         end function
@@ -263,20 +256,20 @@ namespace Rotor.ViewBuilder
         '     end if
         ' end function
 
-        '----------------------------------------------------------------------
-        '** @method setRootNode
-        '** @description Sets the SceneGraph node for the tree root
-        '** @param {object} node - SceneGraph node to set as root
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' setRootNode - Sets the SceneGraph node for the tree root
+        '
+        ' @param {object} node - SceneGraph node to set as root
+        '
         sub setRootNode (node as object)
             m.tree.node = node
         end sub
 
-        '----------------------------------------------------------------------
-        '** @method getRootNode
-        '** @description Gets the root SceneGraph node
-        '** @returns {object} Root SceneGraph node
-        '----------------------------------------------------------------------
+        ' ---------------------------------------------------------------------
+        ' getRootNode - Gets the root SceneGraph node
+        '
+        ' @returns {object} Root SceneGraph node
+        '
         function getRootNode() as object
             return m.tree.node
         end function
