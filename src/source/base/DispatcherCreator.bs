@@ -12,14 +12,9 @@ namespace Rotor
     ' @param {Reducer} reducerInstance - Reducer for state transitions
     ' @returns {Dispatcher} Dispatcher facade instance
     ' =====================================================================
-    function createDispatcher(customDispatcherId as string, modelInstance as Model, reducerInstance as Reducer) as Dispatcher
+    sub createDispatcher(customDispatcherId as string, modelInstance as Model, reducerInstance as Reducer)
         m.dispatcherInstance = new Rotor.DispatcherCreator(customDispatcherId, modelInstance, reducerInstance)
-
-        frameworkInstance = GetGlobalAA().rotor_framework_helper.frameworkInstance
-        dispatcherFacadeInstance = frameworkInstance.dispatcherProvider.getFacade(customDispatcherId, m)
-
-        return dispatcherFacadeInstance
-    end function
+    end sub
 
     ' =====================================================================
     ' DispatcherCreator - Internal dispatcher implementation for MVI pattern state management

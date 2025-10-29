@@ -16,7 +16,8 @@ namespace tests
             ' Initialize framework
             m.fwInstance = new Rotor.Framework()
             ' Create fooDispatcher instance (owned by the render thread)
-            m.fooDispatcher = test.createFooDispatcher()
+            test.createFooDispatcher()
+            m.fooDispatcher = m.fwInstance.getDispatcher("fooDispatcher")
             ' Render
             template = getDispatcherTestTemplate()
             m.fwInstance.render(template)

@@ -406,7 +406,7 @@ onMountWidget: sub()
     model = new Models.LocalStateModel()
     reducer = new Reducers.LocalStateReducer()
 
-    m.createDispatcher("localState", model, reducer)
+    Rotor.createDispatcher("localState", model, reducer)
 end sub
 ```
 
