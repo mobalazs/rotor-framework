@@ -53,7 +53,7 @@ jobs:
           file: coverage.lcov
           base-path: src
 
-      # 7. Create source package (ZIP with raw .bs files)
+      # 7. Create source package (ZIP with cleaned .bs files)
       - name: Create source package
         if: startsWith(github.ref, 'refs/tags/')
         run: |
@@ -61,6 +61,7 @@ jobs:
           mkdir -p out/rotor-framework-temp/source
           cp -r src/source/rotor out/rotor-framework-temp/source/
           cp README.md LICENCE.md out/rotor-framework-temp/
+          node scripts/cleanup-source.js out/rotor-framework-temp/source/rotor
           cd out/rotor-framework-temp
           zip -r ../rotor-framework.zip . -x "*.spec.bs" "*.DS_Store"
           cd ../..
