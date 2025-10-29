@@ -555,6 +555,7 @@ namespace Rotor
         ' Flushes render queue, triggers onReady callback, and sets ready field.
         '
         sub isReady()
+            m.enableRendering = true
             m.builder.renderQueueFlush()
 
             ' Notify ready state on rotorSync field

@@ -73,7 +73,6 @@ namespace Rotor.ViewBuilder
         ' renderQueueFlush - Flushes the render queue and processes next queued render
         '
         sub renderQueueFlush()
-            m.frameworkInstance.enableRendering = true
             if m.renderQueue.Count() > 0
                 nextQueuedConfig = m.renderQueue.shift()
                 m.renderProcessor(nextQueuedConfig.payload, nextQueuedConfig.params, true)
@@ -111,7 +110,8 @@ namespace Rotor.ViewBuilder
                 params.delete("callbackScope")
             end if
 
-            if (m.isRenderProcessing = true and isNextProcess = false) or m.frameworkInstance.enableRendering = false
+            renderingDisabled = m.frameworkInstance.enableRendering = false and not(params?.enableRenderBeforeReady ?? false)
+            if (m.isRenderProcessing = true and isNextProcess = false) or renderingDisabled
                 m.renderQueue.push({
                     payload: payload,
                     params: params
