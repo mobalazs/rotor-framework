@@ -40,52 +40,47 @@ import "plugins/FocusPlugin.bs"
 
 namespace Rotor
 
-    '--------------------------------------------------------------------------
-    ' @class Framework
-    ' @description Main Rotor Framework class that orchestrates the entire framework ecosystem.
-    '              Provides a reactive, component-based architecture for building Roku applications
-    '              with unidirectional data flow, cross-thread state management, and plugin system.
-    '
-    ' @config Configuration object with the following properties:
-    '   - tasks (Array, optional): List of task node names to synchronize with the render thread.
-    '                              When specified, the framework waits for all tasks to initialize
-    '                              before enabling rendering and calling onReady.
-    '
-    '   - onReady (Function, optional): Callback function invoked when the framework is fully
-    '                                   initialized and all tasks are synced. Called in global scope.
-    '
-    '   - rootNode (roSGNode, optional): The root SceneGraph node for the framework. Defaults to
-    '                                    the global 'top' node if not specified.
-    '
-    '   - readyFieldId (String, optional): Field name to add to the root node that will be set to
-    '                                      true when the framework is ready. Useful for triggering
-    '                                      observers when initialization completes.
-    '
-    '   - nodePool (Array, optional): Array of node pool configurations for pre-instantiating
-    '                                 SceneGraph nodes to improve rendering performance.
-    '                                 Format: [{ nodeType: "Label", count: 10 }, ...]
-    '
-    '   - debug (Object): Debug configuration options
-    '       - autoSetNodeId (Boolean): Automatically set node IDs for debugging (default: false)
-    '
-    '   - plugins (Array): List of plugin instances to register with the framework.
-    '                      Default plugins include: FieldsPlugin, FontStylePlugin, FocusPlugin,
-    '                      DispatcherProviderPlugin, ObserverPlugin
-    '
-    ' @example
-    '     framework = new Rotor.Framework({
-    '         tasks: ["DataTask", "NetworkTask"],
-    '         rootNode: m.top,
-    '         readyFieldId: "appReady",
-    '         onReady: sub()
-    '             print "Framework ready!"
-    '         end sub,
-    '         nodePool: [
-    '             { nodeType: "Label", count: 20 },
-    '             { nodeType: "Rectangle", count: 10 }
-    '         ]
-    '     })
-    '--------------------------------------------------------------------------
+    '==========================================================================
+    '** Framework
+    '**
+    '** Main Rotor Framework class that orchestrates the entire framework ecosystem.
+    '** Provides a reactive, component-based architecture for building Roku applications
+    '** with unidirectional data flow, cross-thread state management, and plugin system.
+    '**
+    '** @param {object} config - Configuration object with the following properties:
+    '**   - tasks (array, optional): List of task node names to synchronize with the render thread.
+    '**                              When specified, the framework waits for all tasks to initialize
+    '**                              before enabling rendering and calling onReady.
+    '**   - onReady (function, optional): Callback function invoked when the framework is fully
+    '**                                    initialized and all tasks are synced. Called in global scope.
+    '**   - rootNode (roSGNode, optional): The root SceneGraph node for the framework. Defaults to
+    '**                                     the global 'top' node if not specified.
+    '**   - readyFieldId (string, optional): Field name to add to the root node that will be set to
+    '**                                       true when the framework is ready. Useful for triggering
+    '**                                       observers when initialization completes.
+    '**   - nodePool (array, optional): Array of node pool configurations for pre-instantiating
+    '**                                  SceneGraph nodes to improve rendering performance.
+    '**                                  Format: [{ nodeType: "Label", count: 10 }, ...]
+    '**   - debug (object): Debug configuration options
+    '**       - autoSetNodeId (boolean): Automatically set node IDs for debugging (default: false)
+    '**   - plugins (array): List of plugin instances to register with the framework.
+    '**                       Default plugins include: FieldsPlugin, FontStylePlugin, FocusPlugin,
+    '**                       DispatcherProviderPlugin, ObserverPlugin
+    '**
+    '** @example
+    '**   framework = new Rotor.Framework({
+    '**       tasks: ["DataTask", "NetworkTask"],
+    '**       rootNode: m.top,
+    '**       readyFieldId: "appReady",
+    '**       onReady: sub()
+    '**           print "Framework ready!"
+    '**       end sub,
+    '**       nodePool: [
+    '**           { nodeType: "Label", count: 20 },
+    '**           { nodeType: "Rectangle", count: 10 }
+    '**       ]
+    '**   })
+    '==========================================================================
     class Framework
 
         name = "Rotor Framework"
@@ -136,6 +131,14 @@ namespace Rotor
         ' helper vars
         deviceInfo as object
 
+        '----------------------------------------------------------------------
+        '** Constructor - Initializes the Rotor Framework instance
+        '**
+        '** Sets up the framework subsystems (Builder, I18n, Animator, DispatcherProvider),
+        '** initializes device info, registers plugins, and synchronizes with task threads.
+        '**
+        '** @param {object} config - Configuration object (see class documentation for details)
+        '----------------------------------------------------------------------
         sub new(config = {})
 
             Rotor.Utils.deepExtendAA(m.config, config)
@@ -197,69 +200,171 @@ namespace Rotor
 
         end sub
 
-        ' * Public View Builder methods
+        '======================================================================
+        ' PUBLIC API - VIEW BUILDER METHODS
+        '======================================================================
 
+        '----------------------------------------------------------------------
+        '** render - Renders widget tree from declarative configuration
+        '**
+        '** @param {object} payload - Widget tree configuration object
+        '** @param {object} params - Optional render parameters (callback, callbackScope, etc.)
+        '----------------------------------------------------------------------
         public sub render(payload as object, params = {} as object)
             if Rotor.Utils.isValid(params.callback) then params.callbackScope = m
             m.builder.render(payload, params)
         end sub
 
+        '----------------------------------------------------------------------
+        '** erase - Removes widget(s) from the tree
+        '**
+        '** @param {dynamic} payload - Widget ID, HID, or array of IDs to remove
+        '** @param {boolean} shouldSkipNodePool - If true, removed nodes won't be returned to pool
+        '** @param {string} HID - Parent HID context for widget lookup
+        '----------------------------------------------------------------------
         public sub erase(payload as dynamic, shouldSkipNodePool = false as boolean, HID = "0" as string)
             m.builder.erase(payload, shouldSkipNodePool, HID)
         end sub
 
+        '----------------------------------------------------------------------
+        '** registerPlugins - Registers plugin instances with the framework
+        '**
+        '** @param {object} plugins - Array of plugin instances to register
+        '----------------------------------------------------------------------
         public sub registerPlugins(plugins as object)
             m.builder.pluginAdapter.registerPlugins(plugins)
         end sub
 
+        '----------------------------------------------------------------------
+        '** findWidgets - Finds all widgets matching glob pattern
+        '**
+        '** @param {string} searchPattern - Glob pattern (e.g., "header.*", "*.button")
+        '** @param {string} HID - Parent HID context for search (default: "0" = root)
+        '** @returns {object} Array of matching widget instances
+        '----------------------------------------------------------------------
         public function findWidgets(searchPattern as string, HID = "0" as string) as object
             return m.builder.widgetTree.find(searchPattern, HID)
         end function
 
+        '----------------------------------------------------------------------
+        '** getWidget - Gets first widget matching search pattern
+        '**
+        '** @param {string} searchPattern - Widget ID or path (e.g., "header", "header.logo")
+        '** @param {string} HID - Parent HID context for search (default: "0" = root)
+        '** @returns {object} Widget instance or invalid if not found
+        '----------------------------------------------------------------------
         public function getWidget(searchPattern as string, HID = "0" as string) as object
             return m.builder.widgetTree.get(searchPattern, HID)
         end function
 
+        '----------------------------------------------------------------------
+        '** getTopWidgets - Gets all direct children of root widget
+        '**
+        '** @param {string} matchingPattern - Optional glob pattern to filter results
+        '** @returns {object} Array of top-level widget instances
+        '----------------------------------------------------------------------
         public function getTopWidgets(matchingPattern = "" as string) as object
             return m.builder.widgetTree.getChildrenWidgets(m.builder.widgetTree.tree, matchingPattern)
         end function
 
+        '----------------------------------------------------------------------
+        '** getWidgetByHID - Gets widget by Hierarchical ID
+        '**
+        '** @param {string} HID - Hierarchical ID (e.g., "0.header.logo")
+        '** @returns {object} Widget instance or invalid if not found
+        '----------------------------------------------------------------------
         public function getWidgetByHID(HID = "0" as string) as object
             return m.builder.widgetTree.getByHID(HID)
         end function
 
+        '----------------------------------------------------------------------
+        '** getRootWidget - Gets the root widget (HID "0")
+        '**
+        '** @returns {object} Root widget instance
+        '----------------------------------------------------------------------
         public function getRootWidget() as object
             return m.builder.widgetTree.getByHID("0")
         end function
 
+        '----------------------------------------------------------------------
+        '** getSubtreeClone - Creates deep clone of widget subtree
+        '**
+        '** @param {string} searchPattern - Widget ID or path to clone
+        '** @param {object} keyPathList - Array of key paths to include in clone
+        '** @param {string} parentHID - Parent HID context for search
+        '** @returns {object} Cloned widget subtree
+        '----------------------------------------------------------------------
         public function getSubtreeClone(searchPattern as string, keyPathList = [] as object, parentHID = "0" as string) as object
             return m.builder.widgetTree.getSubtreeClone(searchPattern, keyPathList, parentHID)
         end function
 
+        '----------------------------------------------------------------------
+        '** getRootNode - Gets the root SceneGraph node
+        '**
+        '** @returns {object} Root SceneGraph node (roSGNode)
+        '----------------------------------------------------------------------
         public function getRootNode() as object
             return m.builder.widgetTree.getRootNode()
         end function
 
+        '----------------------------------------------------------------------
+        '** getDispatcher - Gets dispatcher facade by ID
+        '**
+        '** @param {string} dispatcherId - Dispatcher identifier
+        '** @returns {object} Dispatcher facade instance
+        '----------------------------------------------------------------------
         public function getDispatcher(dispatcherId as string) as object
             return m.dispatcherProvider.getFacade(dispatcherId, GetGlobalAA())
         end function
 
+        '----------------------------------------------------------------------
+        '** animator - Gets animator factory for creating animations
+        '**
+        '** @param {dynamic} animatorId - Animator identifier
+        '** @returns {object} Animator factory instance
+        '----------------------------------------------------------------------
         public function animator(animatorId) as object
             return m.animatorProvider.getFactory(animatorId, m)
         end function
 
+        '----------------------------------------------------------------------
+        '** getInfo - Gets framework and device information
+        '**
+        '** @returns {object} Info object containing device details
+        '----------------------------------------------------------------------
         public function getInfo() as object
             return m.info
         end function
 
+        '----------------------------------------------------------------------
+        '** getNodePoolInfo - Gets node pool statistics
+        '**
+        '** @returns {object} Node pool information (available nodes, usage, etc.)
+        '----------------------------------------------------------------------
         public function getNodePoolInfo() as object
             return m.builder.nodePool.getNodePoolInfo()
         end function
 
+        '----------------------------------------------------------------------
+        '** presetNodePool - Pre-instantiates nodes for node pool
+        '**
+        '** @param {object} config - Node pool configuration
+        '** @returns {object} Node pool instance
+        '----------------------------------------------------------------------
         public function presetNodePool(config) as object
             return m.builder.nodePool.presetNodePool(config)
         end function
 
+        '======================================================================
+        ' INTERNAL METHODS - INITIALIZATION AND TASK SYNCING
+        '======================================================================
+
+        '----------------------------------------------------------------------
+        '** initInfo - Initializes device and framework information
+        '**
+        '** Collects device information (graphics platform, model, OS version, locale)
+        '** and stores it in m.info for later access.
+        '----------------------------------------------------------------------
         sub initInfo()
             ' Device info
             di = CreateObject("roDeviceInfo")
@@ -271,7 +376,7 @@ namespace Rotor
                 modelDisplayName: di.GetModelDisplayName(),
                 OSVersion: di.GetOSVersion(),
                 currentLocale: di.GetCurrentLocale(), ' Example: "en_US"
-                countryCode: di.GetCountryCode() ' A value that indicates the Streaming Store associated with a user’s Roku account.
+                countryCode: di.GetCountryCode() ' A value that indicates the Streaming Store associated with a user's Roku account.
             })
             #if debug
                 print `[DEVICEINFO] Graphics Platform: ${m.info.device.graphicsPlatform}`
@@ -280,6 +385,13 @@ namespace Rotor
             #end if
         end sub
 
+        '----------------------------------------------------------------------
+        '** setupTaskForSyncing - Prepares a task node for cross-thread syncing
+        '**
+        '** Creates and configures a task node with unique ID and root node reference.
+        '**
+        '** @param {string} taskName - Name of the task component to create
+        '----------------------------------------------------------------------
         sub setupTaskForSyncing(taskName as string)
             rootNode = m.getRootNode()
             taskNode = rootNode.createChild(taskName)
@@ -297,6 +409,11 @@ namespace Rotor
             taskNode.control = "RUN"
         end sub
 
+        '----------------------------------------------------------------------
+        '** setupAdditionalTasks - Sets up additional task nodes dynamically
+        '**
+        '** @param {object} taskList - Array of task names to set up
+        '----------------------------------------------------------------------
         sub setupAdditionalTasks(taskList as object)
             ' check additional tasks
             if taskList = invalid then return
@@ -307,6 +424,11 @@ namespace Rotor
             end for
         end sub
 
+        '----------------------------------------------------------------------
+        '** areAllTasksOperational - Checks if all task threads are operational
+        '**
+        '** @returns {boolean} True if all tasks have signaled operational status
+        '----------------------------------------------------------------------
         function areAllTasksOperational() as boolean
             ' Check if all nodes ready (very basic logic (< future improvement)
             if m.taskOperationalFlag.Count() = 0 then return false
@@ -318,6 +440,13 @@ namespace Rotor
             return true
         end function
 
+        '----------------------------------------------------------------------
+        '** collectExternalDispatcherRegistrations - Collects external dispatcher info for tasks
+        '**
+        '** Creates a map of which external dispatchers need to be registered in which tasks.
+        '**
+        '** @returns {object} AA mapping taskId to array of dispatcher registration configs
+        '----------------------------------------------------------------------
         function collectExternalDispatcherRegistrations() as object
             registrations = {}
             dispatcherIds = m.dispatcherProvider.getAll().keys()
@@ -343,6 +472,11 @@ namespace Rotor
             return registrations
         end function
 
+        '----------------------------------------------------------------------
+        '** dispatchExternalDispatcherRegistrations - Sends dispatcher registration to tasks
+        '**
+        '** @param {object} registrations - Map of taskId to dispatcher registration configs
+        '----------------------------------------------------------------------
         sub dispatchExternalDispatcherRegistrations(registrations as object)
             for each taskId in registrations
                 taskNode = m.taskNodes[taskId]
@@ -353,6 +487,11 @@ namespace Rotor
             end for
         end sub
 
+        '----------------------------------------------------------------------
+        '** haveAllTasksSynced - Checks if all tasks have completed syncing
+        '**
+        '** @returns {boolean} True if all tasks have synced successfully
+        '----------------------------------------------------------------------
         function haveAllTasksSynced() as boolean
             ' Check if all nodes ready (very basic logic (< future improvement)
             if m.taskSyncReadyFlag.Count() = 0 then return false
@@ -364,6 +503,13 @@ namespace Rotor
             return true
         end function
 
+        '----------------------------------------------------------------------
+        '** handleTaskSyncing - Handles task syncing phase
+        '**
+        '** Registers external dispatchers and sets up cross-thread communication.
+        '**
+        '** @param {object} sync - Sync payload from task thread
+        '----------------------------------------------------------------------
         sub handleTaskSyncing(sync as object)
             taskNode = sync.taskNode
 
@@ -389,6 +535,13 @@ namespace Rotor
             end if
         end sub
 
+        '----------------------------------------------------------------------
+        '** handleTaskSynced - Handles task synced confirmation
+        '**
+        '** Marks task as synced and checks if all tasks are ready.
+        '**
+        '** @param {string} taskId - ID of the task that has synced
+        '----------------------------------------------------------------------
         sub handleTaskSynced(taskId as string)
             m.taskSyncReadyFlag[taskId] = true
             if m.haveAllTasksSynced()
@@ -396,7 +549,11 @@ namespace Rotor
             end if
         end sub
 
-        ' Notify ready in 3 ways.
+        '----------------------------------------------------------------------
+        '** isReady - Notifies framework ready state via multiple channels
+        '**
+        '** Flushes render queue, triggers onReady callback, and sets ready field.
+        '----------------------------------------------------------------------
         sub isReady()
             m.builder.renderQueueFlush()
 
@@ -416,8 +573,15 @@ namespace Rotor
             end if
         end sub
 
+        '======================================================================
+        ' CLEANUP
+        '======================================================================
 
-        ' DESTROY
+        '----------------------------------------------------------------------
+        '** destroy - Cleans up framework resources
+        '**
+        '** Destroys all task nodes, unregisters observers, and cleans up subsystems.
+        '----------------------------------------------------------------------
         public sub destroy()
 
             rootNode = m.getRootNode()
@@ -453,6 +617,16 @@ namespace Rotor
 
     end class
 
+    '==========================================================================
+    '** syncCallback
+    '**
+    '** Global callback function for cross-thread synchronization messages.
+    '**
+    '** This function is called when the rotorSync field changes on the root node.
+    '** It routes sync messages to the appropriate framework handler based on type.
+    '**
+    '** @param {roSGNodeEvent} msg - SceneGraph observer message containing sync data
+    '==========================================================================
     sub syncCallback(msg)
         ' extraInfo = msg.GetInfo()
         ' fieldId = msg.getField()
