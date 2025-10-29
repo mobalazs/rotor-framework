@@ -2,7 +2,7 @@ import "../base/BasePlugin.bs"
 
 namespace Rotor
 
-    '******************************************************************
+    '==========================================================================
     '** FontStylePlugin
     '**
     '** Rotor Framework plugin for handling dynamic font styling on Label nodes.
@@ -20,7 +20,7 @@ namespace Rotor
     '**
     '** @namespace Rotor
     '** @extends BasePlugin
-    '******************************************************************
+    '==========================================================================
     class FontStylePlugin extends Rotor.BasePlugin
 
         ' =============================================================
@@ -38,11 +38,11 @@ namespace Rotor
         ' CONSTRUCTOR
         ' =============================================================
 
-        '**
+        '----------------------------------------------------------------------
         '** Constructor - Initializes the FontStylePlugin instance
         '**
         '** @param {string} key - Plugin identifier (default: "fontStyle")
-        '**
+        '----------------------------------------------------------------------
         sub new(key = "fontStyle" as string)
             super(key)
         end sub

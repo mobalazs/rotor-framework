@@ -2,7 +2,7 @@ import "../base/BasePlugin.bs"
 
 namespace Rotor
 
-    '******************************************************************
+    '==========================================================================
     '** DispatcherProviderPlugin
     '**
     '** Rotor Framework plugin for managing MVI dispatcher integration with widgets.
@@ -19,18 +19,18 @@ namespace Rotor
     '**
     '** @namespace Rotor
     '** @extends BasePlugin
-    '******************************************************************
+    '==========================================================================
     class DispatcherProviderPlugin extends Rotor.BasePlugin
 
         ' =============================================================
         ' CONSTRUCTOR
         ' =============================================================
 
-        '**
+        '----------------------------------------------------------------------
         '** Constructor - Initializes the DispatcherProviderPlugin instance
         '**
         '** @param {string} key - Plugin identifier (default: "dispatcher")
-        '**
+        '----------------------------------------------------------------------
         sub new(key = "dispatcher" as string)
             super(key)
         end sub
