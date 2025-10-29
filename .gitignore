@@ -3,6 +3,9 @@ out
 stage
 dist
 node_modules
+source/
+src/source/roku_modules
+src/components/roku_modules
 .roku-deploy-staging
 .env
 ./dist/tests.xml
