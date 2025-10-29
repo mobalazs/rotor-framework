@@ -83,7 +83,6 @@ Every widget automatically receives these methods:
 | Method | Parameters | Return | Description |
 |--------|------------|--------|-------------|
 | `getDispatcher` | `id` (string) | object | Get dispatcher by ID |
-| `createDispatcher` | `id`, `model`, `reducer` | object | Create new dispatcher |
 
 ### Animation
 

@@ -227,15 +227,6 @@ namespace Rotor
         end sub
 
         ' ---------------------------------------------------------------------
-        ' registerPlugins - Registers plugin instances with the framework
-        '
-        ' @param {object} plugins - Array of plugin instances to register
-        '
-        public sub registerPlugins(plugins as object)
-            m.builder.pluginAdapter.registerPlugins(plugins)
-        end sub
-
-        ' ---------------------------------------------------------------------
         ' findWidgets - Finds all widgets matching glob pattern
         '
         ' @param {string} searchPattern - Glob pattern (e.g., "header.*", "*.button")
@@ -358,6 +349,15 @@ namespace Rotor
         ' =====================================================================
         ' INTERNAL METHODS - INITIALIZATION AND TASK SYNCING
         ' =====================================================================
+
+        ' ---------------------------------------------------------------------
+        ' registerPlugins - Registers plugin instances with the framework
+        '
+        ' @param {object} plugins - Array of plugin instances to register
+        '
+        sub registerPlugins(plugins as object)
+            m.builder.pluginAdapter.registerPlugins(plugins)
+        end sub
 
         ' ---------------------------------------------------------------------
         ' initInfo - Initializes device and framework information
