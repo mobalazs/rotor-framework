@@ -57,8 +57,8 @@ jobs:
       - name: Create source package
         if: startsWith(github.ref, 'refs/tags/')
         run: |
-          mkdir -p out
-          zip -r out/rotor-framework.zip README.md LICENCE.md src/source/rotor
+          rm -f out/rotor-framework.zip
+          zip -r out/rotor-framework.zip README.md LICENCE.md src/source/rotor -x "*.spec.bs" "*.DS_Store"
 
       # 8. Create GitHub Release and upload package
       - name: Create Release
