@@ -1,4 +1,4 @@
-import "pkg:/source/rotor/base/BaseViewModel.bs"
+import "pkg:/source/base/BaseViewModel.bs"
 
 namespace tests
 

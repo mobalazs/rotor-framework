@@ -49,7 +49,7 @@ namespace Rotor
     '
     ' @example
     '   ' File: MyTask.task.bs
-    '   import "pkg:/source/rotor/RotorFrameworkTask.bs"
+    '   import "pkg:/source/RotorFrameworkTask.bs"
     '   import "pkg:/source/MyDispatcher.bs"
     '
     '   sub init()

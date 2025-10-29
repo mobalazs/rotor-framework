@@ -24,13 +24,14 @@
 
 ## 📦 Installation
 
-Rotor is structured as a shared library for Brighterscript projects. To install:
+Rotor is structured as a shared library for BrighterScript projects. To install:
 
-1. Copy the `source/rotor` directory into your project.
-2. Import Rotor in your main file:
+1. Download the latest `rotor-framework.zip` from [GitHub Releases](https://github.com/mobalazs/rotor-framework/releases)
+2. Extract the ZIP into your project's `source/` directory (this will create a `rotor-framework/` folder)
+3. Import Rotor in your main file:
 
 ```vb
-import "pkg:/source/rotor/RotorFramework.bs"
+import "pkg:/source/RotorFramework.bs"
 ```
 
 ---
@@ -100,7 +101,7 @@ You can find [🌱](./docs/ai/readme.opt.yaml) symbols in all documentation page
 
 ## 📄 License
 
-Rotor is MIT licensed. See `LICENSE` file for details.
+Rotor is MIT licensed. See [LICENSE.md](./LICENSE.md) file for details.
 
 ---
 

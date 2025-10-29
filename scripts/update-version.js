@@ -31,7 +31,7 @@ fs.writeFileSync(manifestPath, manifest);
 console.log('✓ Updated manifest');
 
 // 3. Update RotorFramework.bs (2 places: header comment and version variable)
-const frameworkPath = path.join(__dirname, '../src/source/rotor/RotorFramework.bs');
+const frameworkPath = path.join(__dirname, '../src/source/RotorFramework.bs');
 let framework = fs.readFileSync(frameworkPath, 'utf8');
 // Update header comment
 framework = framework.replace(/(' Version )\d+\.\d+\.\d+/, `$1${version}`);
@@ -41,7 +41,7 @@ fs.writeFileSync(frameworkPath, framework);
 console.log('✓ Updated RotorFramework.bs');
 
 // 4. Update RotorFrameworkTask.bs (2 places: header comment and version variable)
-const taskPath = path.join(__dirname, '../src/source/rotor/RotorFrameworkTask.bs');
+const taskPath = path.join(__dirname, '../src/source/RotorFrameworkTask.bs');
 let task = fs.readFileSync(taskPath, 'utf8');
 // Update header comment
 task = task.replace(/(' Version )\d+\.\d+\.\d+/, `$1${version}`);

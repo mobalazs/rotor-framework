@@ -6,7 +6,7 @@
 		"components/**/*",
 		"manifest",
 		"assets/**/*",
-		"!source/rotor/libs/**/*.spec.bs"
+		"!source/libs/**/*.spec.bs"
 	],
 
 	"bs_const": {
@@ -43,10 +43,10 @@
 			"source/Main.brs",
 			"components/rooibos/CodeCoverage.brs",
 			"components/MainScene.bs",
-			"source/rotor/engine/Constants.bs",
+			"source/engine/Constants.bs",
 			"**/roku_modules/**/*",
-			"source/rotor/libs/**/*",
-			"source/rotor/base/BaseWidget.bs"
+			"source/libs/**/*",
+			"source/base/BaseWidget.bs"
 		]
 	},
 
@@ -55,7 +55,7 @@
 			"src": "**/roku_modules/**/*.*"
 		},
 		{
-			"src": "source/rotor/libs/**/*.spec.bs"
+			"src": "source/libs/**/*.spec.bs"
 		},
 		{
 			"src": "**/source/tests/**/*"

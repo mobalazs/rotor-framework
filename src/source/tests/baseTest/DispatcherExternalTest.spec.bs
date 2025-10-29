@@ -1,5 +1,5 @@
-import "pkg:/source/rotor/base/DispatcherExternal.bs"
-import "pkg:/source/rotor/engine/Constants.bs"
+import "pkg:/source/base/DispatcherExternal.bs"
+import "pkg:/source/engine/Constants.bs"
 
 namespace tests
 

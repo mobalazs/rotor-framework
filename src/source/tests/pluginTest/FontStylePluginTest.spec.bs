@@ -1,4 +1,4 @@
-import "pkg:/source/rotor/plugins/FontStylePlugin.bs"
+import "pkg:/source/plugins/FontStylePlugin.bs"
 
 namespace tests
     @suite("FontStylePlugin unit coverage")

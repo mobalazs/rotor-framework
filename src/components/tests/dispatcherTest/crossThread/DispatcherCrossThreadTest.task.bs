@@ -1,5 +1,5 @@
 ' Rotor Framework Task
-import "pkg:/source/rotor/RotorFrameworkTask.bs"
+import "pkg:/source/RotorFrameworkTask.bs"
 
 ' Constants
 import "pkg:/components/tests/dispatcherTest/DispatcherTest.const.bs"

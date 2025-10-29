@@ -15,8 +15,8 @@
 		"update-version": "node scripts/update-version.js"
 	},
 	"files": [
-		"src/source/rotor/**/*",
-		"!src/source/rotor/**/*.spec.bs",
+		"src/source/**/*",
+		"!src/source/**/*.spec.bs",
 		"README.md",
 		"LICENSE"
 	],

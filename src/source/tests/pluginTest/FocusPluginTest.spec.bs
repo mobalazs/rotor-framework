@@ -1,5 +1,5 @@
-import "pkg:/source/rotor/RotorFramework.bs"
-import "pkg:/source/rotor/engine/Constants.bs"
+import "pkg:/source/RotorFramework.bs"
+import "pkg:/source/engine/Constants.bs"
 import "pkg:/components/tests/focusPluginTest/FocusPluginTest.template.bs"
 
 namespace tests
