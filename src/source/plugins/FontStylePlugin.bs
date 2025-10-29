@@ -52,19 +52,19 @@ namespace Rotor
         ' =============================================================
 
         hooks = {
-            '**
+            '----------------------------------------------------------------------
             '** beforeMount - Sets font style when widget is mounted
             '**
             '** Evaluates and applies font style after Label widget creation.
             '**
             '** @param {object} scope - Plugin instance (m)
             '** @param {object} widget - Widget being mounted
-            '**
+            '----------------------------------------------------------------------
             beforeMount: sub(scope as object, widget as object)
                 scope.setFontAttribute(widget)
             end sub,
 
-            '**
+            '----------------------------------------------------------------------
             '** beforeUpdate - Updates font style when widget config changes
             '**
             '** Re-evaluates and applies font style when fontStyle property changes.
@@ -73,7 +73,7 @@ namespace Rotor
             '** @param {object} widget - Widget being updated
             '** @param {dynamic} newValue - New font style configuration
             '** @param {dynamic} oldValue - Previous font style configuration
-            '**
+            '----------------------------------------------------------------------
             beforeUpdate: sub(scope as object, widget as object, newValue, oldValue)
                 widget[scope.key] = newValue ?? ""
                 scope.setFontAttribute(widget)

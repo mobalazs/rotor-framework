@@ -42,20 +42,20 @@ namespace Rotor
         ' =============================================================
 
         hooks = {
-            '**
+            '----------------------------------------------------------------------
             '** beforeMount - Attaches observers when widget is mounted
             '**
             '** Called during widget creation to register all observers defined in the widget config.
             '**
             '** @param {object} scope - Plugin instance (m)
             '** @param {object} widget - Widget being mounted
-            '**
+            '----------------------------------------------------------------------
             beforeMount: sub(scope as object, widget as object)
                 config = widget[scope.key]
                 scope.attach(widget.node, config, widget)
             end sub,
 
-            '**
+            '----------------------------------------------------------------------
             '** beforeUpdate - Updates observers when widget config changes
             '**
             '** Detaches old observers and attaches new ones based on updated configuration.
@@ -64,7 +64,7 @@ namespace Rotor
             '** @param {object} widget - Widget being updated
             '** @param {object} newValue - New observer configuration
             '** @param {object} oldValue - Previous observer configuration
-            '**
+            '----------------------------------------------------------------------
             beforeUpdate: sub(scope as object, widget as object, newValue, oldValue = {})
                 if oldValue <> invalid
                     scope.detach(widget.node)
@@ -73,14 +73,14 @@ namespace Rotor
                 scope.attach(widget.node, newValue, widget)
             end sub,
 
-            '**
+            '----------------------------------------------------------------------
             '** beforeDestroy - Detaches all observers before widget destruction
             '**
             '** Ensures cleanup of all observers when widget is removed from scene graph.
             '**
             '** @param {object} scope - Plugin instance (m)
             '** @param {object} widget - Widget being destroyed
-            '**
+            '----------------------------------------------------------------------
             beforeDestroy: sub(scope as object, widget as object)
                 scope.detach(widget.node)
             end sub

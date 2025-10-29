@@ -48,20 +48,20 @@ namespace Rotor
         ' =============================================================
 
         hooks = {
-            '**
+            '----------------------------------------------------------------------
             '** beforeMount - Sets custom fields when widget is mounted
             '**
             '** Evaluates and applies all field expressions after widget creation.
             '**
             '** @param {object} scope - Plugin instance (m)
             '** @param {object} widget - Widget being mounted
-            '**
+            '----------------------------------------------------------------------
             beforeMount: sub(scope as object, widget as object)
                 value = widget[scope.key]
                 scope.setCustomFields(widget, value)
             end sub,
 
-            '**
+            '----------------------------------------------------------------------
             '** beforeUpdate - Updates custom fields when widget config changes
             '**
             '** Merges new field config with existing config and re-evaluates all fields.
@@ -70,19 +70,19 @@ namespace Rotor
             '** @param {object} widget - Widget being updated
             '** @param {object} newValue - New field configuration
             '** @param {object} oldValue - Previous field configuration
-            '**
+            '----------------------------------------------------------------------
             beforeUpdate: sub(scope as object, widget as object, newValue = {}, oldValue = {})
                 ' Extend old config with new values
                 Rotor.Utils.deepExtendAA(widget[scope.key], newValue)
                 scope.setCustomFields(widget, newValue)
             end sub,
 
-            '**
+            '----------------------------------------------------------------------
             '** beforeDestroy - Clears field configuration on destruction
             '**
             '** @param {object} scope - Plugin instance (m)
             '** @param {object} widget - Widget being destroyed
-            '**
+            '----------------------------------------------------------------------
             beforeDestroy: sub(scope as object, widget as object)
                 widget[scope.key].Clear()
             end sub

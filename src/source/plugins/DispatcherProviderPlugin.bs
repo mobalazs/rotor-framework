@@ -40,19 +40,19 @@ namespace Rotor
         ' =============================================================
 
         hooks = {
-            '**
+            '----------------------------------------------------------------------
             '** beforeMount - Attaches dispatchers when widget is mounted
             '**
             '** Creates dispatcher facades and stores them in viewModelState.
             '**
             '** @param {object} scope - Plugin instance (m)
             '** @param {object} widget - Widget being mounted
-            '**
+            '----------------------------------------------------------------------
             beforeMount: sub(scope as object, widget as object)
                 scope.setDispatcherOnContext(widget, scope.key)
             end sub,
 
-            '**
+            '----------------------------------------------------------------------
             '** beforeUpdate - Updates dispatcher configuration
             '**
             '** Extends existing dispatcher list with new IDs (prevents duplicates).
@@ -62,7 +62,7 @@ namespace Rotor
             '** @param {object} widget - Widget being updated
             '** @param {dynamic} newValue - New dispatcher ID(s)
             '** @param {dynamic} oldValue - Previous dispatcher ID(s)
-            '**
+            '----------------------------------------------------------------------
             beforeUpdate: sub(scope as object, widget as object, newValue, oldValue = [])
                 ' Merge old and new dispatcher IDs (no duplicates)
                 oldArrayOfDispatcherIds = Rotor.Utils.ensureArray(oldValue ?? [])
@@ -71,14 +71,14 @@ namespace Rotor
                 scope.setDispatcherOnContext(widget, scope.key)
             end sub,
 
-            '**
+            '----------------------------------------------------------------------
             '** beforeDestroy - Cleans up dispatchers before widget destruction
             '**
             '** Destroys all dispatcher facades and clears references.
             '**
             '** @param {object} scope - Plugin instance (m)
             '** @param {object} widget - Widget being destroyed
-            '**
+            '----------------------------------------------------------------------
             beforeDestroy: sub(scope as object, widget as object)
                 dispatcherFacades = widget.viewModelState[scope.key]
                 if dispatcherFacades.Count() > 0

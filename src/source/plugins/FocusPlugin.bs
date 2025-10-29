@@ -177,19 +177,19 @@ namespace Rotor
 
         ' Framework lifecycle hooks
         hooks = {
-            '**
+            '----------------------------------------------------------------------
             '** beforeMount - Hook executed before a widget is mounted
             '**
             '** Sets initial focus config.
             '**
             '** @param {object} scope - The plugin scope (this instance)
             '** @param {object} widget - The widget being mounted
-            '**
+            '----------------------------------------------------------------------
             beforeMount: sub(scope as object, widget as object)
                 scope.setFocusConfig(widget, widget[scope.key])
             end sub,
 
-            '**
+            '----------------------------------------------------------------------
             '** beforeUpdate - Hook executed before a widget is updated
             '**
             '** Removes old config, applies new.
@@ -198,7 +198,7 @@ namespace Rotor
             '** @param {object} widget - The widget being updated
             '** @param {dynamic} newValue - The new plugin configuration value
             '** @param {object} oldValue - The previous plugin configuration value (default: {})
-            '**
+            '----------------------------------------------------------------------
             beforeUpdate: sub(scope as object, widget as object, newValue, oldValue = {})
                 ' Remove previous config before applying the update
                 scope.removeFocusConfig(widget.HID)
@@ -208,14 +208,14 @@ namespace Rotor
                 scope.setFocusConfig(widget, widget[scope.key])
             end sub,
 
-            '**
+            '----------------------------------------------------------------------
             '** beforeDestroy - Hook executed before a widget is destroyed
             '**
             '** Removes focus config.
             '**
             '** @param {object} scope - The plugin scope (this instance)
             '** @param {object} widget - The widget being destroyed
-            '**
+            '----------------------------------------------------------------------
             beforeDestroy: sub(scope as object, widget as object)
                 scope.removeFocusConfig(widget.HID)
             end sub
