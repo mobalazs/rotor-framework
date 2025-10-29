@@ -22,27 +22,6 @@ namespace Rotor.Utils
     '==========================================================================
 
     ' ---------------------------------------------------------------------
-    ' convertArrayToAAHash - Converts array to associative array with boolean values
-    '
-    ' Creates a hash map where each array element becomes a key with specified boolean value.
-    ' Useful for fast membership checks.
-    '
-    ' @param {object} arr - Source array
-    ' @param {boolean} isTrue - Value to assign to each key (default: true)
-    ' @returns {object} Associative array with array elements as keys
-    '
-    ' Example:
-    '   convertArrayToAAHash(["a", "b", "c"]) => { a: true, b: true, c: true }
-    '
-    function convertArrayToAAHash(arr as object, isTrue = true as boolean) as object
-        obj = {}
-        for each key in arr
-            obj[key] = isTrue
-        end for
-        return obj
-    end function
-
-    ' ---------------------------------------------------------------------
     ' wrapObject - Wraps a value in an associative array with specified key
     '
     ' @param {string} key - Key name
