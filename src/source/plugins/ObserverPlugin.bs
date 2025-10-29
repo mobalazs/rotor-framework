@@ -369,7 +369,7 @@ namespace Rotor
             '**
             '** @param {string} attachmentId - Node attachment ID
             '** @param {string} fieldId - Field ID
-            '** @return {object} Array of matching Observer instances
+            '** @returns {object} Array of matching Observer instances
             '**
             function findObserversByAttachmentAndField(attachmentId as string, fieldId as string) as object
                 observers = []
@@ -388,7 +388,7 @@ namespace Rotor
             '** Returns all observers associated with a specific node attachment.
             '**
             '** @param {string} attachmentId - Node attachment ID
-            '** @return {object} Array of matching Observer instances
+            '** @returns {object} Array of matching Observer instances
             '**
             function findObserverByAttachmentId(attachmentId as string) as object
                 observers = []
@@ -509,7 +509,7 @@ namespace Rotor
             '**
             '** Combines user-defined infoFields with the helper interface ID.
             '**
-            '** @return {object} Array of field names for observeFieldScoped
+            '** @returns {object} Array of field names for observeFieldScoped
             '**
             function getInfoFields() as object
                 helperInterfaceId = Rotor.ObserverPluginHelper.OBSERVER_HELPER_INTERFACE + "-" + m.pluginKey

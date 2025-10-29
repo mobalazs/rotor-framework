@@ -1,10 +1,21 @@
 namespace Rotor.ViewBuilder
 
+    '==========================================================================
+    '** @class PluginHookClass
+    '** @description Container for plugin hook metadata and handler function
+    '** @namespace Rotor.ViewBuilder
+    '** @note The class name can be used as a type when declaring variables throughout the framework.
+    '==========================================================================
     class PluginHookClass
 
         pluginKey as string
         handlerFn as function
 
+        '----------------------------------------------------------------------
+        '** @constructor
+        '** @description Initializes plugin hook with key and handler
+        '** @param {object} config - Configuration with pluginKey and handlerFn
+        '----------------------------------------------------------------------
         sub new(config)
             m.pluginKey = config.pluginKey
             m.handlerFn = config.handlerFn
@@ -12,10 +23,21 @@ namespace Rotor.ViewBuilder
 
     end class
 
+    '==========================================================================
+    '** @class pluginAdapter
+    '** @description Manages plugin registration and lifecycle hook integration.
+    '**              Maintains plugin instances and maps lifecycle hooks to plugin handlers.
+    '** @namespace Rotor.ViewBuilder
+    '** @note The class name can be used as a type when declaring variables throughout the framework.
+    '==========================================================================
     class pluginAdapter
 
         plugins as object
 
+        '----------------------------------------------------------------------
+        '** @constructor
+        '** @description Initializes plugin hook storage for all lifecycle types
+        '----------------------------------------------------------------------
         sub new()
 
             ' dedicated plugin lifecycle hooks
@@ -37,6 +59,11 @@ namespace Rotor.ViewBuilder
 
         frameworkInstance as Rotor.Framework
 
+        '----------------------------------------------------------------------
+        '** @method registerPlugins
+        '** @description Registers plugins and their lifecycle hooks with the framework
+        '** @param {object} pluginConfig - Plugin configuration object or array
+        '----------------------------------------------------------------------
         sub registerPlugins (pluginConfig as object)
 
             plugins = Rotor.Utils.ensureArray(pluginConfig)
@@ -77,6 +104,10 @@ namespace Rotor.ViewBuilder
 
         end sub
 
+        '----------------------------------------------------------------------
+        '** @method destroyPlugins
+        '** @description Destroys all registered plugins
+        '----------------------------------------------------------------------
         sub destroyPlugins()
             if m.plugins.Count() > 0
                 for each plugin in m.plugins
@@ -89,10 +120,19 @@ namespace Rotor.ViewBuilder
             end if
         end sub
 
+        '----------------------------------------------------------------------
+        '** @method init
+        '** @description Initializes the adapter with framework instance reference
+        '** @param {object} frameworkInstance - Framework instance reference
+        '----------------------------------------------------------------------
         sub init(frameworkInstance as object)
             m.frameworkInstance = frameworkInstance
         end sub
 
+        '----------------------------------------------------------------------
+        '** @method destroy
+        '** @description Cleans up framework instance reference
+        '----------------------------------------------------------------------
         sub destroy()
             m.frameworkInstance = invalid
         end sub

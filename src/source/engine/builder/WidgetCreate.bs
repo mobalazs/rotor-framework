@@ -1,22 +1,20 @@
 namespace Rotor.ViewBuilder
 
-    '******************************************************************
-    '** createWidget - Creates and initializes a widget instance
-    '**
-    '** Core widget factory function that handles the complete widget creation lifecycle:
-    '**   1. Widget tree registration
-    '**   2. Decorator method injection
-    '**   3. ViewModel initialization (if applicable)
-    '**   4. SceneGraph node creation
-    '**   5. Plugin registration and lifecycle hooks
-    '**
+    '==========================================================================
+    '** @function createWidget
+    '** @description Creates and initializes a widget instance.
+    '**              Core widget factory function that handles the complete widget creation lifecycle:
+    '**              1. Widget tree registration
+    '**              2. Decorator method injection
+    '**              3. ViewModel initialization (if applicable)
+    '**              4. SceneGraph node creation
+    '**              5. Plugin registration and lifecycle hooks
     '** @param {object} postProcessBuffer - Buffer for deferred plugin/lifecycle operations
     '** @param {object} config - Widget configuration object
     '** @param {string} parentHID - Parent's Hierarchical ID (default: "0" for root)
-    '** @return {object} Widget metadata { HID, children, parentHID, id }
-    '**
+    '** @returns {object} Widget metadata { HID, children, parentHID, id }
     '** @namespace Rotor.ViewBuilder
-    '******************************************************************
+    '==========================================================================
     function createWidget(postProcessBuffer as object, config as object, parentHID = "0" as string) as object
 
         ' Extract and remove ViewModel class from config

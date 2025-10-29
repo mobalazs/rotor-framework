@@ -1,3 +1,11 @@
+'==========================================================================
+'** @file Constants.bs
+'** @description Framework-wide constant definitions and enumerations.
+'**              Defines direction types, segment types, lifecycle hook types,
+'**              hook priority types, and thread synchronization types.
+'** @namespace Rotor.Const
+'==========================================================================
+
 namespace Rotor
 
     namespace Const

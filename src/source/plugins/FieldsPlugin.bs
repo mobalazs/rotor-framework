@@ -121,7 +121,7 @@ namespace Rotor
         '**
         '** @param {object} widget - Widget instance providing context
         '** @param {object} fields - Field configuration to parse
-        '** @return {object} Parsed fields with resolved values
+        '** @returns {object} Parsed fields with resolved values
         '**
         function parseFields(widget as object, fields as object) as object
             parsedFields = {}

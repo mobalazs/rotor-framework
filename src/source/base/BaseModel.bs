@@ -1,6 +1,6 @@
 namespace Rotor
 
-    '******************************************************************
+    '==========================================================================
     '** Model (BaseModel)
     '**
     '** Base model class for MVI pattern state management.
@@ -16,7 +16,7 @@ namespace Rotor
     '**   Dispatcher → Routes intents and state updates
     '**
     '** @namespace Rotor
-    '******************************************************************
+    '==========================================================================
     class Model
 
         ' =============================================================
@@ -29,11 +29,11 @@ namespace Rotor
         ' CONSTRUCTOR
         ' =============================================================
 
-        '**
+        '----------------------------------------------------------------------
         '** Constructor - Initializes model with optional initial state
         '**
         '** @param {object} state - Initial state object (optional)
-        '**
+        '----------------------------------------------------------------------
         sub new(state = invalid as object)
             if state <> invalid
                 m.state = state
@@ -44,9 +44,9 @@ namespace Rotor
         ' CLEANUP
         ' =============================================================
 
-        '**
+        '----------------------------------------------------------------------
         '** destroy - Cleans up model by invalidating state reference
-        '**
+        '----------------------------------------------------------------------
         sub destroy()
             m.state = invalid
         end sub

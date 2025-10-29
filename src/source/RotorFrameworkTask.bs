@@ -274,23 +274,6 @@ namespace Rotor
 
     end class
 
-    '==========================================================================
-    '** getState
-    '**
-    '** Global helper function to get dispatcher state from task thread.
-    '**
-    '** This function provides convenient access to dispatcher state without
-    '** needing a reference to the framework instance.
-    '**
-    '** @param {string} dispatcherId - Dispatcher identifier
-    '** @returns {object} Current state from dispatcher
-    '==========================================================================
-    function getState(dispatcherId as string) as object
-        frameworkInstance = GetGlobalAA().rotor_framework_helper.frameworkInstance
-        dispatcherInstance = frameworkInstance.dispatcherProvider.get(dispatcherId)
-        return dispatcherInstance.getState(dispatcherId)
-    end function
-
 end namespace
 
 

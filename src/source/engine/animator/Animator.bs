@@ -4,6 +4,13 @@ import "../../libs/animate/Animate.bs" ' https://github.com/haystacknews/animate
 
 namespace Rotor
 
+    '----------------------------------------------------------------------
+    '** @function animatorParamsIntegrationHelper
+    '** @description Helper function to parse and normalize animator parameters
+    '** @param {object} params - Animator parameters with target or targets field
+    '** @returns {object} Parsed parameters with normalized targets array
+    '** @throws {object} Error if no targets are specified
+    '----------------------------------------------------------------------
     function animatorParamsIntegrationHelper(params) as object
         if params.target <> invalid
             targets = params.target
@@ -30,6 +37,11 @@ namespace Rotor
         return params
     end function
 
+    '----------------------------------------------------------------------
+    '** @function animationStateObserver
+    '** @description Sets up state observation for animator nodes
+    '** @param {object} params - Observer configuration parameters
+    '----------------------------------------------------------------------
     sub animationStateObserver(params = {} as object)
 
         globalScope = GetGlobalAA()
@@ -54,15 +66,33 @@ namespace Rotor
 
     end sub
 
+    '==========================================================================
+    '** @class Animator
+    '** @description Manages animation instances and provides factory methods for creating
+    '**              single animations and timelines. Integrates with the Animate library
+    '**              and provides state observation capabilities for animations.
+    '** @note The class name can be used as a type when declaring variables throughout the framework.
+    '==========================================================================
     class Animator
 
         animatorObservber as Rotor.ObserverPlugin
 
+        '----------------------------------------------------------------------
+        '** @constructor
+        '** @description Initializes the animator with observer plugin
+        '----------------------------------------------------------------------
         sub new()
             m.animatorObservber = new Rotor.ObserverPlugin("rotorAnimatorObserver")
             m.animatorObservber.init()
         end sub
 
+        '----------------------------------------------------------------------
+        '** @method getFactory
+        '** @description Creates an animator factory instance for the given ID and scope
+        '** @param {string} animatorId - Unique identifier for the animator
+        '** @param {object} scope - Optional scope object for the animator (default: invalid)
+        '** @returns {object} Animator factory instance with control methods
+        '----------------------------------------------------------------------
         function getFactory(animatorId as string, scope = invalid as object) as object
 
             ' Get Animator by animatorScopedId

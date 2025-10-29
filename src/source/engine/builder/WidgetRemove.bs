@@ -1,5 +1,16 @@
 namespace Rotor.ViewBuilder
 
+    '==========================================================================
+    '** @function removeWidget
+    '** @description Removes a widget and its children from the widget tree.
+    '**              Handles plugin beforeDestroy hooks, widget destruction,
+    '**              and SceneGraph node removal. Recursively marks children for removal.
+    '** @param {object} postProcessBuffer - Buffer for deferred plugin/lifecycle operations
+    '** @param {object} widget - Widget instance to remove
+    '** @param {object} config - Removal configuration with markedToRemove and shouldSkipNodePool flags
+    '** @returns {object} Object with children array and HID for recursive processing
+    '** @namespace Rotor.ViewBuilder
+    '==========================================================================
     function removeWidget(postProcessBuffer as object, widget as object, config as object) as object
         HID = widget.HID
 

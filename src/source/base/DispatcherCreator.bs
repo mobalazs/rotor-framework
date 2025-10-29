@@ -2,7 +2,7 @@ import "ListenerForDispatchers.bs"
 
 namespace Rotor
 
-    '******************************************************************
+    '==========================================================================
     '** createDispatcher - Factory function for creating dispatchers
     '**
     '** Creates a dispatcher instance and returns its facade for external use.
@@ -10,10 +10,10 @@ namespace Rotor
     '** @param {string} customDispatcherId - Dispatcher identifier
     '** @param {Model} modelInstance - Model holding state
     '** @param {Reducer} reducerInstance - Reducer for state transitions
-    '** @return {Dispatcher} Dispatcher facade instance
+    '** @returns {Dispatcher} Dispatcher facade instance
     '**
     '** @namespace Rotor
-    '******************************************************************
+    '==========================================================================
     function createDispatcher(customDispatcherId as string, modelInstance as Model, reducerInstance as Reducer) as Dispatcher
         m.dispatcherInstance = new Rotor.DispatcherCreator(customDispatcherId, modelInstance, reducerInstance)
 
@@ -23,7 +23,7 @@ namespace Rotor
         return dispatcherFacadeInstance
     end function
 
-    '******************************************************************
+    '==========================================================================
     '** DispatcherCreator
     '**
     '** Internal dispatcher implementation for MVI pattern state management.
@@ -40,7 +40,7 @@ namespace Rotor
     '**
     '** @namespace Rotor
     '** @extends ListenerForDispatchers
-    '******************************************************************
+    '==========================================================================
     class DispatcherCreator extends ListenerForDispatchers
 
         ' =============================================================
@@ -61,13 +61,13 @@ namespace Rotor
         ' CONSTRUCTOR
         ' =============================================================
 
-        '**
+        '----------------------------------------------------------------------
         '** Constructor - Initializes dispatcher and registers with provider
         '**
         '** @param {string} dispatcherId - Dispatcher identifier (auto-generated if empty)
         '** @param {object} modelInstance - Model instance
         '** @param {object} reducerInstance - Reducer instance
-        '**
+        '----------------------------------------------------------------------
         sub new(dispatcherId = "" as string, modelInstance = invalid as object, reducerInstance = invalid as object)
             super()
             if dispatcherId = "" then dispatcherId = Rotor.Utils.getUUIDHex()
@@ -97,25 +97,25 @@ namespace Rotor
         ' STATE MANAGEMENT
         ' =============================================================
 
-        '**
+        '----------------------------------------------------------------------
         '** exposeState - Exposes current state to render thread via task node field
         '**
         '** Creates a ContentNode with state fields and sets it on task node.
         '** This allows render thread to observe state changes.
-        '**
+        '----------------------------------------------------------------------
         sub exposeState()
             newState = CreateObject("roSGNode", "ContentNode")
             newState.addFields(m.modelInstance.state)
             m.taskNode.setField(m.dispatcherId, newState)
         end sub
 
-        '**
+        '----------------------------------------------------------------------
         '** getState - Returns current state (optionally mapped)
         '**
         '** @param {dynamic} mapStateToProps - Optional mapping function
         '** @param {object} callerScope - Caller scope for mapping function
-        '** @return {object} Current state
-        '**
+        '** @returns {object} Current state
+        '----------------------------------------------------------------------
         function getState(mapStateToProps = invalid as Dynamic, callerScope = invalid as object) as object
             state = m.modelInstance.state
             m.runMapStateToProps(state, mapStateToProps, callerScope)
@@ -126,7 +126,7 @@ namespace Rotor
         ' DISPATCH
         ' =============================================================
 
-        '**
+        '----------------------------------------------------------------------
         '** dispatch - Dispatches intent to reducer and updates state
         '**
         '** Process flow:
@@ -136,7 +136,7 @@ namespace Rotor
         '**   4. Process queued intents after completion
         '**
         '** @param {Intent} intent - Intent object to dispatch
-        '**
+        '----------------------------------------------------------------------
         sub dispatch(intent as Intent)
             if intent?.payload <> invalid and intent.payload.Count() > 1 and intent.payload = invalid
                 throw "[WARNING] Intent payload is invalid."
@@ -169,11 +169,11 @@ namespace Rotor
         ' ASYNC CALLBACK
         ' =============================================================
 
-        '**
+        '----------------------------------------------------------------------
         '** asyncReducerCallback - Routes async callback to reducer
         '**
         '** @param {object} msg - Message from async operation
-        '**
+        '----------------------------------------------------------------------
         sub asyncReducerCallback(msg)
             m.reducerInstance.asyncReducerCallback(msg)
         end sub
@@ -182,11 +182,11 @@ namespace Rotor
         ' CLEANUP
         ' =============================================================
 
-        '**
+        '----------------------------------------------------------------------
         '** destroy - Cleans up dispatcher resources
         '**
         '** Deregisters from provider and clears all references.
-        '**
+        '----------------------------------------------------------------------
         override sub destroy()
             super.destroy()
 

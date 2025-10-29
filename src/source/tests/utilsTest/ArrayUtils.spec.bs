@@ -263,20 +263,6 @@ namespace tests
             m.assertArraysMatch(values, [1, 2, 3])
         end function
 
-        @describe("getWrappedIndex")
-
-        @it("getWrappedIndex wraps positive index")
-        function _()
-            m.assertEqual(Rotor.Utils.getWrappedIndex(7, 5), 2)
-        end function
-
-        @it("getWrappedIndex wraps negative index")
-        function _()
-            m.assertEqual(Rotor.Utils.getWrappedIndex(-1, 5), 4)
-        end function
-
-
-
         private function isGreaterThan(value, context)
             return value > context
         end function
@@ -284,7 +270,6 @@ namespace tests
         private sub assertArraysMatch(actual as dynamic, expected as dynamic)
             m.assertEqual(FormatJSON(actual), FormatJSON(expected))
         end sub
-
 
         @it("converts array to hash with true values")
         function _()

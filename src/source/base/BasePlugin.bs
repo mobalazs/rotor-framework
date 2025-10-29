@@ -1,6 +1,6 @@
 namespace Rotor
 
-    '******************************************************************
+    '==========================================================================
     '** BasePlugin
     '**
     '** Base class for all Rotor Framework plugins.
@@ -15,7 +15,7 @@ namespace Rotor
     '**   - Widget method plugins: Implement widgetMethods {} to inject methods
     '**
     '** @namespace Rotor
-    '******************************************************************
+    '==========================================================================
     class BasePlugin
 
         ' =============================================================
@@ -35,12 +35,12 @@ namespace Rotor
         ' CONSTRUCTOR
         ' =============================================================
 
-        '**
+        '----------------------------------------------------------------------
         '** Constructor - Initializes plugin with key and parameters
         '**
         '** @param {string} key - Plugin identifier (auto-generated if empty)
         '** @param {object} params - Plugin initialization parameters
-        '**
+        '----------------------------------------------------------------------
         sub new(key = "" as string, params = invalid as object)
             if key = "" then key = Rotor.Utils.getUUIDHex(8)
             m.params = params

@@ -1,6 +1,6 @@
 namespace Rotor
 
-    '******************************************************************
+    '==========================================================================
     '** Reducer (BaseReducer)
     '**
     '** Base class for state reducers in the MVI pattern.
@@ -20,7 +20,7 @@ namespace Rotor
     '**   - middlewares: Set middleware array directly
     '**
     '** @namespace Rotor
-    '******************************************************************
+    '==========================================================================
     class Reducer
 
         ' =============================================================
@@ -44,9 +44,10 @@ namespace Rotor
         ' CONSTRUCTOR
         ' =============================================================
 
-        '**
+        '----------------------------------------------------------------------
         '** Constructor - Initializes reducer with framework integration
         '**
+        '----------------------------------------------------------------------
         sub new()
             frameworkInstance = GetGlobalAA().rotor_framework_helper.frameworkInstance
             m.port = frameworkInstance.port
@@ -66,7 +67,7 @@ namespace Rotor
         ' REDUCER LOGIC
         ' =============================================================
 
-        '**
+        '----------------------------------------------------------------------
         '** reducer - Pure function that computes next state
         '**
         '** Override this method to implement custom state transitions based on intent type.
@@ -86,6 +87,7 @@ namespace Rotor
         '**       return state
         '**   end function
         '**
+        '----------------------------------------------------------------------
         public function reducer(state as object, intent as Intent)
             return state
         end function
@@ -94,7 +96,7 @@ namespace Rotor
         ' MIDDLEWARE
         ' =============================================================
 
-        '**
+        '----------------------------------------------------------------------
         '** applyMiddlewares - Returns middleware function array
         '**
         '** Override to implement middleware logic for:
@@ -111,6 +113,7 @@ namespace Rotor
         '**   - Return modified intent to transform
         '**   - Return invalid to cancel reducer execution
         '**
+        '----------------------------------------------------------------------
         public function applyMiddlewares() as function[]
             return [] as function[]
         end function
@@ -119,7 +122,7 @@ namespace Rotor
         ' REDUCE PIPELINE
         ' =============================================================
 
-        '**
+        '----------------------------------------------------------------------
         '** reduce - Executes middleware pipeline and reducer
         '**
         '** Process flow:
@@ -132,6 +135,7 @@ namespace Rotor
         '** @param {Intent} intent - Intent to process
         '** @return {object} New state, or invalid if cancelled
         '**
+        '----------------------------------------------------------------------
         function reduce(state as object, intent as Intent) as object
             if intent?.payload <> invalid and intent.payload.Count() > 1 and intent.payload = invalid
                 throw "[WARNING] Intent payload is invalid."
@@ -162,11 +166,12 @@ namespace Rotor
         ' ASYNC CALLBACK
         ' =============================================================
 
-        '**
+        '----------------------------------------------------------------------
         '** asyncReducerCallback - Callback for async middleware operations
         '**
         '** @param {object} msg - Message from async operation
         '**
+        '----------------------------------------------------------------------
         sub asyncReducerCallback(msg)
             ' Override in subclass to handle async responses
         end sub
@@ -175,9 +180,10 @@ namespace Rotor
         ' CLEANUP
         ' =============================================================
 
-        '**
+        '----------------------------------------------------------------------
         '** destroy - Cleans up reducer references
         '**
+        '----------------------------------------------------------------------
         sub destroy()
             m.ownerDispatcher = invalid
             m.port = invalid

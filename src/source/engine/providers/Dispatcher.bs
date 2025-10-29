@@ -1,15 +1,15 @@
 
 namespace Rotor
 
-    '--------------------------------------------------------------------------
-    ' @class Dispatcher
-    ' @description Dispatcher Facade that provides a simplified interface for state management.
-    '              Acts as a proxy to the underlying dispatcher instance, managing intents,
-    '              listeners, and state access. The facade pattern allows for clean separation
-    '              between the dispatcher implementation and its consumers, enabling multiple
-    '              listeners to subscribe to the same dispatcher with different scopes.
-    ' @note The class name can be used as a type when declaring variables throughout the framework.
-    '--------------------------------------------------------------------------
+    '==========================================================================
+    '** @class Dispatcher
+    '** @description Dispatcher Facade that provides a simplified interface for state management.
+    '**              Acts as a proxy to the underlying dispatcher instance, managing intents,
+    '**              listeners, and state access. The facade pattern allows for clean separation
+    '**              between the dispatcher implementation and its consumers, enabling multiple
+    '**              listeners to subscribe to the same dispatcher with different scopes.
+    '** @note The class name can be used as a type when declaring variables throughout the framework.
+    '==========================================================================
     class Dispatcher
 
         dispatcherId as string
@@ -24,46 +24,46 @@ namespace Rotor
             m.dispatcherInstance = dispatcherInstance
         end sub
 
-        '--------------------------------------------------------------------------
-        ' @method dispatch
-        ' @description Dispatches an intent to trigger state changes through the reducer
-        ' @param {Intent} intent - The intent object containing action type and payload
-        '--------------------------------------------------------------------------
+        '----------------------------------------------------------------------
+        '** @method dispatch
+        '** @description Dispatches an intent to trigger state changes through the reducer
+        '** @param {Intent} intent - The intent object containing action type and payload
+        '----------------------------------------------------------------------
         sub dispatch(intent)
             m.dispatcherInstance.dispatch(intent)
         end sub
 
-        '--------------------------------------------------------------------------
-        ' @method addListener
-        ' @description Adds a listener to subscribe to state changes from this dispatcher
-        ' @param {Dynamic} listenerConfig - Configuration object for the listener (can be a function or object with mapStateToProps)
-        '--------------------------------------------------------------------------
+        '----------------------------------------------------------------------
+        '** @method addListener
+        '** @description Adds a listener to subscribe to state changes from this dispatcher
+        '** @param {Dynamic} listenerConfig - Configuration object for the listener (can be a function or object with mapStateToProps)
+        '----------------------------------------------------------------------
         sub addListener(listenerConfig as dynamic)
             m.dispatcherInstance.addListener(listenerConfig, m.listenerId, m.listenerScope)
         end sub
 
-        '--------------------------------------------------------------------------
-        ' @method removeAllListenersByListenerId
-        ' @description Removes all listeners associated with this dispatcher's listener ID
-        '--------------------------------------------------------------------------
+        '----------------------------------------------------------------------
+        '** @method removeAllListenersByListenerId
+        '** @description Removes all listeners associated with this dispatcher's listener ID
+        '----------------------------------------------------------------------
         sub removeAllListenersByListenerId()
             m.dispatcherInstance.removeAllListenersByListenerId(m.listenerId)
         end sub
 
-        '--------------------------------------------------------------------------
-        ' @method getState
-        ' @description Retrieves the current state from the dispatcher, optionally mapped through a selector function
-        ' @param {Dynamic} mapStateToProps - Optional function to map/select specific parts of the state
-        ' @return {Object} The current state object (mapped if selector provided)
-        '--------------------------------------------------------------------------
+        '----------------------------------------------------------------------
+        '** @method getState
+        '** @description Retrieves the current state from the dispatcher, optionally mapped through a selector function
+        '** @param {Dynamic} mapStateToProps - Optional function to map/select specific parts of the state
+        '** @returns {Object} The current state object (mapped if selector provided)
+        '----------------------------------------------------------------------
         function getState(mapStateToProps = invalid as Dynamic) as object
             return m.dispatcherInstance.getState(mapStateToProps, m.listenerScope)
         end function
 
-        '--------------------------------------------------------------------------
-        ' @method destroy
-        ' @description Cleans up the dispatcher facade by removing all listeners and clearing references
-        '--------------------------------------------------------------------------
+        '----------------------------------------------------------------------
+        '** @method destroy
+        '** @description Cleans up the dispatcher facade by removing all listeners and clearing references
+        '----------------------------------------------------------------------
         sub destroy()
             m.removeAllListenersByListenerId()
             m.listenerScope = invalid

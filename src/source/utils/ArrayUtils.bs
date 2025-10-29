@@ -1,6 +1,6 @@
 namespace Rotor.Utils
 
-    '******************************************************************
+    '==========================================================================
     '** Array and AssociativeArray Utility Functions
     '**
     '** Comprehensive collection of helper functions for array and associative array operations.
@@ -16,13 +16,13 @@ namespace Rotor.Utils
     '**   - Index Helpers: Wrapped index calculation
     '**
     '** @namespace Rotor.Utils
-    '******************************************************************
+    '==========================================================================
 
-    ' =================================================================
+    '==========================================================================
     ' CONVERSION FUNCTIONS
-    ' =================================================================
+    '==========================================================================
 
-    '**
+    '----------------------------------------------------------------------
     '** convertArrayToAAHash - Converts array to associative array with boolean values
     '**
     '** Creates a hash map where each array element becomes a key with specified boolean value.
@@ -30,11 +30,11 @@ namespace Rotor.Utils
     '**
     '** @param {object} arr - Source array
     '** @param {boolean} isTrue - Value to assign to each key (default: true)
-    '** @return {object} Associative array with array elements as keys
+    '** @returns {object} Associative array with array elements as keys
     '**
     '** Example:
     '**   convertArrayToAAHash(["a", "b", "c"]) => { a: true, b: true, c: true }
-    '**
+    '----------------------------------------------------------------------
     function convertArrayToAAHash(arr as object, isTrue = true as boolean) as object
         obj = {}
         for each key in arr
@@ -43,24 +43,24 @@ namespace Rotor.Utils
         return obj
     end function
 
-    '**
+    '----------------------------------------------------------------------
     '** wrapObject - Wraps a value in an associative array with specified key
     '**
     '** @param {string} key - Key name
     '** @param {dynamic} value - Value to wrap
-    '** @return {object} Associative array { key: value }
-    '**
+    '** @returns {object} Associative array { key: value }
+    '----------------------------------------------------------------------
     function wrapObject(key as string, value as dynamic) as object
         obj = {}
         obj[key] = value
         return obj
     end function
 
-    ' =================================================================
+    '==========================================================================
     ' DEEP OPERATIONS
-    ' =================================================================
+    '==========================================================================
 
-    '**
+    '----------------------------------------------------------------------
     '** deepExtendAA - Recursively merges source AA into target AA
     '**
     '** Merge behavior:
@@ -70,8 +70,8 @@ namespace Rotor.Utils
     '**
     '** @param {dynamic} target - Target associative array to extend
     '** @param {dynamic} source - Source associative array providing new values
-    '** @return {dynamic} Modified target associative array
-    '**
+    '** @returns {dynamic} Modified target associative array
+    '----------------------------------------------------------------------
     function deepExtendAA(target as dynamic, source as dynamic) as dynamic
         if type(target) <> "roAssociativeArray" or type(source) <> "roAssociativeArray"
             return source
@@ -101,15 +101,15 @@ namespace Rotor.Utils
         return target
     end function
 
-    '**
+    '----------------------------------------------------------------------
     '** deepCopy - Creates a deep copy of an object
     '**
     '** Recursively copies all nested arrays and associative arrays.
     '** Primitive values are copied by value.
     '**
     '** @param {dynamic} source - Source object to copy
-    '** @return {dynamic} Deep copy of source
-    '**
+    '** @returns {dynamic} Deep copy of source
+    '----------------------------------------------------------------------
     function deepCopy(source as dynamic) as dynamic
         if source = invalid
             return invalid
@@ -135,25 +135,25 @@ namespace Rotor.Utils
         return target
     end function
 
-    '**
+    '----------------------------------------------------------------------
     '** cloneExtendAA - Creates a deep copy of source and extends it with newData
     '**
     '** Combines deepCopy and deepExtendAA operations.
     '**
     '** @param {object} source - Source AA to clone
     '** @param {object} newData - Data to merge into clone
-    '** @return {object} Extended clone
-    '**
+    '** @returns {object} Extended clone
+    '----------------------------------------------------------------------
     function cloneExtendAA(source as object, newData as object)
         clone = deepCopy(source)
         return deepExtendAA(clone, newData)
     end function
 
-    ' =================================================================
+    '==========================================================================
     ' PATH RESOLUTION
-    ' =================================================================
+    '==========================================================================
 
-    '**
+    '----------------------------------------------------------------------
     '** getValueByKeyPath - Gets value from nested object using dot-separated path
     '**
     '** Traverses nested AAs using path like "parent.child.grandchild".
@@ -162,8 +162,8 @@ namespace Rotor.Utils
     '** @param {string} keyPath - Dot-separated path (e.g., "user.address.city")
     '** @param {boolean} lastKeyAsProp - If true, wraps result in { lastKey: value }
     '** @param {string} separator - Path separator (default: ".")
-    '** @return {dynamic} Value at path, or invalid if not found
-    '**
+    '** @returns {dynamic} Value at path, or invalid if not found
+    '----------------------------------------------------------------------
     function getValueByKeyPath(source as object, keyPath as string, lastKeyAsProp = false as boolean, separator = "." as string) as object
         keys = keyPath.split(separator)
         keysCount = keys.Count()
@@ -188,7 +188,7 @@ namespace Rotor.Utils
         end if
     end function
 
-    '**
+    '----------------------------------------------------------------------
     '** getCloneByKeyPath - Gets a deep copy of nested path structure
     '**
     '** Creates a nested AA structure matching the path with deep copied leaf value.
@@ -196,11 +196,11 @@ namespace Rotor.Utils
     '** @param {object} source - Source object
     '** @param {string} keyPath - Dot-separated path
     '** @param {string} separator - Path separator (default: ".")
-    '** @return {object} Nested structure with cloned value, or invalid if not found
+    '** @returns {object} Nested structure with cloned value, or invalid if not found
     '**
     '** Example:
     '**   getCloneByKeyPath({a: {b: {c: 1}}}, "a.b.c") => {a: {b: {c: 1}}}
-    '**
+    '----------------------------------------------------------------------
     function getCloneByKeyPath(source as object, keyPath as string, separator = "." as string) as object
         keys = keyPath.split(separator)
         keysCount = keys.Count()
@@ -231,18 +231,18 @@ namespace Rotor.Utils
         return fullPath
     end function
 
-    ' =================================================================
+    '==========================================================================
     ' FILTERING & SEARCH
-    ' =================================================================
+    '==========================================================================
 
-    '**
+    '----------------------------------------------------------------------
     '** filterArrayUseHandler - Filters array using handler function
     '**
     '** @param {object} array - Array to filter
     '** @param {function} handler - Filter function (item, context) => boolean
     '** @param {dynamic} context - Context passed to handler
-    '** @return {object} New array with filtered elements
-    '**
+    '** @returns {object} New array with filtered elements
+    '----------------------------------------------------------------------
     function filterArrayUseHandler(array as object, handler as function, context) as object
         index = 0
         newArray = []
@@ -255,13 +255,13 @@ namespace Rotor.Utils
         return newArray
     end function
 
-    '**
+    '----------------------------------------------------------------------
     '** findInArray - Finds target value in array
     '**
     '** @param {object} array - Array to search
     '** @param {dynamic} target - Value to find
-    '** @return {integer} Index of target, or -1 if not found
-    '**
+    '** @returns {integer} Index of target, or -1 if not found
+    '----------------------------------------------------------------------
     function findInArray(array as object, target) as integer
         index = 0
         foundIndex = -1
@@ -275,7 +275,7 @@ namespace Rotor.Utils
         return foundIndex
     end function
 
-    '**
+    '----------------------------------------------------------------------
     '** findInArrayOfAA - Finds AA in array by key value
     '**
     '** Searches array of AAs for first element where element[key] = target.
@@ -283,8 +283,8 @@ namespace Rotor.Utils
     '** @param {object} array - Array of associative arrays
     '** @param {string} key - Key to check in each AA
     '** @param {dynamic} target - Target value to find
-    '** @return {integer} Index of matching AA, or -1 if not found
-    '**
+    '** @returns {integer} Index of matching AA, or -1 if not found
+    '----------------------------------------------------------------------
     function findInArrayOfAA(array as object, key as string, target) as integer
         index = 0
         foundIndex = -1
@@ -298,7 +298,7 @@ namespace Rotor.Utils
         return foundIndex
     end function
 
-    '**
+    '----------------------------------------------------------------------
     '** checkArrayItemsByHandler - Finds array element matching handler condition
     '**
     '** Compares array elements using handler function to find best match.
@@ -306,8 +306,8 @@ namespace Rotor.Utils
     '** @param {object} array - Array to search
     '** @param {string} targetKey - Key to compare in each element
     '** @param {function} handlerFn - Comparison function (value1, value2) => boolean
-    '** @return {dynamic} Element matching condition
-    '**
+    '** @returns {dynamic} Element matching condition
+    '----------------------------------------------------------------------
     function checkArrayItemsByHandler(array as object, targetKey as string, handlerFn as function) as dynamic
         targetIndex = 0
         length = array.Count()
@@ -325,7 +325,7 @@ namespace Rotor.Utils
         return array[targetIndex]
     end function
 
-    '**
+    '----------------------------------------------------------------------
     '** findInAArrayByKey - Finds key in AA where nested value matches target
     '**
     '** Searches AA where each value is an AA, looking for value[key] = target.
@@ -334,8 +334,8 @@ namespace Rotor.Utils
     '** @param {object} aa - Associative array to search
     '** @param {string} key - Nested key to check
     '** @param {dynamic} value - Target value
-    '** @return {string} Key of matching entry, or empty string if not found
-    '**
+    '** @returns {string} Key of matching entry, or empty string if not found
+    '----------------------------------------------------------------------
     function findInAArrayByKey(aa as object, key as string, value as dynamic) as string
         keys = aa.Keys()
         keysCount = keys.Count()
@@ -356,7 +356,7 @@ namespace Rotor.Utils
         return foundIndex > -1 ? keys[foundIndex] : ""
     end function
 
-    '**
+    '----------------------------------------------------------------------
     '** findInArrayByKey - Finds element in array by nested key path
     '**
     '** Searches array of AAs using key path (e.g., "user.name").
@@ -365,8 +365,8 @@ namespace Rotor.Utils
     '** @param {object} array - Array to search (elements must be AAs)
     '** @param {string} key - Key path to search (e.g., "parent.child")
     '** @param {dynamic} value - Target value
-    '** @return {integer} Index of matching element, or -1 if not found
-    '**
+    '** @returns {integer} Index of matching element, or -1 if not found
+    '----------------------------------------------------------------------
     function findInArrayByKey(array as object, key as string, value as dynamic) as integer
         arrayCount = array.Count()
         index = 0
@@ -387,11 +387,11 @@ namespace Rotor.Utils
         return foundIndex
     end function
 
-    ' =================================================================
+    '==========================================================================
     ' COMPARISON
-    ' =================================================================
+    '==========================================================================
 
-    '**
+    '----------------------------------------------------------------------
     '** isDifferent - Checks if two items are different
     '**
     '** Comparison logic:
@@ -402,8 +402,8 @@ namespace Rotor.Utils
     '**
     '** @param {dynamic} item1 - First item
     '** @param {dynamic} item2 - Second item
-    '** @return {boolean} True if items are different
-    '**
+    '** @returns {boolean} True if items are different
+    '----------------------------------------------------------------------
     function isDifferent(item1, item2) as boolean
         if type(item1) = "roSGNode"
             return not item1.isSameNode(item2)
@@ -416,16 +416,16 @@ namespace Rotor.Utils
         end if
     end function
 
-    ' =================================================================
+    '==========================================================================
     ' ARRAY HELPERS
-    ' =================================================================
+    '==========================================================================
 
-    '**
+    '----------------------------------------------------------------------
     '** ensureArray - Ensures value is wrapped in array
     '**
     '** @param {dynamic} array - Input value or array
-    '** @return {object} Array containing the value, or original if already array
-    '**
+    '** @returns {object} Array containing the value, or original if already array
+    '----------------------------------------------------------------------
     function ensureArray(array as dynamic) as object
         if isArray(array)
             resolvedArray = array
@@ -435,15 +435,15 @@ namespace Rotor.Utils
         return resolvedArray
     end function
 
-    '**
+    '----------------------------------------------------------------------
     '** extendArrayOfStrings - Merges two string arrays without duplicates
     '**
     '** Adds strings from sourceArray to targetArray only if not already present.
     '**
     '** @param {object} targetArray - Target array to extend
     '** @param {object} sourceArray - Source array to merge from
-    '** @return {object} Extended target array
-    '**
+    '** @returns {object} Extended target array
+    '----------------------------------------------------------------------
     function extendArrayOfStrings(targetArray = [] as object, sourceArray = [] as object) as object
         for each itemStr in sourceArray
             foundIndex = Rotor.Utils.findInArray(targetArray, itemStr)
@@ -454,14 +454,14 @@ namespace Rotor.Utils
         return targetArray
     end function
 
-    '**
+    '----------------------------------------------------------------------
     '** removeRedundantValuesInArray - Removes duplicate values from array in-place
     '**
     '** Sorts array and removes consecutive duplicates.
     '** Modifies the original array.
     '**
     '** @param {object} array - Array to deduplicate
-    '**
+    '----------------------------------------------------------------------
     sub removeRedundantValuesInArray(array as object)
         itemCount = array.Count()
         if itemCount = 0 then return
@@ -479,71 +479,39 @@ namespace Rotor.Utils
         end while
     end sub
 
-    ' =================================================================
+    '==========================================================================
     ' HID (Hierarchical ID) OPERATIONS
-    ' =================================================================
+    '==========================================================================
 
-    '**
+    '----------------------------------------------------------------------
     '** isAncestorHID - Checks if ancestorHID is an ancestor of HID
     '**
     '** Uses string prefix matching on HIDs.
     '**
     '** @param {string} ancestorHID - Potential ancestor HID
     '** @param {string} HID - HID to check
-    '** @return {boolean} True if ancestorHID is ancestor of HID
+    '** @returns {boolean} True if ancestorHID is ancestor of HID
     '**
     '** Example:
     '**   isAncestorHID("scene.header", "scene.header.logo") => true
-    '**
+    '----------------------------------------------------------------------
     function isAncestorHID(ancestorHID as string, HID as string) as boolean
         ancestorHIDLen = Len(ancestorHID)
         return Left(HID, ancestorHIDLen) = ancestorHID and ancestorHIDLen < Len(HID)
     end function
 
-    '**
+    '----------------------------------------------------------------------
     '** isDescendantHID - Checks if descendantHID is a descendant of HID
     '**
     '** Inverse of isAncestorHID.
     '**
     '** @param {string} descendantHID - Potential descendant HID
     '** @param {string} HID - HID to check against
-    '** @return {boolean} True if descendantHID is descendant of HID
-    '**
+    '** @returns {boolean} True if descendantHID is descendant of HID
+    '----------------------------------------------------------------------
     function isDescendantHID(descendantHID as string, HID as string) as boolean
         HIDlen = Len(HID)
         return Left(descendantHID, HIDlen) = HID and HIDlen < Len(descendantHID)
-    end function
-
-    ' =================================================================
-    ' INDEX HELPERS
-    ' =================================================================
-
-    '**
-    '** getWrappedIndex - Wraps index to array bounds using modulo
-    '**
-    '** Handles negative indices and out-of-bounds indices correctly.
-    '**
-    '** @param {integer} index - Index to wrap
-    '** @param {integer} contentCount - Array length
-    '** @return {integer} Wrapped index (0 to contentCount-1), or -1 if empty array
-    '**
-    '** Example:
-    '**   getWrappedIndex(5, 3) => 2  (5 mod 3 = 2)
-    '**   getWrappedIndex(-1, 3) => 2  (wraps to last element)
-    '**
-    function getWrappedIndex(index as integer, contentCount as integer) as integer
-        ' Handle empty array
-        if contentCount <= 0 then return -1
-
-        ' Calculate wrapped index
-        wrappedIndex = index mod contentCount
-
-        ' Ensure non-negative (BrightScript modulo can be negative)
-        if wrappedIndex < 0
-            wrappedIndex += contentCount
-        end if
-
-        return wrappedIndex
     end function
 
 end namespace

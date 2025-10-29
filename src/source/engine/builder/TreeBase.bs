@@ -1,5 +1,13 @@
 namespace Rotor.ViewBuilder
 
+    '==========================================================================
+    '** @class WidgetTreeBase
+    '** @description Base class for widget tree management with HID generation and search capabilities.
+    '**              Provides core functionality for hierarchical widget organization,
+    '**              lookup operations, and glob pattern matching.
+    '** @namespace Rotor.ViewBuilder
+    '** @note The class name can be used as a type when declaring variables throughout the framework.
+    '==========================================================================
     class WidgetTreeBase
 
         tree = new TreeRoot()
@@ -8,6 +16,13 @@ namespace Rotor.ViewBuilder
         ' sub new()
         '     super()
         ' end sub
+
+        '----------------------------------------------------------------------
+        '** @method generateHID
+        '** @description Generates a unique Hierarchical ID for a widget under a parent
+        '** @param {object} parent - Parent widget object
+        '** @returns {string} Unique HID string
+        '----------------------------------------------------------------------
         function generateHID(parent) as string
             tryCounter = 32
             newHID = ""
@@ -33,6 +48,13 @@ namespace Rotor.ViewBuilder
             return newHID
         end function
 
+        '----------------------------------------------------------------------
+        '** @method get
+        '** @description Gets a single widget by search pattern
+        '** @param {string} searchPattern - HID or glob pattern to search for
+        '** @param {string} HID - Starting context HID (default: "0")
+        '** @returns {object} First matching widget or invalid if not found
+        '----------------------------------------------------------------------
         function get(searchPattern as string, HID = "0" as string) as object
             untilFirstItem = true
             results = m.find(searchPattern, HID, untilFirstItem)
@@ -43,30 +65,38 @@ namespace Rotor.ViewBuilder
             end if
         end function
 
+        '----------------------------------------------------------------------
+        '** @method getByHID
+        '** @description Gets a widget directly by its HID
+        '** @param {string} HID - Hierarchical ID to look up
+        '** @returns {object} Widget at the specified HID or invalid if not found
+        '----------------------------------------------------------------------
         function getByHID(HID as string) as object
             return HID = "0" ? m.tree : m.tree_HIDHash.get(HID)
         end function
 
+        '----------------------------------------------------------------------
+        '** @method hasByHID
+        '** @description Checks if a widget exists at the specified HID
+        '** @param {string} HID - Hierarchical ID to check
+        '** @returns {boolean} True if widget exists, false otherwise
+        '----------------------------------------------------------------------
         function hasByHID(HID as string) as boolean
             return m.tree_HIDHash.has(HID)
         end function
 
-
-        ' * Find a widget by unique HID / glob pattern by id / regex
-
-        ''''''''''
-        ' find: Searches the widget tree using a path-like glob pattern or direct HID
-        '
-        ' Supports:
-        '   - Direct lookup by HID
-        '   - Relative path resolution (./ and .. operators)
-        '   - Glob patterns: *, ** and normalization (e.g. multiple slashes, stars)
-        '
-        ' @param {string} searchPattern - The lookup expression
-        ' @param {string} HID - Optional starting node (default: root)
-        ' @param {boolean} untilFirstItem - If true, stops after first match
-        ' @return {object} - Array of matching widgets, or invalid if none found
-        ''''''''''
+        '----------------------------------------------------------------------
+        '** @method find
+        '** @description Searches the widget tree using a path-like glob pattern or direct HID.
+        '**              Supports:
+        '**              - Direct lookup by HID
+        '**              - Relative path resolution (./ and .. operators)
+        '**              - Glob patterns: *, ** and normalization (e.g. multiple slashes, stars)
+        '** @param {string} searchPattern - The lookup expression
+        '** @param {string} HID - Optional starting node (default: root)
+        '** @param {boolean} untilFirstItem - If true, stops after first match (default: false)
+        '** @returns {object} Array of matching widgets, or invalid if none found
+        '----------------------------------------------------------------------
         function find(searchPattern as string, HID = "0" as string, untilFirstItem = false as boolean) as object
             ' TODO: In the future, this could use a well-designed ID-based cache to improve performance
 
@@ -126,34 +156,18 @@ namespace Rotor.ViewBuilder
             return results
         end function
 
-
-        ''''''''''
-        ' recursionFind: Recursively finds widgets in a tree structure based on glob-like patterns
-        '
-        ' Supports:
-        '   - "*" to match any key at one level
-        '   - "**" to match any number of nested levels
-        '
-        ' @param {object} results - Array to collect matching widgets
-        ' @param {object} parts - Pattern parts split by "/"
-        ' @param {boolean} untilFirstItem - If true, stops after the first match
-        ' @param {object} children - The widget tree branch to search (defaults to empty object)
-        ' @param {integer} index - Current position in the pattern
-        ' @return {object} - Array of matching widgets
-        ''''''''''
-        '''''''''
-        ' matchesPattern: Check if a string matches a wildcard pattern
-        '
-        ' Supports:
-        '   - "*" matches everything
-        '   - "prefix*" matches strings starting with prefix
-        '   - "*suffix" matches strings ending with suffix
-        '   - "prefix*suffix" matches strings starting with prefix and ending with suffix
-        '
-        ' @param {string} str - The string to check
-        ' @param {string} pattern - The pattern with optional wildcards
-        ' @return {boolean} - True if matches, false otherwise
-        '''''''''
+        '----------------------------------------------------------------------
+        '** @method matchesPattern
+        '** @description Check if a string matches a wildcard pattern.
+        '**              Supports:
+        '**              - "*" matches everything
+        '**              - "prefix*" matches strings starting with prefix
+        '**              - "*suffix" matches strings ending with suffix
+        '**              - "prefix*suffix" matches strings starting with prefix and ending with suffix
+        '** @param {string} str - The string to check
+        '** @param {string} pattern - The pattern with optional wildcards
+        '** @returns {boolean} True if matches, false otherwise
+        '----------------------------------------------------------------------
         function matchesPattern(str as string, pattern as string) as boolean
             if pattern = "*" then return true
             if pattern.Instr("*") < 0 then return str = pattern ' No wildcard, exact match
@@ -183,6 +197,19 @@ namespace Rotor.ViewBuilder
             return true
         end function
 
+        '----------------------------------------------------------------------
+        '** @method recursionFind
+        '** @description Recursively finds widgets in a tree structure based on glob-like patterns.
+        '**              Supports:
+        '**              - "*" to match any key at one level
+        '**              - "**" to match any number of nested levels
+        '** @param {object} results - Array to collect matching widgets
+        '** @param {object} parts - Pattern parts split by "/"
+        '** @param {boolean} untilFirstItem - If true, stops after the first match
+        '** @param {object} children - The widget tree branch to search (default: {})
+        '** @param {integer} index - Current position in the pattern (default: 0)
+        '** @returns {object} Array of matching widgets
+        '----------------------------------------------------------------------
         function recursionFind(results as object, parts as object, untilFirstItem as boolean, children = {} as object, index = 0 as integer) as object
             currentPart = parts[index]
             partsCount = parts.Count()
@@ -230,6 +257,14 @@ namespace Rotor.ViewBuilder
             return results
         end function
 
+        '----------------------------------------------------------------------
+        '** @method getSubtreeClone
+        '** @description Creates a cloned subtree from a widget by search pattern
+        '** @param {string} searchPattern - Pattern to find the root widget
+        '** @param {object} keyPathList - List of key paths to include in clone (default: [])
+        '** @param {string} parentHID - Parent HID context (default: "0")
+        '** @returns {object} Cloned subtree structure or invalid if not found
+        '----------------------------------------------------------------------
         function getSubtreeClone(searchPattern as string, keyPathList = [] as object, parentHID = "0" as string) as object
             subTree = m.get(searchPattern, parentHID)
             if subTree = invalid then return invalid
@@ -244,7 +279,14 @@ namespace Rotor.ViewBuilder
             return subTreeClone
         end function
 
-        ' Note that, there will be a type conversion: tree use AA for children but you will need Array for updates.
+        '----------------------------------------------------------------------
+        '** @method recursion_getSubtreeClone
+        '** @description Recursively clones a widget subtree by specified key paths.
+        '**              Note: Tree uses AA for children but clone uses Array for updates.
+        '** @param {object} subTree - Source subtree to clone
+        '** @param {object} subTreeClone - Target clone object to populate
+        '** @param {object} keyPathList - List of key paths to include in clone
+        '----------------------------------------------------------------------
         sub recursion_getSubtreeClone(subTree as object, subTreeClone as object, keyPathList as object)
             ' Note that
             for each keyPath in keyPathList
