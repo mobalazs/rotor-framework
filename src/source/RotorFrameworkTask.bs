@@ -1,0 +1,278 @@
+'''''''''
+' ▗▄▄▖  ▗▄▖▗▄▄▄▖▗▄▖ ▗▄▄▖     ▗▄▄▄▖▗▄▄▖  ▗▄▖ ▗▖  ▗▖▗▄▄▄▖▗▖ ▗▖ ▗▄▖ ▗▄▄▖ ▗▖ ▗▖
+' ▐▌ ▐▌▐▌ ▐▌ █ ▐▌ ▐▌▐▌ ▐▌    ▐▌   ▐▌ ▐▌▐▌ ▐▌▐▛▚▞▜▌▐▌   ▐▌ ▐▌▐▌ ▐▌▐▌ ▐▌▐▌▗▞▘
+' ▐▛▀▚▖▐▌ ▐▌ █ ▐▌ ▐▌▐▛▀▚▖    ▐▛▀▀▘▐▛▀▚▖▐▛▀▜▌▐▌  ▐▌▐▛▀▀▘▐▌ ▐▌▐▌ ▐▌▐▛▀▚▖▐▛▚▖
+' ▐▌ ▐▌▝▚▄▞▘ █ ▝▚▄▞▘▐▌ ▐▌    ▐▌   ▐▌ ▐▌▐▌ ▐▌▐▌  ▐▌▐▙▄▄▖▐▙█▟▌▝▚▄▞▘▐▌ ▐▌▐▌ ▐▌
+' Rotor Framework™               © 2025 Balázs Molnár. All rights reserved.
+' Version 0.2.7
+'''''''''
+
+' constants
+import "engine/Constants.bs"
+
+' engine
+import "engine/providers/DispatcherProvider.bs"
+import "engine/providers/Dispatcher.bs"
+
+' base classes
+import "base/DispatcherCreator.bs"
+import "base/DispatcherExternal.bs"
+import "base/BaseReducer.bs"
+import "base/BaseModel.bs"
+import "base/BaseStack.bs"
+
+' utils
+import "utils/GeneralUtils.bs"
+import "utils/NodeUtils.bs"
+import "utils/ArrayUtils.bs"
+
+namespace Rotor
+    ' =====================================================================
+    ' FrameworkTask - Task thread version of Rotor Framework for MVI
+    '
+    ' Task thread version of the Rotor Framework that enables cross-thread MVI
+    ' (Model-View-Intent) architecture. This class manages state and dispatchers
+    ' on a separate task thread, allowing heavy computations and state management
+    ' to run off the render thread for better performance.
+    '
+    ' Configuration:
+    '   - tasks (array, optional): List of additional task node names to synchronize with.
+    '                             Allows multiple task threads to communicate and share
+    '                             dispatchers across different threads.
+    '
+    ' USAGE NOTES:
+    ' The FrameworkTask must be instantiated in the task's init() function and the sync()
+    ' method MUST be called at the end of your task function to establish the message loop.
+    '
+    ' IMPORTANT: The sync() method creates an infinite loop that handles cross-thread
+    ' communication and dispatcher synchronization. This call should be the LAST statement
+    ' in your task function, after all dispatcher initialization.
+    '
+    ' Example:
+    '   File: MyTask.task.bs
+    '   import "pkg:/source/RotorFrameworkTask.bs"
+    '   import "pkg:/source/MyDispatcher.bs"
+    '
+    '   sub init()
+    '       m.top.functionName = "task"
+    '       m.appFw = new Rotor.FrameworkTask({
+    '           tasks: ["AnotherTask"]
+    '       })
+    '   end sub
+    '
+    '   sub task()
+    '       m.fooDispatcher = createFooDispatcher()
+    '       m.barDispatcher = createBarDispatcher()
+    '       m.appFw.sync()
+    '   end sub
+    ' =====================================================================
+    class FrameworkTask
+
+        name = "Rotor Framework"
+        version = "0.2.7"
+
+        config = {
+            tasks: invalid, ' optional
+            debug: {
+            }
+        }
+
+        threadType = Rotor.Const.ThreadType.TASK
+
+        keepAlive = true
+
+        ' helper vars
+        taskNode as object
+        dispatcherProvider as object
+        port as object
+
+        ' ---------------------------------------------------------------------
+        ' new - Initializes the FrameworkTask instance
+        '
+        ' Sets up the task thread dispatcher provider, message port, and
+        ' global framework helper for cross-thread communication.
+        '
+        ' @param {object} config - Configuration object (see class documentation)
+        '
+        sub new(config = {} as object)
+
+            Rotor.Utils.deepExtendAA(m.config, config)
+
+            globalScope = GetGlobalAA()
+            globalScope.rotor_framework_helper = { ' this give to dispatcher instance the possibility to self-register
+                threadType: m.threadType,
+                frameworkInstance: m
+            }
+            m.taskNode = globalScope.top
+
+            m.dispatcherProvider = new Rotor.DispatcherProvider(m.threadType)
+
+            m.taskNode.addField("rotorSync", "assocarray", true)
+            m.port = CreateObject("roMessagePort")
+            m.taskNode.observeFieldScoped("rotorSync", m.port)
+
+        end sub
+
+        ' =====================================================================
+        ' PUBLIC API
+        ' =====================================================================
+
+        ' ---------------------------------------------------------------------
+        ' getDispatcher - Gets dispatcher facade by ID
+        '
+        ' @param {string} dispatcherId - Dispatcher identifier
+        ' @returns {object} Dispatcher facade instance
+        '
+        public function getDispatcher(dispatcherId as string) as object
+            return m.dispatcherProvider.getFacade(dispatcherId, GetGlobalAA())
+        end function
+
+        ' ---------------------------------------------------------------------
+        ' sync - Starts the message loop for cross-thread communication
+        '
+        ' IMPORTANT: This method creates an infinite loop that handles:
+        '   - Intent dispatching from render thread
+        '   - External dispatcher registration
+        '   - State change notifications
+        '   - Async reducer callbacks
+        '
+        ' This method MUST be the last call in your task function, as it
+        ' blocks execution until the framework is destroyed.
+        '
+        sub sync()
+            m.notifySyncStatus(Rotor.Const.ThreadSyncType.TASK_SYNCING)
+
+            keepAlive = true
+
+            while true and keepAlive = true
+                msg = wait(0, m.port)
+                if msg <> invalid
+                    msgType = type(msg)
+                    if msgType = "roSGNodeEvent"
+                        fieldId = msg.getField()
+
+                        if fieldId = "rotorSync"
+
+                            sync = msg.getData() ' @type:AA
+
+                            if sync.type = Rotor.Const.ThreadSyncType.DISPATCH
+
+
+                                dispatcherId = sync.payload.dispatcherId
+                                intent = sync.payload.intent
+                                dispatcherInstance = m.dispatcherProvider.stack.LookupCI(dispatcherId)
+
+                                ' taskIntent = Rotor.Utils.deepCopy(intent)
+                                dispatcherInstance.dispatch(intent)
+
+                            else if sync.type = Rotor.Const.ThreadSyncType.REGISTER_EXTERNAL_DISPATCHER
+
+                                for each item in sync.externalDispatcherList
+                                    m.dispatcherProvider.registerExternalDispatchers(item.dispatcherId, item.externalTaskNode)
+                                end for
+
+                                m.notifySyncStatus(Rotor.Const.ThreadSyncType.TASK_SYNCED)
+
+                            else if sync.type = Rotor.Const.ThreadSyncType.DESTROY
+
+                                keepAlive = false
+
+                            end if
+                        else
+
+                            data = msg.getData()
+                            extraInfo = msg.GetInfo() ' Info AA passed during observeFieldScoped
+
+                            if extraInfo?.asyncReducerCallbackId <> invalid and m.dispatcherProvider.get(extraInfo?.asyncReducerCallbackId) <> invalid
+                                ' Catch by dispatcherId
+                                m.dispatcherProvider.get(extraInfo?.asyncReducerCallbackId).asyncReducerCallback(msg)
+                            else
+                                dispatcherId = fieldId
+                                dispatcherInstance = m.dispatcherProvider.get(dispatcherId)
+                                dispatcherInstance.notifyListeners(data)
+                            end if
+
+                        end if
+                    end if
+                end if
+            end while
+            m.destroy()
+        end sub
+
+        ' =====================================================================
+        ' INTERNAL METHODS
+        ' =====================================================================
+
+        ' ---------------------------------------------------------------------
+        ' notifySyncStatus - Notifies render thread of sync status
+        '
+        ' Sends sync status message to render thread via rotorSync field.
+        '
+        ' @param {string} status - Sync status type (TASK_SYNCING or TASK_SYNCED)
+        '
+        sub notifySyncStatus(status as string)
+
+            payload = {
+                type: status,
+                taskNode: m.taskNode
+            }
+
+            if status = Rotor.Const.ThreadSyncType.TASK_SYNCING
+                payload.append({
+                    dispatcherIds: m.dispatcherProvider.stack.Keys(),
+                    tasks: m.config.tasks
+                })
+            end if
+
+            m.taskNode.rootNode.setField("rotorSync", payload)
+
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' addObserver - Adds field observer to task thread message port
+        '
+        ' @param {string} fieldId - Field name to observe
+        ' @param {object} node - SceneGraph node to observe
+        '
+        sub addObserver(fieldId as string, node)
+            node.observeFieldScoped(fieldId, m.port)
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' removeObserver - Removes field observer from node
+        '
+        ' @param {string} fieldId - Field name to stop observing
+        ' @param {object} node - SceneGraph node to unobserve
+        '
+        sub removeObserver(fieldId as string, node)
+            node.unobserveFieldScoped(fieldId)
+        end sub
+
+        ' =====================================================================
+        ' CLEANUP
+        ' =====================================================================
+
+        ' ---------------------------------------------------------------------
+        ' destroy - Cleans up task thread resources
+        '
+        ' Destroys dispatcher provider and clears global framework helper.
+        '
+        public sub destroy()
+            m.dispatcherProvider.destroy()
+
+            globalScope = GetGlobalAA()
+            globalScope.rotor_framework_helper = {
+                frameworkInstance: invalid
+            }
+
+            m.taskNode.rootNode = invalid
+            m.taskNode = invalid
+        end sub
+
+    end class
+
+end namespace
+
+
+
+

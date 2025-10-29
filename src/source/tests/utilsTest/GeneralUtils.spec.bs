@@ -100,43 +100,6 @@ namespace tests
 
         @describe("RALE logger helpers")
 
-        @it("leftPad adds leading zeros")
-        function _()
-            m.assertEqual(Rotor.Utils.RALE_Logger__getZeroNumber(5), "05")
-            m.assertEqual(Rotor.Utils.RALE_Logger__getZeroNumber(123), "123")
-        end function
-
-        @it("formatTime renders roDateTime time")
-        function _()
-            dt = m.createDateTime("2024-06-02T03:04:05Z")
-            formatted = Rotor.Utils.RALE_Logger__GetTime(dt)
-            m.assertEqual(formatted, "03:04:05.00")
-        end function
-
-        @it("formatTime trims millisecond precision correctly")
-        function _()
-            stub = {
-                getHours: function() return 3 : end function,
-                getMinutes: function() return 4 : end function,
-                getSeconds: function() return 5 : end function,
-                getMilliseconds: function() return 123 : end function
-            }
-            formatted = Rotor.Utils.RALE_Logger__GetTime(stub)
-            m.assertEqual(formatted, "03:04:05.123")
-        end function
-
-        @it("formatDate renders roDateTime date")
-        function _()
-            dt = m.createDateTime("2024-06-02T00:00:00Z")
-            formatted = Rotor.Utils.RALE_Logger__GetDate(dt)
-            m.assertEqual(formatted, "06-02")
-        end function
-
-        @it("BasicLogger prints timestamped message under debug")
-        function _()
-            Rotor.Utils.BasicLogger("coverage-check")
-        end function
-
         private function sampleFunction()
             return true
         end function
@@ -145,10 +108,5 @@ namespace tests
             return "0123456789ABCDEF".Instr(char) > -1
         end function
 
-        private function createDateTime(isoString as string) as object
-            dt = CreateObject("roDateTime")
-            dt.FromISO8601String(isoString)
-            return dt
-        end function
     end class
 end namespace

@@ -17,6 +17,11 @@ documents:
       topics: ["introduction", "installation", "quickstart", "architecture"]
       description: "Main introduction to Rotor Framework"
 
+    - file: "framework-initialization.opt.yaml"
+      title: "Framework Initialization"
+      topics: ["initialization", "configuration", "task-synchronization", "lifecycle"]
+      description: "Framework configuration, task synchronization, render queue, and public API"
+
     - file: "cross-thread-mvi.opt.yaml"
       title: "Cross-Thread MVI Architecture"
       topics: ["architecture", "threading", "state-management", "reactive"]
@@ -67,6 +72,7 @@ documents:
 
 all_files:
   - "readme.opt.yaml"
+  - "framework-initialization.opt.yaml"
   - "cross-thread-mvi.opt.yaml"
   - "view-builder-overview.opt.yaml"
   - "view-builder-widget-reference.opt.yaml"

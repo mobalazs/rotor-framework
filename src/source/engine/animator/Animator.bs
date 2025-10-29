@@ -1,0 +1,334 @@
+
+import "../../libs/animate/Animate.bs" ' https://github.com/haystacknews/animate
+
+
+namespace Rotor
+
+    ' ---------------------------------------------------------------------
+    ' animatorParamsIntegrationHelper - Helper function to parse and normalize animator parameters
+    '
+    ' @param {object} params - Animator parameters with target or targets field
+    ' @returns {object} Parsed parameters with normalized targets array
+    ' @throws {object} Error if no targets are specified
+    '
+    function animatorParamsIntegrationHelper(params) as object
+        if params.target <> invalid
+            targets = params.target
+            params.delete("target")
+        else if params.targets <> invalid
+            targets = params.targets
+            params.delete("targets")
+        else
+            throw { message: "[ANIMATOR][ERROR] Animator params don't specify targets." }
+        end if
+        parsedTargets = []
+        for each target in Rotor.Utils.ensureArray(targets)
+            if Rotor.Utils.isAssociativeArray(target) and target.doesExist("node")
+                node = target.node
+                node.id = `${target.id}-${target.HID}`
+                parsedTargets.push(node)
+            else
+                parsedTargets.push(target)
+            end if
+        end for
+
+        params.targets = parsedTargets
+
+        return params
+    end function
+
+    ' ---------------------------------------------------------------------
+    ' animationStateObserver - Sets up state observation for animator nodes
+    '
+    ' @param {object} params - Observer configuration parameters
+    '
+    sub animationStateObserver(params = {} as object)
+
+        globalScope = GetGlobalAA()
+        animatorObservber = globalScope.rotor_framework_helper.frameworkInstance.animatorProvider.animatorObservber
+        animatorObservber.detach(m.animNode)
+
+        observerParams = {
+            fieldId: "state",
+            infoFields: [],
+            callback: sub(state)
+                print "[WARNING] You have not specified callback for animation stateObserver"
+            end sub,
+            parsePayload: function(payload)
+                return payload.state
+            end function
+        }
+        observerParams.append(params)
+        ' mandatory field
+        observerParams.infoFields.unshift("isRotorAnimatorNode")
+
+        animatorObservber.attach(m.animNode, observerParams, m.scope)
+
+    end sub
+
+    ' =====================================================================
+    ' Animator - Manages animation instances and provides factory methods
+    '
+    ' Manages animation instances and provides factory methods for creating
+    ' single animations and timelines. Integrates with the Animate library
+    ' and provides state observation capabilities for animations.
+    ' =====================================================================
+    class Animator
+
+        animatorObservber as Rotor.ObserverPlugin
+
+        ' ---------------------------------------------------------------------
+        ' new - Initializes the animator with observer plugin
+        '
+        sub new()
+            m.animatorObservber = new Rotor.ObserverPlugin("rotorAnimatorObserver")
+            m.animatorObservber.init()
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' getFactory - Creates an animator factory instance for the given ID and scope
+        '
+        ' @param {string} animatorId - Unique identifier for the animator
+        ' @param {object} scope - Optional scope object for the animator (default: invalid)
+        ' @returns {object} Animator factory instance with control methods
+        '
+        function getFactory(animatorId as string, scope = invalid as object) as object
+
+            ' Get Animator by animatorScopedId
+            animatorInstance = {
+
+                animatorId: animatorId,
+                scope: scope,
+
+                ' ---------------------------------------------------------------------
+                ' create - Creates a single animation instance
+                '
+                ' @param {object} params - Animation parameters (target, duration, easing, etc.)
+                ' @returns {object} Animation control object with play method
+                '
+                create: function(params)
+
+                    ' destroy before create
+                    if m.scope?.animators?[m.animatorId] <> invalid
+                        ' unobserve
+                        animNode = m.scope.animators[m.animatorId].animNode
+                        globalScope = GetGlobalAA()
+                        animatorObservber = globalScope.rotor_framework_helper.frameworkInstance.animatorProvider.animatorObservber
+                        animatorObservber.detach(animNode)
+                        ' remove
+                        m.scope.animators[m.animatorId].animNode = invalid
+                        m.scope.animators.delete(m.animatorId)
+                    end if
+
+                    m.scope.animators = {}
+                    m.scope.animators[m.animatorId] = {}
+
+                    parsedParams = Rotor.animatorParamsIntegrationHelper(params)
+                    animNode = animate.create(parsedParams)
+
+                    m.scope.animators[m.animatorId].animNode = animNode
+                    m.scope.animators[m.animatorId].animNode.addField("isRotorAnimatorNode", "boolean", false) ' may use by observer
+                    m.scope.animators[m.animatorId].animNode.isRotorAnimatorNode = true
+                    m.scope.animators[m.animatorId].animNode.addField("animatorType", "string", false)
+                    m.scope.animators[m.animatorId].animNode.animatorType = "singleAnimation"
+
+                    return {
+
+                        scope: m.scope,
+                        animatorId: m.animatorId,
+
+                        play: function()
+                            animNode = m.scope?.animators?[m.animatorId]?.animNode
+                            animNode.control = "start"
+                            return {
+                                scope: m.scope,
+                                animNode: animNode,
+                                observeState: Rotor.animationStateObserver
+                            }
+                        end function
+
+                    }
+
+                end function,
+
+                ' ---------------------------------------------------------------------
+                ' timeline - Creates a timeline for multiple sequential/parallel animations
+                '
+                ' @param {object} params - Timeline parameters
+                ' @returns {object} Timeline control object with add, getAnimation, and play methods
+                '
+                timeline: function(params)
+
+                    ' destroy before create
+                    if m.scope?.animators?[m.animatorId] <> invalid
+                        ' unobserve
+                        animNode = m.scope.animators[m.animatorId].animNode
+                        globalScope = GetGlobalAA()
+                        animatorObservber = globalScope.rotor_framework_helper.frameworkInstance.animatorProvider.animatorObservber
+                        animatorObservber.detach(animNode)
+                        ' remove
+                        m.scope.animators[m.animatorId].animNode = invalid
+                        m.scope.animators.delete(m.animatorId)
+                    end if
+
+                    m.scope.animators = {}
+                    m.scope.animators[m.animatorId] = {}
+
+                    return {
+
+                        scope: m.scope,
+                        animatorId: m.animatorId,
+
+                        timeline: animate.timeline(params),
+
+                        add: function(params)
+
+                            parsedParams = Rotor.animatorParamsIntegrationHelper(params)
+                            m.timeline.add(parsedParams)
+
+                            return m
+                        end function,
+
+                        getAnimation: function()
+                            m.scope.animators[m.animatorId].animNode = m.timeline.getAnimation()
+                            m.scope.animators[m.animatorId].animNode.addField("isRotorAnimatorNode", "boolean", false) ' may use by observer
+                            m.scope.animators[m.animatorId].animNode.isRotorAnimatorNode = true
+                            m.scope.animators[m.animatorId].animNode.addField("animatorType", "string", false)
+                            m.scope.animators[m.animatorId].animNode.animatorType = "parallelAnimation"
+
+                            return m
+                        end function,
+
+                        play: function()
+                            animNode = m.scope?.animators?[m.animatorId]?.animNode
+                            ' Auto getAnimation and then play
+                            if animNode = invalid
+                                m.getAnimation()
+                            end if
+                            animNode = m.scope?.animators?[m.animatorId]?.animNode
+                            animNode.control = "start"
+                            return {
+                                scope: m.scope,
+                                animNode: animNode,
+                                observeState: Rotor.animationStateObserver
+                            }
+                        end function
+
+                    }
+                end function
+
+            }
+
+            return {
+                animatorInstance: animatorInstance,
+                animatorId: animatorId,
+                scope: scope,
+
+                getState: function()
+                    return m.scope?.animators?[m.animatorId]?.animNode?.state
+                end function,
+
+                isRunning: function()
+                    return m.getState() = "running"
+                end function,
+
+                isStopped: function()
+                    return m.getState() = "stopped"
+                end function,
+
+                isPaused: function()
+                    return m.getState() = "paused"
+                end function,
+
+                play: function()
+                    animNode = m.scope?.animators?[m.animatorId]?.animNode
+                    ' Auto getAnimation and then play
+                    if animNode = invalid
+                        m.getAnimation()
+                    end if
+                    animNode = m.scope?.animators?[m.animatorId]?.animNode
+                    if animNode <> invalid
+                        animNode.control = "start"
+                    end if
+                    return {
+                        scope: m.scope,
+                        animNode: animNode,
+                        observeState: Rotor.animationStateObserver
+                    }
+                end function,
+
+                stop: sub()
+                    animNode = m.scope?.animators?[m.animatorId]?.animNode
+                    if animNode <> invalid
+                        m.scope.animators[m.animatorId].animNode.control = "stop"
+                    end if
+                end sub,
+
+                pause: sub()
+                    animNode = m.scope?.animators?[m.animatorId]?.animNode
+                    if animNode <> invalid
+                        m.scope.animators[m.animatorId].animNode.control = "pause"
+                    end if
+                end sub,
+
+                finish: sub()
+                    animNode = m.scope?.animators?[m.animatorId]?.animNode
+                    if animNode <> invalid
+                        animNode.control = "finish"
+                    end if
+                end sub,
+
+                getAnimNode: function()
+                    animNode = m.scope?.animators?[m.animatorId]?.animNode
+                    return animNode
+                end function,
+
+                getInterpolators: function()
+                    animNode = m.scope?.animators?[m.animatorId]?.animNode
+                    if animNode <> invalid
+                        if m.scope.animators[m.animatorId].animNode.animatorType = "parallelAnimation"
+                            interpolators = []
+                            for each subAnim in animNode.getChildCount()
+                                interpolators.push(subAnim.getChildren(-1, 0))
+                            end for
+                        else ' singleAnimator
+                            interpolators = animNode.getChildren(-1, 0)
+                        end if
+                        return interpolators
+                    else
+                        return invalid
+                    end if
+                end function,
+
+                destroy: sub()
+                    if m.scope?.animators?[m.animatorId] <> invalid
+                        m.unobserveState()
+                        m.scope.animators[m.animatorId].animNode = invalid
+                        m.scope.animators.delete(m.animatorId)
+                    end if
+                end sub,
+
+                unobserveState: sub()
+                    animNode = m.scope.animators[m.animatorId].animNode
+                    globalScope = GetGlobalAA()
+                    animatorObservber = globalScope.rotor_framework_helper.frameworkInstance.animatorProvider.animatorObservber
+                    animatorObservber.detach(animNode)
+                end sub,
+
+                ' Create with self destroy
+                create: function(params) as object
+                    return m.animatorInstance.create(params)
+                end function,
+
+                ' Cerate timeline with self destroy
+                timeline: function(params) as object
+                    return m.animatorInstance.timeline(params)
+                end function
+            }
+
+
+        end function
+
+    end class
+
+end namespace

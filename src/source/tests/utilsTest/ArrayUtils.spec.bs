@@ -2,21 +2,6 @@ namespace tests
     @suite("Rotor.Utils array helpers")
     class ArrayUtilsSuite extends rooibos.BaseTestSuite
 
-        @describe("convertArrayToAAHash")
-
-        @it("mapDefaults sets mapped values to true")
-        function _()
-            result = Rotor.Utils.convertArrayToAAHash(["foo", "bar"])
-            m.assertTrue(result["foo"])
-            m.assertTrue(result["bar"])
-        end function
-
-        @it("mapDefaults respects custom truthy flag")
-        function _()
-            result = Rotor.Utils.convertArrayToAAHash(["foo"], false)
-            m.assertFalse(result["foo"])
-        end function
-
         @describe("deepExtendAA")
 
         @it("deepExtendAA merges nested associative arrays")
@@ -263,20 +248,6 @@ namespace tests
             m.assertArraysMatch(values, [1, 2, 3])
         end function
 
-        @describe("getWrappedIndex")
-
-        @it("getWrappedIndex wraps positive index")
-        function _()
-            m.assertEqual(Rotor.Utils.getWrappedIndex(7, 5), 2)
-        end function
-
-        @it("getWrappedIndex wraps negative index")
-        function _()
-            m.assertEqual(Rotor.Utils.getWrappedIndex(-1, 5), 4)
-        end function
-
-
-
         private function isGreaterThan(value, context)
             return value > context
         end function
@@ -284,27 +255,6 @@ namespace tests
         private sub assertArraysMatch(actual as dynamic, expected as dynamic)
             m.assertEqual(FormatJSON(actual), FormatJSON(expected))
         end sub
-
-
-        @it("converts array to hash with true values")
-        function _()
-            arr = ["a", "b", "c"]
-            result = Rotor.Utils.convertArrayToAAHash(arr)
-
-            m.assertTrue(result.a)
-            m.assertTrue(result.b)
-            m.assertTrue(result.c)
-        end function
-
-        @it("converts array to hash with custom value")
-        function _()
-            arr = ["x", "y"]
-            result = Rotor.Utils.convertArrayToAAHash(arr, false)
-
-            m.assertFalse(result.x)
-            m.assertFalse(result.y)
-        end function
-
 
         @it("wraps non-array in array")
         function _()

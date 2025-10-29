@@ -1,0 +1,548 @@
+namespace Rotor
+
+    ' =====================================================================
+    ' ObserverPlugin - Field change observation for roSGNodes
+    '
+    ' Rotor Framework plugin for observing field changes on roSGNodes.
+    ' Manages observer registration, callback routing, and cleanup through
+    ' widget lifecycle hooks.
+    '
+    ' Key Responsibilities:
+    '   - Attaches/detaches observers to widget nodes during lifecycle
+    '   - Routes native SceneGraph field change callbacks to registered observers
+    '   - Manages observer lifecycle (once, until conditions)
+    '   - Provides unique attachment IDs for tracking observers per node
+    ' =====================================================================
+    class ObserverPlugin extends Rotor.BasePlugin
+
+        ' =============================================================
+        ' MEMBER VARIABLES
+        ' =============================================================
+
+        observerStack as object         ' ObserverStack instance managing all active observers
+        helperInterfaceId as object     ' Unique field ID used to store plugin metadata on nodes
+
+        ' =============================================================
+        ' CONSTRUCTOR
+        ' =============================================================
+
+        ' ---------------------------------------------------------------------
+        ' new - Initializes the ObserverPlugin instance
+        '
+        ' @param {string} key - Plugin identifier (default: "observer")
+        '
+        sub new(key = "observer")
+            super(key)
+        end sub
+
+        ' =============================================================
+        ' LIFECYCLE HOOKS
+        ' =============================================================
+
+        hooks = {
+            ' ---------------------------------------------------------------------
+            ' beforeMount - Attaches observers when widget is mounted
+            '
+            ' Called during widget creation to register all observers defined in the widget config.
+            '
+            ' @param {object} scope - Plugin instance (m)
+            ' @param {object} widget - Widget being mounted
+            '
+            beforeMount: sub(scope as object, widget as object)
+                config = widget[scope.key]
+                scope.attach(widget.node, config, widget)
+            end sub,
+
+            ' ---------------------------------------------------------------------
+            ' beforeUpdate - Updates observers when widget config changes
+            '
+            ' Detaches old observers and attaches new ones based on updated configuration.
+            '
+            ' @param {object} scope - Plugin instance (m)
+            ' @param {object} widget - Widget being updated
+            ' @param {object} newValue - New observer configuration
+            ' @param {object} oldValue - Previous observer configuration
+            '
+            beforeUpdate: sub(scope as object, widget as object, newValue, oldValue = {})
+                if oldValue <> invalid
+                    scope.detach(widget.node)
+                end if
+                widget[scope.key] = newValue
+                scope.attach(widget.node, newValue, widget)
+            end sub,
+
+            ' ---------------------------------------------------------------------
+            ' beforeDestroy - Detaches all observers before widget destruction
+            '
+            ' Ensures cleanup of all observers when widget is removed from scene graph.
+            '
+            ' @param {object} scope - Plugin instance (m)
+            ' @param {object} widget - Widget being destroyed
+            '
+            beforeDestroy: sub(scope as object, widget as object)
+                scope.detach(widget.node)
+            end sub
+        }
+
+        ' =============================================================
+        ' INITIALIZATION
+        ' =============================================================
+
+        ' ---------------------------------------------------------------------
+        ' init - Initializes plugin internal state
+        '
+        ' Creates the observer stack and sets up the helper interface ID
+        ' used to track observers on nodes.
+        '
+        sub init()
+            m.observerStack = new Rotor.ObserverPluginHelper.ObserverStack()
+            m.helperInterfaceId = Rotor.ObserverPluginHelper.OBSERVER_HELPER_INTERFACE + "-" + m.key
+        end sub
+
+        ' =============================================================
+        ' OBSERVER MANAGEMENT
+        ' =============================================================
+
+        ' ---------------------------------------------------------------------
+        ' attach - Attaches observers to a node
+        '
+        ' Sets up helper interface on the node (if not already present) and registers
+        ' all observers defined in the configuration.
+        '
+        ' @param {object} node - roSGNode to attach observers to
+        ' @param {object} config - Observer configuration (single object or array)
+        ' @param {object} listenerScope - Widget instance for callback execution
+        '
+        sub attach(node as object, config as object, listenerScope as object)
+            ' Determine or create attachment ID for this node
+            attachmentId = invalid
+            if node.hasField(m.helperInterfaceId)
+                ' Node already has helper interface - reuse existing attachmentId
+                pluginHelperValue = node.getField(m.helperInterfaceId)
+                attachmentId = pluginHelperValue.attachmentId
+            else
+                ' First time attaching to this node - create new attachmentId
+                attachmentId = Rotor.Utils.getUUIDHex()
+
+                if node <> invalid
+                    ' Add helper interface field to node with plugin metadata
+                    pluginHelperFields = Rotor.Utils.wrapObject(m.helperInterfaceId, {
+                        pluginKey: m.key,
+                        attachmentId: attachmentId
+                    })
+                    Rotor.Utils.setCustomFields(node, pluginHelperFields, true, false)
+                end if
+            end if
+
+            ' Register each observer configuration
+            if config <> invalid and config.Count() > 0 and attachmentId <> invalid
+                observerConfigs = Rotor.Utils.ensureArray(config)
+                for each observerConfig in observerConfigs
+                    m.registerObserver(observerConfig, node, attachmentId, m.helperInterfaceId, listenerScope)
+                end for
+            end if
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' registerObserver - Creates and registers a single observer instance
+        '
+        ' Creates an Observer object, stores it in the stack, and sets up the native
+        ' SceneGraph observeFieldScoped call.
+        '
+        ' @param {object} observerConfig - Configuration for the specific observer
+        ' @param {object} node - roSGNode being observed
+        ' @param {string} attachmentId - Unique ID linking observers to this node
+        ' @param {string} helperInterfaceId - Helper interface field ID
+        ' @param {object} listenerScope - Widget scope for callback execution
+        '
+        sub registerObserver(observerConfig as object, node as object, attachmentId as string, helperInterfaceId as string, listenerScope as object)
+            ' Create observer instance
+            newObserver = new Rotor.ObserverPluginHelper.Observer(observerConfig, node, attachmentId, listenerScope, m.key)
+            m.observerStack.set(newObserver.id, newObserver)
+
+            ' Set up native SceneGraph observation
+            fieldId = observerConfig.fieldId
+            infoFields = newObserver.getInfoFields()
+            node.observeFieldScoped(fieldId, "Rotor_ObserverPluginHelper_observerNativeCallback", infoFields)
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' detach - Removes all observers associated with a node
+        '
+        ' Unobserves all fields and removes observer instances from the stack.
+        '
+        ' @param {dynamic} node - roSGNode to detach observers from
+        '
+        sub detach(node as dynamic)
+            ' Get plugin helper metadata from node
+            pluginHelperValue = node.getField(m.helperInterfaceId)
+            if pluginHelperValue = invalid then return
+
+            attachmentId = pluginHelperValue.attachmentId
+            if attachmentId = invalid then return
+
+            ' Find and remove all observers for this attachment
+            observers = m.observerStack.findObserverByAttachmentId(attachmentId)
+            for each observer in observers
+                if observer.node <> invalid
+                    observer.node.unobserveFieldScoped(observer.fieldId)
+                end if
+                m.observerStack.remove(observer.id) ' Calls observer.destroy()
+            end for
+        end sub
+
+        ' =============================================================
+        ' CALLBACK ROUTING
+        ' =============================================================
+
+        ' ---------------------------------------------------------------------
+        ' observerCallbackRouter - Routes native callback to appropriate observers
+        '
+        ' Called by the global observerNativeCallback when a field changes.
+        ' Finds matching observers and triggers their callbacks.
+        '
+        ' Handles:
+        '   - Payload parsing via custom parsePayload functions
+        '   - 'once' observers (removed after first trigger)
+        '   - 'until' condition observers (removed when condition met)
+        '
+        ' @param {dynamic} value - New value of the observed field
+        ' @param {object} extraInfo - Additional info from observeFieldScoped
+        ' @param {string} fieldId - ID of the field that changed
+        ' @param {string} attachmentId - Node attachment ID
+        ' @param {string} pluginKey - Plugin instance key
+        '
+        sub observerCallbackRouter(value as dynamic, extraInfo as object, fieldId as string, attachmentId as string, pluginKey as string)
+            ' Find all observers interested in this field change
+            interestedObservers = m.observerStack.findObserversByAttachmentAndField(attachmentId, fieldId)
+
+            for each observer in interestedObservers
+                ' Build and parse payload
+                payload = Rotor.Utils.wrapObject(fieldId, value)
+                payload.append(extraInfo)
+                parsedPayload = observer.parsePayload(payload)
+
+                ' Execute observer callback
+                observer.notify(parsedPayload)
+
+                ' Handle observer removal conditions
+                if observer.once = true or (Rotor.Utils.isFunction(observer.until) and true = observer.until(parsedPayload))
+                    ' Unobserve before removing to prevent race conditions
+                    if observer.node <> invalid
+                        observer.node.unobserveFieldScoped(observer.fieldId)
+                    end if
+                    m.observerStack.remove(observer.id)
+                end if
+            end for
+        end sub
+
+        ' =============================================================
+        ' CLEANUP
+        ' =============================================================
+
+        ' ---------------------------------------------------------------------
+        ' destroy - Cleans up all observers
+        '
+        ' Called when the framework instance is destroyed.
+        ' Unobserves all fields and removes all observer instances.
+        '
+        sub destroy()
+            if m.observerStack = invalid then return
+
+            ' Collect observer IDs to avoid mutation during iteration
+            ids = []
+            all = m.observerStack.getAll()
+            for each id in all
+                observer = all[id]
+                if observer <> invalid and observer.node <> invalid
+                    observer.node.unobserveFieldScoped(observer.fieldId)
+                end if
+                ids.push(id)
+            end for
+
+            ' Remove all observers
+            for each id in ids
+                m.observerStack.remove(id) ' Calls observer.destroy()
+            end for
+
+            ' Clear the stack
+            m.observerStack.clear()
+        end sub
+
+    end class
+
+    ' =================================================================
+    ' OBSERVER PLUGIN HELPER NAMESPACE
+    ' =================================================================
+
+    namespace ObserverPluginHelper
+
+        ' Prefix for helper field on nodes
+        const OBSERVER_HELPER_INTERFACE = "rotorObserverPluginKeysHelper"
+
+        ' ---------------------------------------------------------------------
+        ' observerNativeCallback - Global callback for SceneGraph field changes
+        '
+        ' This function is registered with node.observeFieldScoped() and is called
+        ' whenever an observed field changes. It extracts metadata, identifies
+        ' the appropriate plugin instance, and routes to observerCallbackRouter.
+        '
+        ' @param {object} msg - roSGNodeEvent from the observed node
+        '
+        sub observerNativeCallback(msg as object)
+            ' Extract event data
+            extraInfo = msg.GetInfo()
+            fieldId = msg.getField()
+            value = msg.getData()
+
+            ' Extract plugin metadata from helper field
+            pluginKey = ""
+            attachmentId = ""
+            for each key in extraInfo
+                if Left(key, Len(OBSERVER_HELPER_INTERFACE)) = OBSERVER_HELPER_INTERFACE
+                    helperValue = extraInfo[key]
+                    if helperValue <> invalid
+                        pluginKey = helperValue.pluginKey
+                        attachmentId = helperValue.attachmentId
+                    end if
+                    extraInfo.delete(key) ' Remove helper from payload
+                    exit for
+                end if
+            end for
+
+            ' Route to appropriate plugin instance
+            if attachmentId <> "" and pluginKey <> ""
+                globalScope = GetGlobalAA()
+                frameworkInstance = globalScope.rotor_framework_helper.frameworkInstance
+                plugin = invalid
+
+                ' Handle special case for Rotor Animator observers
+                if extraInfo?.isRotorAnimatorNode = true
+                    plugin = frameworkInstance.animatorProvider.animatorObservber
+                else
+                    plugin = frameworkInstance.plugins[pluginKey]
+                end if
+
+                ' Execute callback router
+                if plugin <> invalid
+                    plugin.observerCallbackRouter(value, extraInfo, fieldId, attachmentId, pluginKey)
+                end if
+            end if
+        end sub
+
+        ' =====================================================================
+        ' ObserverStack - Collection manager for Observer instances
+        '
+        ' Manages a collection of Observer instances with specialized lookup methods.
+        '
+        ' Provides:
+        '   - Storage and retrieval of observers by ID
+        '   - Lookup by attachment ID and field ID
+        '   - Automatic cleanup on removal
+        ' =====================================================================
+        class ObserverStack extends Rotor.BaseStack
+
+            ' ---------------------------------------------------------------------
+            ' remove - Removes observer and triggers cleanup
+            '
+            ' Overrides base class to call observer.destroy() before removal.
+            '
+            ' @param {string} id - Observer ID to remove
+            '
+            override sub remove(id as string)
+                item = m.get(id)
+                if item <> invalid
+                    item.destroy()
+                end if
+                super.remove(id)
+            end sub
+
+            ' ---------------------------------------------------------------------
+            ' findObserversByAttachmentAndField - Finds observers by attachment and field
+            '
+            ' Returns all observers matching both the attachment ID and field ID.
+            '
+            ' @param {string} attachmentId - Node attachment ID
+            ' @param {string} fieldId - Field ID
+            ' @returns {object} Array of matching Observer instances
+            '
+            function findObserversByAttachmentAndField(attachmentId as string, fieldId as string) as object
+                observers = []
+                for each id in m.stack
+                    observer = m.stack[id]
+                    if observer.fieldId = fieldId and observer.attachmentId = attachmentId
+                        observers.push(observer)
+                    end if
+                end for
+                return observers
+            end function
+
+            ' ---------------------------------------------------------------------
+            ' findObserverByAttachmentId - Finds all observers for an attachment
+            '
+            ' Returns all observers associated with a specific node attachment.
+            '
+            ' @param {string} attachmentId - Node attachment ID
+            ' @returns {object} Array of matching Observer instances
+            '
+            function findObserverByAttachmentId(attachmentId as string) as object
+                observers = []
+                for each id in m.stack
+                    observer = m.stack[id]
+                    if observer.attachmentId = attachmentId
+                        observers.push(observer)
+                    end if
+                end for
+                return observers
+            end function
+
+        end class
+
+        ' =====================================================================
+        ' Observer - Single observer configuration for a node field
+        '
+        ' Represents a single observer configuration for a node field.
+        '
+        ' Responsibilities:
+        '   - Stores observer configuration (callback, conditions, etc.)
+        '   - Sets up initial field value if provided
+        '   - Provides info fields for observeFieldScoped
+        '   - Executes callbacks in correct scope
+        '   - Manages cleanup of references
+        ' =====================================================================
+        class Observer
+
+            ' =============================================================
+            ' MEMBER VARIABLES
+            ' =============================================================
+
+            id as string                ' Unique observer ID
+            node as object              ' roSGNode being observed
+            pluginKey as string         ' Key of managing ObserverPlugin
+            listenerScope as object     ' Widget scope for callback execution
+            attachmentId as string      ' Node attachment ID
+            fieldId as string           ' Field name being observed
+            infoFields as object        ' Additional fields to include in callback info
+            value as dynamic            ' Initial field value (if any)
+            once as boolean             ' Remove observer after first trigger
+            until as function           ' Conditional removal function
+            callback as function        ' Callback function to execute
+            parsePayload as function    ' Payload transformation function
+            alwaysNotify as boolean     ' Field alwaysNotify flag
+
+            ' =============================================================
+            ' CONSTRUCTOR
+            ' =============================================================
+
+            ' ---------------------------------------------------------------------
+            ' new - Creates an Observer instance
+            '
+            ' @param {object} config - Observer configuration
+            ' @param {object} node - roSGNode to observe
+            ' @param {string} attachmentId - Node attachment ID
+            ' @param {object} listenerScope - Widget scope for callbacks
+            ' @param {string} pluginKey - Managing plugin key
+            '
+            sub new(config as object, node as object, attachmentId as string, listenerScope as object, pluginKey as string)
+                ' Generate unique ID
+                m.id = (config.id ?? "ID") + "-" + Rotor.Utils.getUUIDHex()
+
+                ' Store references
+                m.node = node
+                m.pluginKey = pluginKey
+                m.listenerScope = listenerScope ?? {}
+                m.attachmentId = attachmentId
+
+                ' Extract configuration
+                m.fieldId = config?.fieldId ?? ""
+                m.infoFields = config?.infoFields ?? []
+                m.value = config?.value
+                m.alwaysNotify = config?.alwaysNotify ?? true
+                m.once = config?.once ?? false
+                m.until = config?.until
+
+                ' Set callback (required)
+                m.callback = config?.callback ?? sub() throw "Callback has not configured for observer"
+                end Sub
+
+                ' Set payload parser (optional)
+                m.parsePayload = config?.parsePayload ?? function(payload)
+                    return payload
+                end function
+
+                ' Set up initial field value if provided
+                m.setupField(m.fieldId, m.value, m.alwaysNotify)
+            end sub
+
+            ' =============================================================
+            ' FIELD SETUP
+            ' =============================================================
+
+            ' ---------------------------------------------------------------------
+            ' setupField - Sets initial value on observed field
+            '
+            ' Creates or updates the field on the node if an initial value is provided.
+            '
+            ' @param {string} fieldId - Field name
+            ' @param {dynamic} value - Initial value (if not invalid)
+            ' @param {boolean} alwaysNotify - alwaysNotify flag value
+            '
+            sub setupField(fieldId as string, value as dynamic, alwaysNotify as boolean)
+                fields = {}
+                fields[m.fieldId] = value
+                Rotor.Utils.setCustomFields(m.node, fields, m.value <> invalid, alwaysNotify)
+            end sub
+
+            ' =============================================================
+            ' INFO FIELDS
+            ' =============================================================
+
+            ' ---------------------------------------------------------------------
+            ' getInfoFields - Builds field list for observeFieldScoped
+            '
+            ' Combines user-defined infoFields with the helper interface ID.
+            '
+            ' @returns {object} Array of field names for observeFieldScoped
+            '
+            function getInfoFields() as object
+                helperInterfaceId = Rotor.ObserverPluginHelper.OBSERVER_HELPER_INTERFACE + "-" + m.pluginKey
+                infoFields = []
+                infoFields.append(m.infoFields)
+                infoFields.push(helperInterfaceId)
+                return infoFields
+            end function
+
+            ' =============================================================
+            ' CALLBACK EXECUTION
+            ' =============================================================
+
+            ' ---------------------------------------------------------------------
+            ' notify - Executes observer callback
+            '
+            ' Calls the configured callback function in the correct scope with the payload.
+            '
+            ' @param {dynamic} payload - Data to pass to callback
+            '
+            sub notify(payload as dynamic)
+                Rotor.Utils.callbackScoped(m.callback, m.listenerScope, payload)
+            end sub
+
+            ' =============================================================
+            ' CLEANUP
+            ' =============================================================
+
+            ' ---------------------------------------------------------------------
+            ' destroy - Cleans up observer references
+            '
+            ' Clears references to prevent memory leaks.
+            '
+            sub destroy()
+                m.node = invalid
+                m.listenerScope = invalid
+            end sub
+
+        end class
+
+    end namespace ' ObserverPluginHelper
+
+end namespace ' Rotor

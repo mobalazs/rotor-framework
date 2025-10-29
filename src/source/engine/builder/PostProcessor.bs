@@ -1,0 +1,331 @@
+' ===== POST PROCESSOR =====
+namespace Rotor.ViewBuilder
+
+    ' =====================================================================
+    ' postProcessBuffer - Manages lifecycle hook buffers with priority-based execution ordering. Maintains separate buffers for root and default priority processes, organizing hooks by lifecycle type for sequential execution.
+    ' =====================================================================
+    class postProcessBuffer
+
+        frameworkInstance as Rotor.Framework
+
+        buffers = invalid
+
+        hookTypeIterationUsageFlags = invalid
+
+        orderedLifeCycleHookType = invalid
+
+        orderedHookPriorities = invalid
+
+        ' ---------------------------------------------------------------------
+        ' new - Initializes the instance
+        '
+        ' @description Initializes buffer structures and lifecycle hook ordering
+        ' ---------------------------------------------------------------------
+        sub new()
+            ' initialize ordered hook collections
+            m.buffers = {}
+            m.hookTypeIterationUsageFlags = {}
+
+            m.orderedLifeCycleHookType = []
+            m.orderedLifeCycleHookType.push(Rotor.Const.LifeCycleHookType.APPEND_CHILD)
+            m.orderedLifeCycleHookType.push(Rotor.Const.LifeCycleHookType.REINDEX_CHILD)
+            m.orderedLifeCycleHookType.push(Rotor.Const.LifeCycleHookType.BEFORE_MOUNT)
+            m.orderedLifeCycleHookType.push(Rotor.Const.LifeCycleHookType.MOUNTED)
+            m.orderedLifeCycleHookType.push(Rotor.Const.LifeCycleHookType.AFTER_MOUNTED)
+            m.orderedLifeCycleHookType.push(Rotor.Const.LifeCycleHookType.BEFORE_UPDATE)
+            m.orderedLifeCycleHookType.push(Rotor.Const.LifeCycleHookType.UPDATED)
+            m.orderedLifeCycleHookType.push(Rotor.Const.LifeCycleHookType.VIEWMODEL_STATE_UPDATE)
+            m.orderedLifeCycleHookType.push(Rotor.Const.LifeCycleHookType.AFTER_UPDATED)
+            m.orderedLifeCycleHookType.push(Rotor.Const.LifeCycleHookType.BEFORE_DESTROY)
+            m.orderedLifeCycleHookType.push(Rotor.Const.LifeCycleHookType.REMOVE_CHILD)
+            m.orderedLifeCycleHookType.push(Rotor.Const.LifeCycleHookType.DELETE_WIDGET)
+
+            m.orderedHookPriorities = []
+            m.orderedHookPriorities.push(Rotor.Const.HookPriorityTypes.DEFAULT)
+            m.orderedHookPriorities.push(Rotor.Const.HookPriorityTypes.ROOT)
+
+            ' initialize buffers for prioritized (root) and default (default) items
+            m.createLifeCycleBuffers()
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' createLifeCycleBuffers - Creates buffer structures for all priority types
+        ' ---------------------------------------------------------------------
+        sub createLifeCycleBuffers()
+            for each priority in m.orderedHookPriorities
+                m.buffers[priority] = m.createBuffers()
+            end for
+        end sub
+
+        ' ---------------------------------------------------------------------
+        '
+
+        ' clearLifeCycleBuffers - Clears all lifecycle buffers and iteration flags
+        '
+        ' ---------------------------------------------------------------------
+        sub clearLifeCycleBuffers()
+            for each priority in m.orderedHookPriorities
+                m.clearBuffers(m.buffers[priority])
+            end for
+            ' clear iteration cache
+            for each hookType in m.hookTypeIterationUsageFlags
+                m.hookTypeIterationUsageFlags[hookType] = false
+            end for
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' createBuffers - Creates buffers for all lifecycle hook types
+        '
+
+        ' @returns {object} Buffer object with roList for each hook type
+        ' ---------------------------------------------------------------------
+        function createBuffers() as object
+            buffer = {}
+            for each hookType in m.orderedLifeCycleHookType
+                buffer[hookType] = CreateObject("roList")
+                m.hookTypeIterationUsageFlags[hookType] = false
+            end for
+            return buffer
+        end function
+
+        ' ---------------------------------------------------------------------
+        ' clearBuffers - Clears all buffers in a priority container
+        '
+
+        ' @param {object} priorityContainer - Container with lifecycle hook buffers
+        ' ---------------------------------------------------------------------
+        sub clearBuffers(priorityContainer)
+            for each hookType in m.orderedLifeCycleHookType
+                priorityContainer[hookType].Clear()
+            end for
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' add - Adds processes to appropriate buffers based on priority and type
+        '
+
+        ' @param {object} newProcesses - Process or array of processes to add
+        ' @param {boolean} isHandledRootChild - Whether this is a root child (default: false)
+        ' ---------------------------------------------------------------------
+        sub add (newProcesses as object, isHandledRootChild = false as boolean)
+
+            processesToAdd = Rotor.Utils.ensureArray(newProcesses)
+
+            for each process in processesToAdd
+                m.hookTypeIterationUsageFlags[process.hookType] = true
+
+                widget = process.widget
+                isProcessRoot = m.frameworkInstance.builder.widgetTree.isBranchOfAppend(widget) or m.frameworkInstance.builder.widgetTree.isBranchOfRemove(widget)
+                isPluginProcess = process?.isPlugin = true
+                priorityType = isProcessRoot = true and not isPluginProcess ? Rotor.Const.HookPriorityTypes.ROOT : Rotor.Const.HookPriorityTypes.DEFAULT
+
+                if isPluginProcess
+                    m.buffers[priorityType][process.hookType].AddTail(process)
+                else
+                    if process.hookType = Rotor.Const.LifeCycleHookType.APPEND_CHILD or process.hookType = Rotor.Const.LifeCycleHookType.REINDEX_CHILD
+                        m.buffers[priorityType][process.hookType].AddTail(process)
+                    else
+                        m.buffers[priorityType][process.hookType].AddHead(process)
+                    end if
+                end if
+
+            end for
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' init - Initializes the buffer with framework instance reference
+        '
+
+        ' @param {Rotor.Framework} frameworkInstance - Framework instance reference
+        ' ---------------------------------------------------------------------
+        sub init(frameworkInstance as Rotor.Framework)
+            m.frameworkInstance = frameworkInstance
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' destroy - Cleans up framework instance reference
+        ' ---------------------------------------------------------------------
+        sub destroy()
+            m.frameworkInstance = invalid
+        end sub
+    end class
+
+    ' =====================================================================
+    ' PostProcessor - Executes lifecycle hooks and plugin processes in priority order. Handles widget lifecycle operations like mount, update, destroy, and manages SceneGraph node operations.
+    ' =====================================================================
+    class PostProcessor
+
+        frameworkInstance as Rotor.Framework
+
+        ' ---------------------------------------------------------------------
+        '
+
+        ' run - Executes all processes from the buffer in priority and hook type order
+        '
+        ' @param {object} postProcessBuffer - Buffer containing processes to execute
+        ' ---------------------------------------------------------------------
+        sub run(postProcessBuffer as object)
+
+            for each priorityType in postProcessBuffer.orderedHookPriorities
+                for each hookType in postProcessBuffer.orderedLifeCycleHookType
+                    if postProcessBuffer.hookTypeIterationUsageFlags[hookType] = true
+                        processList = postProcessBuffer.buffers[priorityType][hookType]
+                        processList.ResetIndex()
+                        process = processList.GetIndex()
+                        while process <> invalid
+                            m.executeGeneralProcess(process)
+                            process = processList.GetIndex()
+                        end while
+                    end if
+                end for
+            end for
+
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' executeGeneralProcess - Executes a single process based on its hook type
+        '
+
+        ' @param {object} process - Process object with hookType and widget
+        ' ---------------------------------------------------------------------
+        sub executeGeneralProcess(process as object)
+            widget = process.widget
+
+            if process?.isPlugin = true
+                pluginHook = m.frameworkInstance.builder.pluginAdapter.pluginHooks[process.hookType][process.pluginKey] ' array of handlers
+                if process.hookType = Rotor.Const.LifeCycleHookType.BEFORE_UPDATE or process.hookType = Rotor.Const.LifeCycleHookType.AFTER_UPDATED
+                    m.runPluginHookHandler(process.hookType, pluginHook, widget, process.newValue, process.oldValue)
+                else
+                    m.runPluginHookHandler(process.hookType, pluginHook, widget)
+                end if
+
+            else if process.hookType = Rotor.Const.LifeCycleHookType.APPEND_CHILD
+                m.appendNodeAtZIndex(process)
+                widget.Delete("markedToAppend")
+
+            else if process.hookType = Rotor.Const.LifeCycleHookType.REINDEX_CHILD
+                parentNode = widget.parent.node
+                parentNode.removeChild(widget.node)
+                m.appendNodeAtZIndex(process)
+
+            else if process.hookType = Rotor.Const.LifeCycleHookType.REMOVE_CHILD
+                parentNode = widget.parent.node
+                parentNode.removeChild(widget.node)
+                if process?.shouldSkipNodePool = invalid or process.shouldSkipNodePool = false
+                    widget.node = m.frameworkInstance.builder.nodePool.releaseNodeBranch(widget.node)
+                end if
+                widget.node = invalid
+
+            else if process.hookType = Rotor.Const.LifeCycleHookType.MOUNTED
+                if widget.onMountWidget <> invalid
+                    widget.onMountWidget()
+                end if
+                if widget?.isViewModel = true
+                    widget.onMountView()
+                end if
+
+            else if process.hookType = Rotor.Const.LifeCycleHookType.UPDATED
+                widget.onUpdateWidget()
+
+            else if process.hookType = Rotor.Const.LifeCycleHookType.VIEWMODEL_STATE_UPDATE
+                widget.setProps(process.props)
+
+            else if process.hookType = Rotor.Const.LifeCycleHookType.DELETE_WIDGET
+                if widget.onDestroyWidget <> invalid
+                    widget.onDestroyWidget()
+                end if
+                if widget?.isViewModel = true
+                    widget.onDestroyView()
+                end if
+                m.frameworkInstance.builder.widgetTree.remove(widget.HID)
+
+            end if
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' runPluginHookHandler - Executes plugin hook handler with appropriate parameters
+        '
+
+        ' @param {string} LifeCycleHookTypeType - Lifecycle hook type identifier
+        ' @param {object} pluginHook - Plugin hook configuration
+        ' @param {object} widget - Widget instance (default: invalid)
+        ' @param {dynamic} newValue - New value for update hooks (default: invalid)
+        ' @param {dynamic} oldValue - Old value for update hooks (default: invalid)
+        ' ---------------------------------------------------------------------
+        sub runPluginHookHandler(LifeCycleHookTypeType as string, pluginHook as object, widget = invalid as object, newValue = invalid as dynamic, oldValue = invalid as dynamic)
+            pluginKey = pluginHook.pluginKey
+            scope = m.frameworkInstance.plugins[pluginKey]
+            if scope.isEnabled
+                if LifeCycleHookTypeType = Rotor.Const.LifeCycleHookType.BEFORE_UPDATE
+                    pluginHook.handlerFn(scope, widget, newValue, oldValue)
+                else
+                    pluginHook.handlerFn(scope, widget)
+                end if
+            end if
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' appendNodeAtZIndex - Appends a node to its parent at the correct z-index position
+        '
+
+        ' @param {object} process - Process containing widget and zIndex information
+        ' ---------------------------------------------------------------------
+        sub appendNodeAtZIndex (process as object)
+
+            widget = process.widget
+            zIndex = process.zIndex
+            node = widget.node
+            parentNode = widget.parent.node
+
+            if zIndex = invalid
+
+                parentNode.appendChild(node)
+
+            else
+
+                ' respect zIndex when inserted
+                rootChildCount = parentNode.getChildCount()
+                siblingNodes = parentNode.getChildren(rootChildCount, 0)
+                inserted = false
+                index = rootChildCount - 1
+
+                while index >= 0 and inserted = false
+                    siblingNodeHID = siblingNodes[index].HID
+                    siblingWidget = siblingNodeHID <> invalid ? m.frameworkInstance.builder.widgetTree.get(siblingNodeHID) : invalid
+                    if Rotor.Utils.isInteger(siblingWidget?.zIndex) and siblingWidget?.zIndex <= zIndex
+                        inserted = true ' loop
+                    else
+                        index--
+                    end if
+                end while
+                index++
+                parentNode.insertChild(node, index) ' insert
+                widget.zIndex = zIndex ' store
+
+            end if
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' init - Initializes the post processor with framework instance reference
+        '
+
+        ' @param {Rotor.Framework} frameworkInstance - Framework instance reference
+        ' ---------------------------------------------------------------------
+        sub init(frameworkInstance as Rotor.Framework)
+            m.frameworkInstance = frameworkInstance
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' destroy - Cleans up framework instance reference
+        '
+        ' ---------------------------------------------------------------------
+        sub destroy()
+            m.frameworkInstance = invalid
+        end sub
+
+    end class
+
+
+
+
+end namespace

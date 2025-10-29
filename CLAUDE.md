@@ -40,26 +40,26 @@ npm run update-version     # Update version across framework files
 
 ### Core Architecture Layers
 
-**1. Framework Entry Point** (`src/source/rotor/RotorFramework.bs`)
+**1. Framework Entry Point** (`src/source/RotorFramework.bs`)
 - Main orchestrator that initializes the entire framework ecosystem
 - Manages the Builder, I18n service, DispatcherProvider, and Animator
 - Entry point: `frameworkInstance = new Rotor.Framework(config)`
 
-**2. ViewBuilder System** (`src/source/rotor/engine/builder/`)
+**2. ViewBuilder System** (`src/source/engine/builder/`)
 - **Builder.bs**: Core engine for widget/ViewModel lifecycle (create, update, remove)
 - **Tree.bs**: Virtual node tree maintaining UI hierarchy and HID (Hierarchical Identifier) system
 - **WidgetCreate.bs**: Widget instantiation logic
 - **WidgetUpdate.bs**: Widget update and diffing logic
 - **PostProcessor.bs**: Post-build processing and plugin invocation
 
-**3. Cross-Thread MVI Pattern** (`src/source/rotor/engine/providers/`)
+**3. Cross-Thread MVI Pattern** (`src/source/engine/providers/`)
 - **Model**: State container (extends `BaseModel.bs`)
 - **Reducer**: State transformation via middleware + reducer functions (extends `BaseReducer.bs`)
 - **Dispatcher**: Thread-safe communication bridge between render and task threads
   - `Dispatcher.bs`: Main dispatcher implementation
   - `DispatcherProvider.bs`: Manages dispatcher instances and cross-thread communication
 
-**4. Base Classes** (`src/source/rotor/base/`)
+**4. Base Classes** (`src/source/base/`)
 - `BaseWidget.bs`: Foundation for all UI widgets
 - `BaseViewModel.bs`: Extends Widget with template system, props, and viewModelState
 - `BaseModel.bs`: State container base
@@ -69,7 +69,7 @@ npm run update-version     # Update version across framework files
 - `DispatcherExternal.bs`: External dispatcher interface
 - `BasePlugin.bs`: Plugin lifecycle base (beforeMount, beforeUpdate, beforeDestroy)
 
-**5. Plugin System** (`src/source/rotor/plugins/`)
+**5. Plugin System** (`src/source/plugins/`)
 - `FieldsPlugin.bs`: Dynamic field expressions and interpolation
 - `FocusPlugin.bs`: Spatial navigation and focus management
 - `FontStylePlugin.bs`: Typography configuration
@@ -134,7 +134,7 @@ The project includes token-efficient YAML documentation for AI assistants in `do
 **Start here:** `docs/ai/index.yaml` - Categorized index of all documentation with topic tags
 
 **Available Documentation:**
-- Core: Framework overview, Cross-Thread MVI architecture
+- Core: Framework initialization, Framework overview, Cross-Thread MVI architecture
 - ViewBuilder: Overview, Widget reference, ViewModel reference
 - Plugins: Fields, Focus, FontStyle, Observer
 - Features: i18n support

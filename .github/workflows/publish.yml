@@ -58,13 +58,16 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         run: |
           rm -f out/rotor-framework.zip
-          mkdir -p out/rotor-framework-temp/source
-          cp -r src/source/rotor out/rotor-framework-temp/source/
-          cp README.md LICENCE.md out/rotor-framework-temp/
-          cd out/rotor-framework-temp
+          mkdir -p out/rotor-framework-package
+          cp -r src/source/* out/rotor-framework-package/
+          rm -rf out/rotor-framework-package/tests
+          rm -f out/rotor-framework-package/Main.brs
+          node scripts/prepare-source-readme.js README.md out/rotor-framework-package/README.md
+          cp LICENSE.md out/rotor-framework-package/
+          cd out/rotor-framework-package
           zip -r ../rotor-framework.zip . -x "*.spec.bs" "*.DS_Store"
           cd ../..
-          rm -rf out/rotor-framework-temp
+          rm -rf out/rotor-framework-package
 
       # 8. Create GitHub Release and upload package
       - name: Create Release

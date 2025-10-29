@@ -1,0 +1,139 @@
+namespace Rotor.ViewBuilder
+
+    ' =====================================================================
+    ' PluginHookClass - Container for plugin hook metadata and handler function
+    ' =====================================================================
+    class PluginHookClass
+
+        pluginKey as string
+        handlerFn as function
+
+        ' ---------------------------------------------------------------------
+        ' new - Initializes the instance
+        '
+        ' @description Initializes plugin hook with key and handler
+        ' @param {object} config - Configuration with pluginKey and handlerFn
+        ' ---------------------------------------------------------------------
+        sub new(config)
+            m.pluginKey = config.pluginKey
+            m.handlerFn = config.handlerFn
+        end sub
+
+    end class
+
+    ' =====================================================================
+    ' pluginAdapter - Manages plugin registration and lifecycle hook integration. Maintains plugin instances and maps lifecycle hooks to plugin handlers.
+    ' =====================================================================
+    class pluginAdapter
+
+        plugins as object
+
+        ' ---------------------------------------------------------------------
+        ' new - Initializes the instance
+        '
+        ' @description Initializes plugin hook storage for all lifecycle types
+        ' ---------------------------------------------------------------------
+        sub new()
+
+            ' dedicated plugin lifecycle hooks
+            for each hookType in [
+                    Rotor.Const.LifeCycleHookType.BEFORE_MOUNT,
+                    Rotor.Const.LifeCycleHookType.AFTER_MOUNTED,
+                    Rotor.Const.LifeCycleHookType.BEFORE_UPDATE,
+                    Rotor.Const.LifeCycleHookType.AFTER_UPDATED,
+                    Rotor.Const.LifeCycleHookType.BEFORE_DESTROY
+                ]
+                m.pluginHooks[hookType] = {}
+            end for
+
+        end sub
+
+        ' Plugins has limited type of hooks to lifecycle (check the list below)
+        pluginHooks = {}
+        pluginKeyList = CreateObject("roList")
+
+        frameworkInstance as Rotor.Framework
+
+        ' ---------------------------------------------------------------------
+        ' registerPlugins - Registers plugins and their lifecycle hooks with the framework
+        '
+
+        ' @param {object} pluginConfig - Plugin configuration object or array
+        ' ---------------------------------------------------------------------
+        sub registerPlugins (pluginConfig as object)
+
+            plugins = Rotor.Utils.ensureArray(pluginConfig)
+
+            for each plugin in plugins
+
+                ' Plugin key
+                pluginKey = plugin.key
+
+                ' add plugin key to tree viewModelState
+                ' obj = Rotor.Utils.wrapObject(pluginKey, {})
+
+                ' create workspace for plugin in root of widget tree
+                ' m.frameworkInstance.builder.widgetTree.tree.extendContext(obj)
+
+                ' Setup hooks
+                hooks = plugin.hooks
+                if Rotor.Utils.isValid(hooks) and hooks.Count() > 0
+
+                    for each hook in hooks
+                        pluginHook = new PluginHookClass({
+                            pluginKey: pluginKey,
+                            handlerFn: hooks[hook]
+                        })
+                        m.pluginHooks[hook][pluginKey] = pluginHook
+                    end for
+
+                end if
+
+                ' add plugin instance to viewBuilder
+                m.pluginKeyList.AddTail(pluginKey)
+                m.frameworkInstance.plugins[pluginKey] = plugin
+                m.frameworkInstance.plugins[pluginKey].frameworkInstance = m.frameworkInstance
+                if Rotor.Utils.isFunction(m.frameworkInstance.plugins[pluginKey].init)
+                    m.frameworkInstance.plugins[pluginKey].init()
+                end if
+            end for
+
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' destroyPlugins - Destroys all registered plugins
+        ' ---------------------------------------------------------------------
+        sub destroyPlugins()
+            if m.plugins.Count() > 0
+                for each plugin in m.plugins
+                    plugin.frameworkInstance = invalid
+                    destroy = plugin.destroy
+                    if Rotor.Utils.isFunction(plugin.destroy)
+                        destroy()
+                    end if
+                end for
+            end if
+        end sub
+
+        ' ---------------------------------------------------------------------
+        '
+
+        ' init - Initializes the adapter with framework instance reference
+        '
+        ' @param {object} frameworkInstance - Framework instance reference
+        ' ---------------------------------------------------------------------
+        sub init(frameworkInstance as object)
+            m.frameworkInstance = frameworkInstance
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' destroy - Cleans up framework instance reference
+        '
+        ' ---------------------------------------------------------------------
+        sub destroy()
+            m.frameworkInstance = invalid
+        end sub
+
+    end class
+
+end namespace

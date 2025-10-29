@@ -1,0 +1,261 @@
+```yaml
+ctx: Framework Initialization
+type: configuration / API
+scope:
+  purpose: "Main Rotor Framework orchestrator that initializes the entire framework ecosystem"
+  usage: "Framework instance creation and configuration with ViewBuilder, i18n, dispatcher provider, animation system, and plugins"
+configurationOptions:
+  core:
+    rootNode:
+      type: "roSGNode"
+      required: false
+      default: "top node"
+      description: "Root SceneGraph node for the framework"
+    tasks:
+      type: "array"
+      required: false
+      description: "List of task node names to synchronize with render thread. Render queue waits for all tasks to signal ready before flushing."
+    onReady:
+      type: "function"
+      required: false
+      description: "Callback invoked after tasks synced and render queue flushed. Called in global scope."
+    readyFieldId:
+      type: "string"
+      required: false
+      description: "Field name added to root node, set to true after tasks synced and render queue flushed. Useful for triggering observers."
+    nodePool:
+      type: "array"
+      required: false
+      format: "[{ nodeType: 'Label', count: 50 }]"
+      supportedTypes:
+        - "Group: Container nodes"
+        - "Rectangle: Shapes and backgrounds"
+        - "Poster: Image display"
+        - "Label: Text display"
+      description: "Pre-instantiate SceneGraph nodes for performance. Only 4 types supported. Custom components not supported."
+    plugins:
+      type: "array"
+      required: false
+      description: "List of plugin instances. Default plugins automatically included. Custom plugins not documented yet."
+    debug:
+      type: "object"
+      required: false
+      options:
+        autoSetNodeId:
+          type: "boolean"
+          default: false
+          description: "Automatically set node IDs for debugging"
+basicInitialization: |
+  ' Minimal
+  framework = new Rotor.Framework()
+
+  ' With configuration
+  framework = new Rotor.Framework({
+      tasks: ["DataTask", "NetworkTask"],
+      rootNode: m.top,
+      readyFieldId: "appReady",
+      onReady: sub()
+          print "Framework ready!"
+      end sub
+  })
+taskSynchronization:
+  why:
+    - "Cross-thread initialization: Ensure task threads ready before render thread proceeds"
+    - "State management: Wait for initial state loaded from tasks before rendering"
+    - "Predictable startup: Guarantee specific initialization order across threads"
+  renderQueue:
+    description: "ViewBuilder executes synchronously, but framework uses internal render queue to manage timing with task synchronization"
+    keyPoints:
+      - "Can call render() immediately after framework instantiation, even before tasks synchronized"
+      - "Render calls queued internally and maintain order"
+      - "If tasks not synced, render queue waits automatically"
+      - "Once all tasks signal ready, framework flushes render queue in order"
+      - "onReady callback fires after queue flushed"
+  bypassQueue:
+    parameter: "{ enableRenderBeforeReady: true }"
+    usage: "Pass as last parameter to render() to bypass queue and execute immediately"
+    warning: "Do NOT access features that depend on tasks being ready"
+    avoid:
+      - "Don't call dispatchers that communicate with task threads"
+      - "Don't access data requiring task initialization"
+      - "Don't use middleware making requests to tasks"
+    safe: "Safe to render static UI (loading screens, placeholders, etc.)"
+  example: |
+    ' Create framework with tasks
+    m.framework = new Rotor.Framework({
+        tasks: ["DataTask", "NetworkTask"],
+        onReady: sub()
+            print "Tasks synced, render queue flushed!"
+        end sub
+    })
+
+    ' Show loading screen immediately (bypasses queue)
+    m.framework.render({
+        id: "loadingScreen",
+        viewModel: ViewModels.LoadingScreen
+    }, { enableRenderBeforeReady: true })
+
+    ' This render is queued and waits for tasks
+    m.framework.render({
+        id: "dataWidget",
+        viewModel: ViewModels.DataWidget
+    })
+  taskExample: |
+    ' In DataTask
+    sub init()
+        ' Initialize task resources
+        m.database = initDatabase()
+
+        ' Signal ready
+        m.top.rotorSync = {
+            type: "TASK_READY",
+            taskName: "DataTask"
+        }
+    end sub
+nodePool:
+  supportedTypes:
+    - "Group"
+    - "Rectangle"
+    - "Poster"
+    - "Label"
+  format: "[{ nodeType: 'Type', count: <number> }]"
+  example: |
+    framework = new Rotor.Framework({
+        nodePool: [
+            { nodeType: "Label", count: 50 },
+            { nodeType: "Rectangle", count: 30 },
+            { nodeType: "Poster", count: 20 },
+            { nodeType: "Group", count: 10 }
+        ]
+    })
+  api: |
+    ' Get node pool info
+    poolInfo = framework.getNodePoolInfo()
+
+    ' Add more nodes at runtime
+    framework.presetNodePool({
+        nodePool: [{ nodeType: "Group", count: 5 }]
+    })
+  note: "Only 4 supported types. Custom component types not supported."
+plugins:
+  default:
+    - "FieldsPlugin: Dynamic field expressions and interpolation"
+    - "FontStylePlugin: Typography configuration"
+    - "FocusPlugin: Spatial navigation and focus management"
+    - "DispatcherProviderPlugin: MVI state management integration"
+    - "ObserverPlugin: Field observation and change callbacks"
+  custom: "Creating custom plugins is possible, but currently not documented. Contact author for guidance."
+publicMethods:
+  render:
+    parameters: "payload (object), params (object, optional)"
+    return: "void"
+    description: "Render or update widgets"
+  erase:
+    parameters: "payload (dynamic), shouldSkipNodePool (boolean, optional)"
+    return: "void"
+    description: "Destroy widgets"
+  findWidgets:
+    parameters: "searchPattern (string)"
+    return: "object"
+    description: "Find widgets by pattern"
+  getWidget:
+    parameters: "searchPattern (string)"
+    return: "object"
+    description: "Get widget by ID or pattern"
+  getTopWidgets:
+    parameters: "matchingPattern (string, optional)"
+    return: "object"
+    description: "Get top-level widgets"
+  getRootWidget:
+    parameters: "-"
+    return: "object"
+    description: "Get root widget instance"
+  getSubtreeClone:
+    parameters: "searchPattern (string), keyPathList (object, optional)"
+    return: "object"
+    description: "Clone widget subtree"
+  getRootNode:
+    parameters: "-"
+    return: "object"
+    description: "Get root SceneGraph node"
+  getDispatcher:
+    parameters: "dispatcherId (string)"
+    return: "object"
+    description: "Get dispatcher by ID"
+  animator:
+    parameters: "animatorId (dynamic)"
+    return: "object"
+    description: "Get animator factory"
+lifecycle:
+  - "1. Instantiation: new Rotor.Framework(config)"
+  - "2. Subsystem Setup: Builder, I18n service, Animator, DispatcherProvider initialized"
+  - "3. Device Info: Device information collected and stored"
+  - "4. Plugin Registration: Default and custom plugins registered"
+  - "5. Node Pool: Nodes pre-instantiated if configured"
+  - "6. Render Queue Active: Any render() calls queued internally"
+  - "7. Task Sync (if configured): Framework waits for all tasks to signal ready"
+  - "8. Render Queue Flush: All queued render operations execute in order"
+  - "9. Ready State: onReady callback invoked, readyFieldId set to true"
+  - "10. Normal Operation: Subsequent render() calls execute immediately (no queue delay)"
+bestPractices:
+  initialization:
+    good: "Initialize once in Scene init(). Store in m.global for access."
+    avoid: "Don't create multiple framework instances - creates conflicts."
+  taskSyncAndRendering:
+    default: "Render calls safe immediately after framework creation - queued automatically"
+    withOnReady: "Use onReady when you need to run logic after sync completes"
+    immediate: "Use enableRenderBeforeReady: true for loading screens (static UI only)"
+    note: "Render queue handles timing automatically. Use onReady only for additional logic after sync. Use enableRenderBeforeReady only for static UI."
+  nodePool:
+    good: "Pre-create frequently used node types based on actual usage"
+    avoid: "Don't over-allocate node pool - wastes memory"
+    note: "Only Group, Rectangle, Poster, Label supported"
+troubleshooting:
+  rendersNotAppearing:
+    problem: "UI doesn't render when expected"
+    cause: "If tasks configured, renders queued until all tasks signal ready"
+    solution: "Ensure all tasks send sync signals"
+    alternative: "If you don't need task sync, omit tasks configuration"
+  onReadyNotFiring:
+    problem: "onReady callback never executes"
+    cause: "One or more tasks not signaling ready state"
+    solution: "Verify all tasks send sync signal: m.top.rotorSync = { type: 'TASK_READY', taskName: 'YourTaskName' }"
+  memoryIssues:
+    problem: "Application uses too much memory"
+    cause: "Node pool too large"
+    solution: "Reduce node pool sizes based on actual usage"
+frameworkProperties:
+  subsystems:
+    - "builder: ViewBuilder instance"
+    - "i18nService: Internationalization service"
+    - "dispatcherProvider: MVI dispatcher provider"
+    - "animatorProvider: Animation system"
+    - "info: Framework and device info"
+  metadata:
+    - "name: 'Rotor Framework'"
+    - "version: '0.2.7'"
+  other:
+    - "config: Current configuration"
+    - "threadType: Rotor.Const.ThreadType.RENDER"
+rules:
+  - "Initialize framework once in Scene init()"
+  - "Access framework via m.global for global access"
+  - "Use tasks configuration for task synchronization"
+  - "Render calls are queued automatically until tasks ready"
+  - "Use enableRenderBeforeReady: true only for static UI (loading screens)"
+  - "Don't use task features (dispatchers, task data) with enableRenderBeforeReady"
+  - "Use node pool for frequently created nodes only (Group, Rectangle, Poster, Label)"
+  - "Don't over-allocate node pool - wastes memory"
+  - "Default plugins automatically included"
+  - "Custom plugins not documented - contact author if needed"
+pitfalls:
+  - "Creating multiple framework instances causes conflicts"
+  - "Forgetting to send task ready signals causes render queue to wait indefinitely"
+  - "Using task features with enableRenderBeforeReady causes errors"
+  - "Over-allocating node pool wastes memory"
+  - "Using unsupported node types in node pool (only 4 types supported)"
+nextSteps:
+  - "Widget Reference: Complete Widget properties, methods, and usage patterns"
+  - "ViewBuilder Overview: High-level architecture and concepts"
+  - "ViewModel Reference: Complete ViewModel structure, lifecycle, and state management"
+```

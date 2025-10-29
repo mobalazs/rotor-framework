@@ -1,5 +1,4 @@
 # Rotor Framework
-
 [![Coverage Status](https://coveralls.io/repos/github/mobalazs/rotor-framework/badge.svg?branch=main&v=2)](https://coveralls.io/github/mobalazs/rotor-framework?branch=main)
 [![GitHub package.json version](https://img.shields.io/github/package-json/v/mobalazs/rotor-framework)](https://github.com/mobalazs/rotor-framework/packages)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -24,13 +23,22 @@
 
 ## 📦 Installation
 
-Rotor is structured as a shared library for Brighterscript projects. To install:
+### Prerequisites
 
-1. Copy the `source/rotor` directory into your project.
-2. Import Rotor in your main file:
+Rotor Framework requires BrighterScript v1. Install the latest version:
+
+```bash
+npm install --save-dev brighterscript@next @rokucommunity/bslint@next
+```
+
+### Install Rotor Framework
+
+1. Download the latest `rotor-framework.zip` from [GitHub Releases](https://github.com/mobalazs/rotor-framework/releases)
+2. Extract the ZIP into your project's `source/` directory (this will create a `rotor-framework/` folder)
+3. Import Rotor in your main file:
 
 ```vb
-import "pkg:/source/rotor/RotorFramework.bs"
+import "pkg:/source/RotorFramework.bs"
 ```
 
 ---
@@ -67,10 +75,11 @@ You can find [🌱](./docs/ai/readme.opt.yaml) symbols in all documentation page
 ---
 
 ## 📚 Learn More
+![Version](https://img.shields.io/badge/version-v0.2.7-blue?label=Documents%20TAG)
 
-### MVI Documentation
+### Framework Core
 
--   [Cross-Thread MVI design pattern](./docs/cross-thread-mvi.md) - State management across threads
+-   [Framework Initialization](./docs/framework-initialization.md) - Configuration, task synchronization
 
 ### ViewBuilder Reference
 
@@ -84,6 +93,10 @@ You can find [🌱](./docs/ai/readme.opt.yaml) symbols in all documentation page
 -   [ViewBuilder FontStyle Plugin](./docs/view-builder-fontstyle-plugin.md) - Typography and styling
 -   [ViewBuilder Observer Plugin](./docs/view-builder-observer-plugin.md) - State observation patterns
 -   [ViewBuilder Focus Plugin](./docs/view-builder-focus-plugin.md) - Focus management system
+
+### MVI Documentation
+
+-   [Cross-Thread MVI design pattern](./docs/cross-thread-mvi.md) - State management across threads
 
 ### i18N Documentation
 
@@ -100,7 +113,7 @@ You can find [🌱](./docs/ai/readme.opt.yaml) symbols in all documentation page
 
 ## 📄 License
 
-Rotor is MIT licensed. See `LICENSE` file for details.
+Rotor is MIT licensed. See [LICENSE.md](./LICENSE.md) file for details.
 
 ---
 

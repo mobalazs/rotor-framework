@@ -1,0 +1,181 @@
+namespace Rotor.Utils
+
+    '==========================================================================
+    ' TYPE CHECKING UTILITIES
+    '==========================================================================
+
+    ' ---------------------------------------------------------------------
+    ' isValid - Checks if a value is valid (not invalid or uninitialized)
+    '
+    ' @param {dynamic} value - Value to check
+    ' @returns {boolean} True if value is valid
+    '
+    function isValid(value as dynamic) as boolean
+        return Type(value) <> "<uninitialized>" and value <> invalid
+    end function
+
+    ' ---------------------------------------------------------------------
+    ' isAssociativeArray - Checks if value is an associative array
+    '
+    ' @param {dynamic} value - Value to check
+    ' @returns {boolean} True if value is an associative array
+    '
+    function isAssociativeArray(value as dynamic) as boolean
+        return IsValid(value) and GetInterface(value, "ifAssociativeArray") <> invalid
+    end function
+
+    ' ---------------------------------------------------------------------
+    ' isArray - Checks if value is an array
+    '
+    ' @param {dynamic} arr - Value to check
+    ' @returns {boolean} True if value is an array
+    '
+    function isArray(arr as dynamic) as boolean
+        return IsValid(arr) and GetInterface(arr, "ifArray") <> invalid
+    end function
+
+    ' ---------------------------------------------------------------------
+    ' isString - Checks if value is a string
+    '
+    ' @param {dynamic} value - Value to check
+    ' @returns {boolean} True if value is a string
+    '
+    function isString(value as dynamic) as boolean
+        return isValid(value) and GetInterface(value, "ifString") <> invalid
+    end function
+
+    ' ---------------------------------------------------------------------
+    ' isFunction - Checks if value is a function
+    '
+    ' @param {dynamic} value - Value to check
+    ' @returns {boolean} True if value is a function
+    '
+    function isFunction(value as dynamic) as boolean
+        return isValid(value) and GetInterface(value, "ifFunction") <> invalid
+    end function
+
+    ' ---------------------------------------------------------------------
+    ' isInteger - Checks if value is an integer
+    '
+    ' @param {dynamic} value - Value to check
+    ' @returns {boolean} True if value is an integer
+    '
+    function isInteger(value As Dynamic) As Boolean
+        Return isValid(value) And GetInterface(value, "ifInt") <> invalid And (Type(value) = "roInt" Or Type(value) = "roInteger" Or Type(value) = "Integer")
+    end function
+
+    ' ---------------------------------------------------------------------
+    ' isBoolean - Checks if value is a boolean
+    '
+    ' @param {dynamic} value - Value to check
+    ' @returns {boolean} True if value is a boolean
+    '
+    function isBoolean(value):
+        return getInterface(value, "ifBoolean") <> invalid
+    end function
+
+    '==========================================================================
+    ' MATH UTILITIES
+    '==========================================================================
+
+    ' ---------------------------------------------------------------------
+    ' min - Returns the minimum of two values
+    '
+    ' @param {dynamic} a - First value
+    ' @param {dynamic} b - Second value
+    ' @returns {dynamic} Minimum value
+    '
+    function min(a, b)
+        if a > b
+            return b
+        else
+            return a
+        end if
+    end function
+
+    ' ---------------------------------------------------------------------
+    ' max - Returns the maximum of two values
+    '
+    ' @param {dynamic} a - First value
+    ' @param {dynamic} b - Second value
+    ' @returns {dynamic} Maximum value
+    '
+    function max(a, b)
+        if a < b
+            return b
+        else
+            return a
+        end if
+    end function
+
+    ' ---------------------------------------------------------------------
+    ' rotateSegment - Rotates a line segment around a center point
+    '
+    ' @param {float} x1 - X coordinate of first point
+    ' @param {float} y1 - Y coordinate of first point
+    ' @param {float} x2 - X coordinate of second point
+    ' @param {float} y2 - Y coordinate of second point
+    ' @param {dynamic} rotation - Rotation angle in radians
+    ' @param {dynamic} center - Center point array [x, y]
+    ' @returns {object} Object with rotated coordinates {x1, y1, x2, y2}
+    '
+    function rotateSegment(x1 as float, y1 as float, x2 as float, y2 as float, rotation, center)
+        cosVal = Cos(rotation)
+        sinVal = Sin(rotation)
+
+        ' Store original values before modification
+        origX1 = x1
+        origY1 = y1
+        origX2 = x2
+        origY2 = y2
+
+        ' Rotate first point
+        newX1 = (cosVal * (origX1 - center[0])) + (sinVal * (origY1 - center[1])) + center[0]
+        newY1 = (cosVal * (origY1 - center[1])) - (sinVal * (origX1 - center[0])) + center[1]
+
+        ' Rotate second point
+        newX2 = (cosVal * (origX2 - center[0])) + (sinVal * (origY2 - center[1])) + center[0]
+        newY2 = (cosVal * (origY2 - center[1])) - (sinVal * (origX2 - center[0])) + center[1]
+
+        return {
+            x1: newX1,
+            y1: newY1,
+            x2: newX2,
+            y2: newY2
+        }
+
+    end function
+
+    '==========================================================================
+    ' UUID GENERATION
+    '==========================================================================
+
+    ' ---------------------------------------------------------------------
+    ' getUUID - Generates a random UUID using roDeviceInfo
+    '
+    ' @returns {string} UUID string
+    '
+    function getUUID() as string
+        if m.deviceInfoNode = invalid
+            m.deviceInfoNode = CreateObject("roDeviceInfo")
+        end if
+        return m.deviceInfoNode.GetRandomUUID()
+    end function
+
+    ' ---------------------------------------------------------------------
+    ' getUUIDHex - Generates a hexadecimal UUID of specified length
+    '
+    ' @param {integer} length - Length of hex UUID (default: 8)
+    ' @returns {string} Hexadecimal UUID string
+    '
+    function getUUIDHex(length = 8 as Integer) as string
+        stack = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F"]
+        uuid = ""
+        for i = 0 to length - 1
+            uuid += stack[rnd(16) - 1]
+        end for
+        return uuid
+    end function
+
+end namespace
+

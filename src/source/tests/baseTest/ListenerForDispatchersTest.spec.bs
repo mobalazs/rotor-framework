@@ -1,5 +1,5 @@
-import "pkg:/source/rotor/base/ListenerForDispatchers.bs"
-import "pkg:/source/rotor/utils/GeneralUtils.bs"
+import "pkg:/source/base/ListenerForDispatchers.bs"
+import "pkg:/source/utils/GeneralUtils.bs"
 
 namespace tests
 

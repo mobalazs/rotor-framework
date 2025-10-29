@@ -35,9 +35,12 @@ core:
     - "No reliance on traditional XML-based views"
 installation:
   method: "Shared library for BrighterScript projects"
+  prerequisites:
+    - "Install BrighterScript v1: npm install --save-dev brighterscript@next @rokucommunity/bslint@next"
   steps:
-    - "Copy the source/rotor directory into your project"
-    - "Import Rotor in your main file: import \"pkg:/source/rotor/RotorFramework.bs\""
+    - "Download the latest rotor-framework.zip from GitHub Releases: https://github.com/mobalazs/rotor-framework/releases"
+    - "Extract the ZIP into your project's source/ directory (this will create a rotor-framework/ folder)"
+    - "Import Rotor in your main file: import \"pkg:/source/RotorFramework.bs\""
 quickStart:
   example: |
     frameworkInstance = new Rotor.Framework()
@@ -106,7 +109,9 @@ integrations:
     url: "https://github.com/haystacknews/animate"
 pipeline:
   - "Explore key features (ViewBuilder, MVI, plugins, i18n)"
-  - "Install via copying source/rotor directory"
+  - "Install prerequisites: npm install --save-dev brighterscript@next @rokucommunity/bslint@next"
+  - "Download rotor-framework.zip from GitHub Releases"
+  - "Extract ZIP into project's source/ directory (creates rotor-framework/ folder)"
   - "Import framework in main file"
   - "Initialize framework instance"
   - "Render widgets using declarative configuration"

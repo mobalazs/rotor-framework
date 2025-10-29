@@ -1,0 +1,213 @@
+import "Processor.bs"
+import "PostProcessor.bs"
+import "NodePool.bs"
+import "Tree.bs"
+import "../../base/BaseWidget.bs"
+import "WidgetCreate.bs"
+import "WidgetUpdate.bs"
+import "WidgetRemove.bs"
+import "PluginAdapter.bs"
+
+namespace Rotor.ViewBuilder
+
+    ' =====================================================================
+    ' Builder - Core ViewBuilder engine that orchestrates widget lifecycle operations
+    '
+    ' Manages widget tree, node pool, plugin adapter, and rendering queue.
+    ' Handles create, update, and remove operations with post-processing support.
+    ' =====================================================================
+    class Builder
+
+        widgetTree = new Rotor.ViewBuilder.WidgetTree()
+
+        pluginAdapter = new Rotor.ViewBuilder.pluginAdapter()
+
+        processor = new Rotor.ViewBuilder.Processor()
+        postProcessor = new Rotor.ViewBuilder.PostProcessor()
+        postProcessBuffer = new Rotor.ViewBuilder.postProcessBuffer()
+
+        nodePool = new Rotor.ViewBuilder.NodePool()
+
+        frameworkInstance as Rotor.Framework
+
+        isRenderProcessing = false
+        renderQueue = []
+        callbackQueue = []
+
+        ' ---------------------------------------------------------------------
+        ' init - Initializes the builder and all its subsystems
+        '
+        ' @param {object} frameworkInstance - Reference to the framework instance
+        '
+        sub init(frameworkInstance as object)
+            m.frameworkInstance = frameworkInstance
+            m.nodePool.init(frameworkInstance)
+            m.widgetTree.init()
+            m.pluginAdapter.init(frameworkInstance)
+            m.processor.init(frameworkInstance)
+            m.postProcessor.init(frameworkInstance)
+            m.postProcessBuffer.init(frameworkInstance)
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' destroy - Destroys the builder and cleans up all resources
+        '
+        sub destroy()
+            ' remove all widgets
+            rootKeys = m.widgetTree.tree.children.Keys()
+            m.erase(rootKeys, true)
+            ' destroy builder engine
+            m.pluginAdapter.destroy()
+            m.processor.destroy()
+            m.postProcessor.destroy()
+            m.postProcessBuffer.destroy()
+            m.widgetTree.destroy()
+            m.nodePool.destroy()
+            ' remove references
+            m.frameworkInstance = invalid
+        end sub
+
+        timer = CreateObject("roTimespan")
+
+        ' ---------------------------------------------------------------------
+        ' renderQueueFlush - Flushes the render queue and processes next queued render
+        '
+        sub renderQueueFlush()
+            if m.renderQueue.Count() > 0
+                nextQueuedConfig = m.renderQueue.shift()
+                m.renderProcessor(nextQueuedConfig.payload, nextQueuedConfig.params, true)
+            end if
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' render - Public render method that processes payloads through the render processor
+        '
+        ' @param {dynamic} payloads - Widget configuration payload(s) to render
+        ' @param {object} params - Optional rendering parameters (default: {})
+        '
+        sub render(payloads as dynamic, params = {} as object)
+            ' for each payload in Rotor.Utils.ensureArray(payloads)
+            ' m.renderProcessor(payload, params)
+            m.renderProcessor(payloads, params)
+            ' end for
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' renderProcessor - Core rendering processor that handles queuing and execution
+        '
+        ' @param {dynamic} payload - Widget configuration payload to process
+        ' @param {object} params - Rendering parameters (default: {})
+        ' @param {boolean} isNextProcess - Whether this is next in queue (default: false)
+        '
+        sub renderProcessor(payload as dynamic, params = {} as object, isNextProcess = false as boolean)
+            ' call custom callback
+            if Rotor.Utils.isValid(params.callback)
+                m.callbackQueue.push({
+                    callback: params.callback,
+                    callbackScope: params.callbackScope
+                })
+                params.delete("callback")
+                params.delete("callbackScope")
+            end if
+
+            renderingDisabled = m.frameworkInstance.enableRendering = false and not(params?.enableRenderBeforeReady ?? false)
+            if (m.isRenderProcessing = true and isNextProcess = false) or renderingDisabled
+                m.renderQueue.push({
+                    payload: payload,
+                    params: params
+                })
+                return
+            end if
+            m.isRenderProcessing = true
+
+            m.timer.Mark()
+            m.processor.run(m.postProcessBuffer, "0", payload, params)
+            m.timer.Mark()
+            m.postProcessor.run(m.postProcessBuffer)
+            m.postProcessBuffer.clearLifeCycleBuffers()
+
+            if m.renderQueue.Count() > 0
+                nextQueuedConfig = m.renderQueue.shift()
+                m.renderProcessor(nextQueuedConfig.payload, nextQueuedConfig.params, true)
+            else
+
+                m.isRenderProcessing = false
+
+                while m.callbackQueue.Count() > 0
+                    callbackObj = m.callbackQueue.shift()
+                    Rotor.Utils.callbackScoped(callbackObj.callback, callbackObj.callbackScope)
+                    callbackObj.callbackScope = invalid
+                end while
+
+            end if
+
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' erase - Erases widgets from the tree by ID or configuration
+        '
+        ' @param {dynamic} payload - Widget ID(s) or configuration object(s) to erase
+        ' @param {boolean} shouldSkipNodePool - Whether to skip returning nodes to pool (default: false)
+        ' @param {string} HID - Hierarchical ID context for search (default: "0")
+        '
+        sub erase (payload as dynamic, shouldSkipNodePool = false as boolean, HID = "0" as string)
+
+            ' normalize shortcuts
+
+            identifiersToErase = []
+            if Rotor.Utils.isString(payload)
+                identifiersToErase.push(payload)
+            else if Rotor.Utils.isArray(payload)
+                for each item in payload
+                    if Rotor.Utils.isString(item)
+                        identifiersToErase.push(item)
+                    else if Rotor.Utils.isAssociativeArray(item)
+                        identifiersToErase.push(item?.id)
+                    end if
+                end for
+            else if Rotor.Utils.isAssociativeArray(payload)
+                for each key in payload
+                    if key = "id"
+                        identifiersToErase.push(key)
+                    else
+                        identifiersToErase.push(payload[key])
+                    end if
+                end for
+            end if
+
+            widgetsToRemove = []
+
+            for each id in identifiersToErase
+                result = m.widgetTree.find(id, HID)
+                if result <> invalid
+                    widgetsToRemove.append(result)
+                end if
+            end for
+
+            if widgetsToRemove.Count() > 0
+
+                renderObject = []
+
+                for each widget in widgetsToRemove
+
+                    if m.widgetTree.hasByHID(widget.HID)
+                        renderObject.push({
+                            HID: widget.HID,
+                            parentHID: widget.parentHID,
+                            id: widget.id,
+                            markedToRemove: true,
+                            shouldSkipNodePool: shouldSkipNodePool
+                        })
+                    end if
+
+                end for
+                ' renderObject.Clear()
+                m.render(renderObject)
+
+            end if
+
+        end sub
+
+    end class
+
+end namespace

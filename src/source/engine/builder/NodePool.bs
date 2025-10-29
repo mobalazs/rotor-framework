@@ -1,0 +1,236 @@
+' ===== NODE POOL =====
+namespace Rotor.ViewBuilder
+
+    ' =====================================================================
+    ' NodePool - Manages reusable pools of SceneGraph nodes to improve performance. Optimized for pooling Group nodes and types extending Group (like Poster), as well as other common nodes (e.g., Rectangle, Label). Includes node reset logic upon release.
+    ' =====================================================================
+    class NodePool
+
+        frameworkInstance as Rotor.Framework
+
+        config = {
+            nodePool: [{
+                    nodeType: "Group",
+                    amount: 1
+                }, {
+                    nodeType: "Rectangle",
+                    amount: 1
+                }, {
+                    nodeType: "Poster",
+                    amount: 1
+                }, {
+                    nodeType: "Label",
+                    amount: 1
+                }
+            ]
+        }
+
+        pools = {}
+        poolInfo = {
+            totalAcquiredNodes: 0, ' Configured and acquired nodes from pools
+            totalReleasedNodes: 0, ' Released nodes back to pools
+            outOfStockNodes: {}, ' Nodes that out of stock
+            poolFulness: {} ' Current amount of nodes in each pool
+        }
+
+        ' ---------------------------------------------------------------------
+        ' new - Initializes the instance
+        '
+        ' @description Initializes the node pool
+        ' ---------------------------------------------------------------------
+        sub new()
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' init - Initializes the pool with framework instance reference
+        '
+
+        ' @param {Rotor.Framework} frameworkInstance - Framework instance reference
+        ' ---------------------------------------------------------------------
+        sub init(frameworkInstance as Rotor.Framework)
+            m.frameworkInstance = frameworkInstance
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' destroy - Cleans up framework instance reference and pools
+        ' ---------------------------------------------------------------------
+        sub destroy()
+            m.frameworkInstance = invalid
+            m.pools.Clear()
+        end sub
+
+        ' ---------------------------------------------------------------------
+        '
+
+        ' presetNodePool - Presets node pools with specified amounts of each node type
+        '
+        ' @param {object} config - Configuration with nodePool array
+        ' ---------------------------------------------------------------------
+        sub presetNodePool(config)
+            Rotor.Utils.deepExtendAA(m.config, config)
+            for each thisPool in m.config.nodePool
+                for index = 0 to thisPool.amount - 1
+                    if not m.pools.doesExist(thisPool.nodeType)
+                        m.pools[thisPool.nodeType] = []
+                        #if debug
+                            m.poolInfo.outOfStockNodes[thisPool.nodeType] = 0
+                        #end if
+                    end if
+                    node = CreateObject("roSGNode", thisPool.nodeType)
+                    m.pools[thisPool.nodeType].push(node)
+                end for
+            end for
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' acquireNode - Acquires a node from the pool or creates a new one
+        '
+
+        ' @param {string} nodeType - Type of SceneGraph node to acquire
+        ' @returns {object} SceneGraph node instance
+        ' ---------------------------------------------------------------------
+        function acquireNode(nodeType)
+            if m.pools.doesExist(nodeType) and m.pools[nodeType].Count() > 0
+                node = m.pools[nodeType].pop()
+                #if debug
+                    m.poolInfo.totalAcquiredNodes++
+                #end if
+            else
+                node = CreateObject("roSGNode", nodeType)
+                #if debug
+                    if m.pools.doesExist(nodeType)
+                        m.poolInfo.outOfStockNodes[nodeType]++
+                    end if
+                #end if
+            end if
+
+            return node
+        end function
+
+        ' ---------------------------------------------------------------------
+        ' releaseNodeBranch - Recursively releases a node and its children back to pools
+        '
+
+        ' @param {object} node - SceneGraph node to release
+        ' @param {object} parent - Parent node for removal (default: invalid)
+        ' ---------------------------------------------------------------------
+        sub releaseNodeBranch(node as object, parent = invalid as object)
+
+            children = node.getChildren(-1, 0)
+
+            if children <> invalid and children.count() > 0
+                for each child in children
+                    m.releaseNodeBranch(child, node)
+                end for
+            end if
+
+            nodeType = node.subtype()
+
+            if m.pools.doesExist(nodeType)
+                if parent <> invalid
+                    parent.removeChild(node)
+                end if
+                m.resetNode(node)
+                m.pools[nodeType].push(node)
+
+                #if debug
+                    m.poolInfo.totalReleasedNodes++
+                #end if
+            end if
+
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' resetNode - Resets a node's properties to default values before returning to pool
+        '
+
+        ' @param {object} node - SceneGraph node to reset
+        ' @private
+        ' ---------------------------------------------------------------------
+        private sub resetNode(node as object)
+            if node = invalid then return
+
+            nodeType = node.subtype()
+
+            node.visible = true
+            node.opacity = 1.0
+            node.translation = [0.0, 0.0]
+            node.rotation = 0.0
+            node.scale = [1.0, 1.0]
+            node.scaleRotateCenter = [0.0, 0.0]
+            node.inheritParentTransform = true
+            node.inheritParentOpacity = true
+            node.muteAudioGuide = false
+            node.renderPass = 0
+            node.enableRenderTracking = false
+            ' TODO: test below properties to reset
+            ' node.childRenderOrder = "renderLast"
+            ' node.clippingRect = [0.0, 0.0, 0.0, 0.0]
+
+            if nodeType = "Rectangle"
+                node.setFields({
+                    color: "#FFFFFFFF",
+                    width: 0,
+                    height: 0,
+                    blendingEnabled: true
+                })
+
+            else if nodeType = "Poster"
+                node.setFields({
+                    uri: "",
+                    width: 0,
+                    height: 0,
+                    loadWidth: 0,
+                    loadHeight: 0,
+                    blendColor: "#FFFFFFFF",
+                    loadDisplayMode: "noScale",
+                    loadSync: false,
+                    loadingBitmapUri: "",
+                    failedBitmapUri: "",
+                    loadingBitmapOpacity: 1.0,
+                    failedBitmapOpacity: 1.0
+                })
+
+            else if nodeType = "Label"
+                node.setFields({
+                    text: "",
+                    color: "#FFFFFFFF",
+                    horizAlign: "left",
+                    vertAlign: "top",
+                    width: 0,
+                    height: 0,
+                    wrap: false,
+                    numLines: 0,
+                    lineSpacing: 0.0,
+                    maxLines: 0,
+                    ellipsisText: "",
+                    font: "font:MediumSystemFont"
+                })
+
+            end if
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' getNodePoolInfo - Gets node pool statistics (debug mode only)
+        '
+
+        ' @returns {object} Pool information with counts and stats
+        ' ---------------------------------------------------------------------
+        function getNodePoolInfo()
+            info = {}
+            #if debug
+                for each nodeType in m.pools
+                    m.poolInfo.poolFulness[nodeType] = m.pools[nodeType].Count()
+                end for
+                info = m.poolInfo
+            #end if
+            return info
+        end function
+
+
+    end class
+
+
+
+
+end namespace

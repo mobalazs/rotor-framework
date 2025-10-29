@@ -31,7 +31,7 @@ fs.writeFileSync(manifestPath, manifest);
 console.log('✓ Updated manifest');
 
 // 3. Update RotorFramework.bs (2 places: header comment and version variable)
-const frameworkPath = path.join(__dirname, '../src/source/rotor/RotorFramework.bs');
+const frameworkPath = path.join(__dirname, '../src/source/RotorFramework.bs');
 let framework = fs.readFileSync(frameworkPath, 'utf8');
 // Update header comment
 framework = framework.replace(/(' Version )\d+\.\d+\.\d+/, `$1${version}`);
@@ -41,7 +41,7 @@ fs.writeFileSync(frameworkPath, framework);
 console.log('✓ Updated RotorFramework.bs');
 
 // 4. Update RotorFrameworkTask.bs (2 places: header comment and version variable)
-const taskPath = path.join(__dirname, '../src/source/rotor/RotorFrameworkTask.bs');
+const taskPath = path.join(__dirname, '../src/source/RotorFrameworkTask.bs');
 let task = fs.readFileSync(taskPath, 'utf8');
 // Update header comment
 task = task.replace(/(' Version )\d+\.\d+\.\d+/, `$1${version}`);
@@ -49,5 +49,16 @@ task = task.replace(/(' Version )\d+\.\d+\.\d+/, `$1${version}`);
 task = task.replace(/(version = ")\d+\.\d+\.\d+(")/, `$1${version}$2`);
 fs.writeFileSync(taskPath, task);
 console.log('✓ Updated RotorFrameworkTask.bs');
+
+// 5. Update README.md (Documents TAG badge)
+const readmePath = path.join(__dirname, '../README.md');
+let readme = fs.readFileSync(readmePath, 'utf8');
+// Update version badge: ![Version](https://img.shields.io/badge/version-v0.2.7-blue?label=Documents%20TAG)
+readme = readme.replace(
+  /(!\[Version\]\(https:\/\/img\.shields\.io\/badge\/version-v)\d+\.\d+\.\d+(-blue\?label=Documents%20TAG\))/,
+  `$1${version}$2`
+);
+fs.writeFileSync(readmePath, readme);
+console.log('✓ Updated README.md (Documents TAG badge)');
 
 console.log(`\n✅ Successfully updated all version references to ${version}`);

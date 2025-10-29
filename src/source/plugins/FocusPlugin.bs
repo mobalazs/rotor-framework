@@ -1,0 +1,1522 @@
+' TODO: Future improvement: integrate deviceinfo TimeSinceLastKeypress() -> idle time
+' TODO: Future improvement: key combo detector
+
+namespace Rotor
+
+    ' =====================================================================
+    ' FocusPlugin - Handles focus logic, focus groups, and spatial navigation
+    '
+    ' A Brighterscript class for handling focus logic, focus groups,
+    ' and spatial navigation within the Rotor framework.
+    '
+    ' ═══════════════════════════════════════════════════════════════
+    ' CONCEPTUAL OVERVIEW: BUBBLING vs CAPTURING
+    ' ═══════════════════════════════════════════════════════════════
+    '
+    ' This plugin implements two complementary focus resolution strategies:
+    '
+    ' 1. BUBBLING FOCUS (bubblingFocus) - "Upward Search"
+    '    ┌─────────────────────────────────────────────────────────┐
+    '    │ WHEN: User interaction (key press) cannot find target   │
+    '    │ DIRECTION: Child → Parent → Grandparent (upward)        │
+    '    │ PURPOSE: "I can't navigate further, ask my parents"     │
+    '    └─────────────────────────────────────────────────────────┘
+    '
+    '    Example: User presses UP from a focused item, but there's
+    '    no item above. The plugin "bubbles up" through ancestor
+    '    groups to find an alternative navigation path defined at
+    '    a higher level.
+    '
+    ' 2. CAPTURING FOCUS (capturingFocus_recursively) - "Downward Rescue"
+    '    ┌─────────────────────────────────────────────────────────┐
+    '    │ WHEN: Need to resolve abstract target to concrete item  │
+    '    │ DIRECTION: Group → Nested Group → FocusItem (downward)  │
+    '    │ PURPOSE: "Found a group/ID, find the actual item"       │
+    '    └─────────────────────────────────────────────────────────┘
+    '
+    '    This is a "rescue operation" that converts:
+    '    - Group reference → concrete FocusItem
+    '    - ID string → actual widget with focus capability
+    '
+    '    Example: Bubbling found "menuGroup", but we need a specific
+    '    focusable item. Capturing recursively descends through the
+    '    group's defaultFocusId chain until it finds a real FocusItem.
+    '
+    '
+    ' DEEP SEARCH ENHANCEMENT:
+    '    The capturing process now searches deeply in hierarchies.
+    '    If defaultFocusId doesn't match immediate children, it will:
+    '    - Search all descendant FocusItems (any depth)
+    '    - Search all nested Groups (any depth)
+    '    - Apply fallback logic if a matching Group is found
+    '
+    '    This means defaultFocusId: "deepItem" will find "deepItem"
+    '    even if it's 3+ levels deep in the hierarchy!
+    '
+    ' TOGETHER THEY WORK AS:
+    '    User Action → Bubbling (↑ find alternative) → Capturing (↓ resolve target)
+    '
+    ' ═══════════════════════════════════════════════════════════════
+    ' COMPLETE RULES REFERENCE
+    ' ═══════════════════════════════════════════════════════════════
+    '
+    ' RULE #1: Widget Types
+    '   - focus: { group: {...} } → Group (container)
+    '   - focus: {...} (no group key) → FocusItem (focusable element)
+    '   - No focus config → Not part of focus system
+    '
+    ' RULE #2: FocusItem Direction Values
+    '   - String (Node ID): Static navigation to that element
+    '   - Function: Dynamic, evaluated at runtime
+    '   - false: Blocks the direction (nothing happens)
+    '   - true/undefined/empty string: Spatial navigation attempts
+    '
+    ' RULE #3: Navigation Priority (Decreasing Order)
+    '   1. FocusItem static direction (left: "button2")
+    '   2. Spatial navigation (within group only)
+    '   3. BubblingFocus (ask parent groups)
+    '
+    ' RULE #4: Spatial Navigation Scope
+    '   - ONLY works within a single group
+    '   - Cannot cross into sibling or parent groups
+    '   - Searches only possibleFocusItems from group.getGroupMembersHIDs()
+    '
+    ' RULE #5: Group Direction Activation
+    '   Group direction triggers ONLY when:
+    '   - FocusItem has NO static direction
+    '   - Spatial navigation found NOTHING
+    '   - BubblingFocus reaches this group
+    '
+    ' RULE #6: Group Direction Values
+    '   - String (Node ID): Navigate to that group/item (may EXIT group)
+    '   - true: BLOCKS (stays on current element)
+    '   - false/undefined: Continue bubbling to next ancestor
+    '
+    ' RULE #7: Group Direction Does NOT Block Spatial Navigation
+    '   Setting group.right = true does NOT prevent spatial navigation
+    '   INSIDE the group. It only blocks EXITING the group when spatial
+    '   navigation finds nothing.
+    '
+    ' RULE #8: Exiting a Group - 3 Methods
+    '   Method 1: FocusItem explicit direction
+    '     focusItem.right = "otherGroupItem" → EXITS immediately
+    '   Method 2: Group direction (via BubblingFocus)
+    '     group.right = "otherGroup" → EXITS when spatial nav fails
+    '   Method 3: Ancestor group direction
+    '     parentGroup.right = "otherGroup" → EXITS when child groups pass
+    '
+    ' RULE #9: Blocking Group Exit
+    '   To prevent exit: group.left = true, group.right = true
+    '   Exception: FocusItem explicit directions still work!
+    '
+    ' RULE #10: BubblingFocus Flow
+    '   FocusItem (no direction) → Spatial nav (nothing) → Group.direction?
+    '     - "nodeId" → CapturingFocus(nodeId) [EXIT]
+    '     - true → STOP (stay on current)
+    '     - false/undefined → Continue to parent group
+    '     - No more ancestors → Stay on current
+    '
+    ' RULE #11: CapturingFocus Priority
+    '   1. group.lastFocusedHID (if exists) [AUTO-SAVED]
+    '   2. group.defaultFocusId [CONFIGURED]
+    '   3. Deep search (if defaultFocusId not found immediately)
+    '
+    ' RULE #12: DefaultFocusId Targets
+    '   - FocusItem node ID → Focus goes directly to it
+    '   - Group node ID → Capturing continues on that group
+    '   - Non-existent ID → Deep search attempts
+    '
+    ' RULE #13: Deep Search Activation
+    '   Triggers when:
+    '   - CapturingFocus doesn't find defaultFocusId in immediate children
+    '   - defaultFocusId is not empty
+    '   Searches:
+    '   1. All descendant FocusItems (any depth)
+    '   2. All nested Groups (any depth, applies their fallback)
+    '
+    ' RULE #14: Spatial Enter
+    '   When enableSpatialEnter = true on a group:
+    '   - Entering the group uses spatial navigation from the direction
+    '   - Finds geometrically closest item instead of defaultFocusId
+    '   - Falls back to defaultFocusId if spatial finds nothing
+    '
+    ' RULE #15: Navigation Decision Tree Summary
+    '   User presses direction key:
+    '     1. FocusItem.direction exists? → Use it (may EXIT group)
+    '     2. Spatial nav finds item? → Navigate (STAYS in group)
+    '     3. BubblingFocus: Group.direction?
+    '        - "nodeId" → EXIT to that target
+    '        - true → BLOCK (stay)
+    '        - undefined → Continue to ancestor
+    '     4. No more ancestors? → STAY on current item
+    '
+    ' COMMON PATTERNS:
+    '   Sidebar + Content:
+    '     sidebar: { group: { right: true } }
+    '     menuItem1: { right: "contentFirst" } [explicit exit]
+    '
+    '   Modal Dialog (locked):
+    '     modal: { group: { left: true, right: true, up: true, down: true } }
+    '
+    '   Nested Navigation:
+    '     innerGroup: { group: { down: undefined } } [no direction]
+    '     outerGroup: { group: { down: "bottomBar" } } [catches bubbling]
+    '
+    ' =====================================================================
+    class FocusPlugin extends Rotor.BasePlugin
+
+        ' ---------------------------------------------------------------------
+        ' new - Constructor for the FocusPlugin
+        '
+        ' @param {string} key - The key to identify this plugin instance (default: "focus")
+        '
+        sub new(key = "focus" as string)
+            super(key)
+        end sub
+
+        ' Framework lifecycle hooks
+        hooks = {
+            ' ---------------------------------------------------------------------
+            ' beforeMount - Hook executed before a widget is mounted
+            '
+            ' Sets initial focus config.
+            '
+            ' @param {object} scope - The plugin scope (this instance)
+            ' @param {object} widget - The widget being mounted
+            '
+            beforeMount: sub(scope as object, widget as object)
+                scope.setFocusConfig(widget, widget[scope.key])
+            end sub,
+
+            ' ---------------------------------------------------------------------
+            ' beforeUpdate - Hook executed before a widget is updated
+            '
+            ' Removes old config, applies new.
+            '
+            ' @param {object} scope - The plugin scope (this instance)
+            ' @param {object} widget - The widget being updated
+            ' @param {dynamic} newValue - The new plugin configuration value
+            ' @param {object} oldValue - The previous plugin configuration value (default: {})
+            '
+            beforeUpdate: sub(scope as object, widget as object, newValue, oldValue = {})
+                ' Remove previous config before applying the update
+                scope.removeFocusConfig(widget.HID)
+
+                ' Merge new config into existing widget config
+                Rotor.Utils.deepExtendAA(widget[scope.key], newValue)
+                scope.setFocusConfig(widget, widget[scope.key])
+            end sub,
+
+            ' ---------------------------------------------------------------------
+            ' beforeDestroy - Hook executed before a widget is destroyed
+            '
+            ' Removes focus config.
+            '
+            ' @param {object} scope - The plugin scope (this instance)
+            ' @param {object} widget - The widget being destroyed
+            '
+            beforeDestroy: sub(scope as object, widget as object)
+                scope.removeFocusConfig(widget.HID)
+            end sub
+        }
+
+        ' Widget methods - Injected into widgets managed by this plugin
+        widgetMethods = {
+
+            ' ---------------------------------------------------------------------
+            ' enableFocusNavigation - Enables or disables focus navigation globally for this plugin
+            '
+            ' @param {boolean} enableFocusNavigation - True to enable, false to disable (default: true)
+            '
+            enableFocusNavigation: sub(enableFocusNavigation = true as boolean)
+                globalScope = GetGlobalAA()
+                pluginKey = m.pluginKey ' Plugin's key in the widget's plugin dictionary.
+                globalScope.rotor_framework_helper.frameworkInstance.plugins[pluginKey].enableFocusNavigation = enableFocusNavigation
+            end sub,
+
+            ' ---------------------------------------------------------------------
+            ' isFocusNavigationEnabled - Checks if focus navigation is currently enabled globally
+            '
+            ' @returns {boolean} True if enabled, false otherwise
+            '
+            isFocusNavigationEnabled: function() as boolean
+                globalScope = GetGlobalAA()
+                pluginKey = m.pluginKey ' Plugin's key in the widget's plugin dictionary.
+                return globalScope.rotor_framework_helper.frameworkInstance.plugins[pluginKey].enableFocusNavigation
+            end function,
+
+            ' ---------------------------------------------------------------------
+            ' setFocus - Sets focus to this widget or another specified widget
+            '
+            ' @param {dynamic} isFocused - Boolean to focus/blur current widget, or string ID/HID of widget to focus
+            ' @param {boolean} enableNativeFocus - If true, allows setting native focus on the underlying node
+            ' @returns {boolean} True if focus state was changed successfully, false otherwise
+            '
+            setFocus: function(command = true as dynamic, enableNativeFocus = false as boolean) as boolean
+                globalScope = GetGlobalAA()
+                pluginKey = m.pluginKey ' Plugin's key in the widget's plugin dictionary.
+                HID = m.HID ' Widget's unique Hierarchical ID (bound viewModelState).
+
+                if Rotor.Utils.isString(command)
+                    ' If string, focus widget by ID/HID.
+                    otherId = command
+                    return globalScope.rotor_framework_helper.frameworkInstance.plugins[pluginKey].setFocus(otherId, true, enableNativeFocus)
+                else ' Boolean value provided
+                    ' If boolean, focus/blur current widget.
+                    return globalScope.rotor_framework_helper.frameworkInstance.plugins[pluginKey].setFocus(HID, command, enableNativeFocus)
+                end if
+            end function,
+
+            ' ---------------------------------------------------------------------
+            ' getFocusedWidget - Retrieves the currently focused widget managed by this plugin
+            '
+            ' @returns {object} The widget instance that currently holds focus, or invalid
+            '
+            getFocusedWidget: function() as object ' Params isFocused, enableNativeFocus seem unused here
+                globalScope = GetGlobalAA()
+                pluginKey = m.pluginKey ' Plugin's key in the widget's plugin dictionary.
+                return globalScope.rotor_framework_helper.frameworkInstance.plugins[pluginKey].getFocusedWidget()
+            end function,
+
+            ' ---------------------------------------------------------------------
+            ' proceedLongPress - Manually triggers the navigation action associated with the current long-press key
+            '
+            ' @returns {object} The result of the executed navigation action (see parseOnKeyEventResult)
+            '
+            proceedLongPress: function() as object ' Params isFocused, enableNativeFocus seem unused here
+                globalScope = GetGlobalAA()
+                pluginKey = m.pluginKey ' Plugin's key in the widget's plugin dictionary.
+                return globalScope.rotor_framework_helper.frameworkInstance.plugins[pluginKey].proceedLongPress()
+            end function,
+
+            ' ---------------------------------------------------------------------
+            ' isLongPressActive - Checks if a long press action is currently active
+            '
+            ' @returns {boolean} True if a long press is active, false otherwise
+            '
+            isLongPressActive: function() as boolean ' Params isFocused, enableNativeFocus seem unused here
+                globalScope = GetGlobalAA()
+                pluginKey = m.pluginKey ' Plugin's key in the widget's plugin dictionary.
+                return globalScope.rotor_framework_helper.frameworkInstance.plugins[pluginKey].isLongPress
+            end function,
+
+            ' ---------------------------------------------------------------------
+            ' triggerKeyPress - Simulate key press
+            '
+            ' @param {string} key - Pressed key
+            ' @returns {object} The widget instance that currently holds focus, or invalid
+            '
+            triggerKeyPress: function(key) as object
+                globalScope = GetGlobalAA()
+                pluginKey = m.pluginKey
+                return globalScope.rotor_framework_helper.frameworkInstance.plugins[pluginKey].onKeyEventHandler(key, true)
+            end function
+
+        }
+
+        ' Configuration
+        longPressDuration = 0.4
+        enableLongPressFeature = true
+        enableFocusNavigation = true
+
+        ' State tracking
+        globalFocusHID = ""
+        globalFocusId = ""
+        isLongPress = false
+        longPressKey = ""
+
+        ' References
+        widgetTree as object
+        frameworkInstance as Rotor.Framework
+
+        ' Helper objects
+        focusItemStack = new Rotor.FocusPluginHelper.FocusItemStack()
+        groupStack = new Rotor.FocusPluginHelper.GroupStack()
+        distanceCalculator = new Rotor.FocusPluginHelper.ClosestSegmentToPointCalculatorClass()
+        longPressTimer = CreateObject("roSGNode", "Timer")
+
+        ' ---------------------------------------------------------------------
+        ' init - Initializes the plugin instance
+        '
+        ' Sets up internal state and helpers.
+        '
+        sub init ()
+            m.widgetTree = m.frameworkInstance.builder.widgetTree ' Reference to the main widget tree
+            m.longPressTimer.addField("pluginKey", "string", false)
+            m.longPressTimer.setFields({
+                "pluginKey": m.key,
+                duration: m.longPressDuration
+            })
+            ' Observe timer fire event to handle long press callback
+            m.longPressTimer.observeFieldScoped("fire", "Rotor_FocusPluginHelper_longPressObserverCallback", ["pluginKey"])
+        end sub
+
+        '
+        ' storeGlobalFocusHID - Stores the globally focused widget's HID and ID
+        '
+        ' @param {string} HID - The Hierarchical ID of the focused widget
+        ' @param {string} id - The regular ID of the focused widget
+        '
+        sub storeGlobalFocusHID(HID as string, id as string)
+            ' Store focus reference within the plugin
+            m.globalFocusHID = HID
+            m.globalFocusId = id
+        end sub
+
+        '
+        ' getFocusedWidget - Gets the widget instance that currently holds global focus
+        '
+        ' @returns {object} The focused widget object, or invalid if none
+        '
+        function getFocusedWidget() as object
+            return m.getFocusedItem()?.widget
+        end function
+
+        '
+        ' getFocusedItem - Gets the FocusItem instance corresponding to the globally focused widget
+        '
+        ' @returns {object} The FocusItem instance, or invalid if none
+        '
+        function getFocusedItem() as object
+            return m.focusItemStack.get(m.globalFocusHID)
+        end function
+
+        '
+        ' setFocusConfig - Configures focus properties (FocusItem and/or Group) for a widget
+        '
+        ' @param {object} widget - The widget to configure
+        ' @param {object} pluginConfig - The focus configuration object from the widget's spec
+        '
+        sub setFocusConfig(widget as object, pluginConfig as object)
+
+            if pluginConfig = invalid then return ' No config provided
+            HID = widget.HID
+            id = widget.id
+
+            ' Make a copy to avoid modifying the original config
+            config = Rotor.Utils.deepCopy(pluginConfig)
+            isGroup = config.doesExist(Rotor.Const.GROUP_CONFIG_KEY)
+            ' An item is focusItem if it's explicitly a group with other props, or not a group but has props.
+            ' isFocusItem = (isGroup = true and config.Count() > 1) or (isGroup = false and config.Count() > 0)
+
+            ' Ensure essential identifiers are in the config
+            config.id = id
+            config.HID = widget.HID
+
+            ' Handle group configuration if present
+            if isGroup
+                m.setupGroup(HID, config, widget)
+            else
+                ' Handle focus item configuration if applicable
+                ' if isFocusItem
+                m.setupFocusItem(HID, config, widget)
+            end if
+        end sub
+
+        '
+        ' setupGroup - Creates and registers a new Focus Group based on configuration
+        '
+        ' @param {string} HID - The Hierarchical ID of the widget acting as the group root
+        ' @param {object} config - The full focus configuration for the widget
+        ' @param {object} widget - The widget instance itself
+        '
+        sub setupGroup(HID as string, config as object, widget as object)
+            groupConfig = config[Rotor.Const.GROUP_CONFIG_KEY]
+            ' Copy essential info to the group-specific config
+            groupConfig.id = config.id
+            groupConfig.HID = config.HID
+            groupConfig.widget = widget
+            ' Create and configure the Group instance
+            newGroup = new Rotor.FocusPluginHelper.GroupClass(groupConfig)
+            newGroup.focusItemsRef = m.focusItemStack ' Provide reference to focus items
+            newGroup.groupsRef = m.groupStack ' Provide reference to other groups
+            m.groupStack.set(config.HID, newGroup) ' Register the new group
+        end sub
+
+        '
+        ' setupFocusItem - Creates and registers a new Focus Item based on configuration
+        '
+        ' @param {string} HID - The Hierarchical ID of the focusItem widget
+        ' @param {object} config - The full focus configuration for the widget
+        ' @param {object} widget - The widget instance itself
+        '
+        sub setupFocusItem(HID as string, config as object, widget as object)
+            config.widget = widget ' Ensure widget reference is in the config
+
+            ' Create and register the FocusItem instance
+            newFocusItem = new Rotor.FocusPluginHelper.FocusItemClass(config)
+            m.focusItemStack.set(HID, newFocusItem)
+        end sub
+
+        '
+        ' findAncestorGroups - Finds all ancestor groups for a given widget HID
+        '
+        ' @param {string} HID - The Hierarchical ID of the widget
+        ' @returns {object} An roArray of ancestor group HIDs, sorted with the immediate parent first (descending HID length)
+        '
+        function findAncestorGroups(HID as string) as object
+            allGroups = m.groupStack.getAll() ' Get all registered groups
+            ancestorGroups = []
+            ' Iterate through all groups to find ancestors
+            for each groupHID in allGroups
+                if Rotor.Utils.isAncestorHID(groupHID, HID)
+                    ancestorGroups.push(groupHID)
+                end if
+            end for
+            ' Sort by HID length descending (parent first)
+            ancestorGroups.Sort("r")
+
+            ' Note:
+            ' - Parent group is at index 0
+            ' - If HID is a focusItem, its direct parent group is included
+            ' - If HID is a group, the group itself is NOT included
+            return ancestorGroups
+        end function
+
+        '
+        ' removeFocusConfig - Removes focus configuration (Group and/or FocusItem) for a widget
+        '
+        ' @param {string} HID - The Hierarchical ID of the widget whose config should be removed
+        '
+        sub removeFocusConfig(HID as string)
+            ' Remove associated group, if it exists
+            if m.groupStack.has(HID)
+                m.groupStack.remove(HID)
+            end if
+            ' Remove associated focus item, if it exists
+            if m.focusItemStack.has(HID)
+                m.focusItemStack.remove(HID)
+            end if
+        end sub
+
+        '
+        ' setFocus - Sets or removes focus from a specific widget or group
+        '
+        ' Handles focus state changes, callbacks, and native focus interaction.
+        '
+        ' @param {dynamic} ref - The target: HID (string) of a FocusItem or Group, or Node ID (string) of a Group
+        ' @param {boolean} isFocused - True to set focus, false to remove focus (default: true)
+        ' @param {boolean} enableNativeFocus - If true, allows setting native focus on the underlying node (default: false)
+        ' @returns {boolean} True if the focus state was successfully changed, false otherwise
+        '
+        function setFocus(ref as dynamic, isFocused = true as boolean, enableNativeFocus = false as boolean) as boolean
+
+            ' Resolve reference (HID or ID) to a focusItem item.
+            focusItem = invalid ' Initialize target focus item
+
+            ' Exit if reference is empty or invalid.
+            if ref = invalid or ref = "" then return false
+
+            if m.focusItemStack.has(ref)
+                ' Case 1: ref is a valid focusItem HID.
+                focusItem = m.focusItemStack.get(ref)
+            else
+                ' Case 2: ref might be a focusItem node ID.
+                focusItem = m.focusItemStack.getByNodeId(ref)
+
+                if focusItem = invalid
+                    ' Case 3: ref might be a group HID or group node ID.
+                    ' Try finding group by HID first, then by Node ID.
+                    group = m.groupStack.get(ref) ?? m.groupStack.getByNodeId(ref)
+                    if group <> invalid
+                        ' If group found, find its default/entry focus item recursively.
+                        HID = m.capturingFocus_recursively(group.HID)
+                        focusItem = m.focusItemStack.get(HID) ' May still be invalid if capture fails
+
+                        ' else: ref is not a known FocusItem HID or Group identifier
+                    end if
+                end if
+            end if
+
+            ' Handle case where the target focus item could not be found or resolved.
+            if focusItem = invalid
+                focused = m.focusItemStack.get(m.globalFocusHID) ' Check current focus
+                #if debug
+                    ' Log warnings if focus target is not found
+                    if focused = invalid
+                        print `[PLUGIN][FOCUS][WARNING] Requested focus target ref: "${ref}" was not found or resolved to a valid FocusItem.`
+                        if m.globalFocusHID = ""
+                            ' If global focus is also lost, indicate potential issue.
+                            print `[PLUGIN][FOCUS][WARNING] Focus lost issue likely. No current focus set. Ensure valid initial focus.`
+                        else
+                            print `[PLUGIN][FOCUS][WARNING] Current focus HID: "${m.globalFocusHID}". Ensure target "${ref}" is registered and reachable.`
+                        end if
+                    else
+                        print `[PLUGIN][FOCUS][WARNING] Could not find focus target ref: "${ref}". Current focus remains on HID: "${m.globalFocusHID}", id"${m.globalFocusId}"".`
+                    end if
+                #end if
+                return false ' Indicate focus change failed
+            end if
+
+            ' Found a valid focusItem to target
+            HID = focusItem.HID
+
+            ' Exit if already focused/blurred as requested (no change needed).
+            if HID = m.globalFocusHID and isFocused = true then return false
+            ' Note: Handling blur when already blurred might be needed depending on desired logic, currently allows blurring focused item.
+
+            ' Cannot focus an invisible item.
+            if focusItem.node.visible = false and isFocused = true then return false
+
+            ' Determine if native focus should be enabled (request or item default)
+            enableNativeFocus = enableNativeFocus or focusItem.enableNativeFocus = true
+
+            ' Prevent focusing a disabled item.
+            preventFocusOnDisabled = focusItem.isEnabled = false and isFocused = true
+            if preventFocusOnDisabled
+                return false ' Indicate focus change failed
+            end if
+
+            ' Handle blurring the previously focused item
+            lastFocusChainingGroups = []
+            if m.globalFocusHID <> "" ' If something was focused before
+                lastFocused = m.focusItemStack.get(m.globalFocusHID)
+                if lastFocused <> invalid ' Check if the last focused widget hasn't been destroyed
+                    ' Blur the previously focused item
+                    lastFocused.applyFocus(false, enableNativeFocus)
+
+                    ' Record the last focused item within its parent group for potential future use (e.g., returning focus)
+                    lastFocusChainingGroups = m.findAncestorGroups(m.globalFocusHID)
+                    if lastFocusChainingGroups.Count() > 0
+                        parentGroupHID = lastFocusChainingGroups[0]
+                        if parentGroupHID <> invalid and parentGroupHID <> ""
+                            group = m.groupStack.get(parentGroupHID)
+                            if group <> invalid
+                                group.setLastFocusedHID(m.globalFocusHID)
+                            end if
+                        end if
+                    end if
+                end if
+            end if
+
+            ' Apply focus state (focused/blurred) to the target item.
+            focusItem.applyFocus(isFocused, enableNativeFocus)
+
+            ' Update focus state for ancestor groups (blur groups losing focus, focus groups gaining focus)
+            focusChainGroups = m.findAncestorGroups(focusItem.HID) ' Groups containing the new focus
+            focusChainGroups.append(lastFocusChainingGroups) ' Include groups containing the old focus
+            Rotor.Utils.removeRedundantValuesInArray(focusChainGroups) ' Unique list of affected groups
+            m.notifyFocusAtAncestorGroups(focusItem.HID, focusChainGroups) ' Notify all relevant groups
+
+            ' Update the globally tracked focused item.
+            m.storeGlobalFocusHID(isFocused ? HID : "", isFocused ? focusItem.id : "")
+
+            ' Ensure SceneGraph root has focus if native focus wasn't explicitly enabled on the item.
+            if enableNativeFocus = false
+                globalScope = GetGlobalAA()
+                if globalScope.top.isInFocusChain() = false
+                    globalScope.top.setFocus(true)
+                end if
+            end if
+
+            return true
+
+        end function
+
+        '
+        ' notifyFocusAtAncestorGroups - Applies the correct focus state (in focus chain or not) to a list of group HIDs
+        '
+        ' @param {string} HID - The HID of the item that ultimately received/lost focus
+        ' @param {object} groupHIDs - An roArray of group HIDs to notify
+        '
+        sub notifyFocusAtAncestorGroups(HID as string, groupHIDs = [] as object)
+
+            ' Notify all ancestor groups
+            if groupHIDs.Count() > 0
+                for each groupHID in groupHIDs
+
+                    group = m.groupStack.get(groupHID)
+                    isInFocusChain = Rotor.Utils.isAncestorHID(groupHID, HID)
+                    group.applyFocus(isInFocusChain)
+
+                end for
+            end if
+        end sub
+
+        sub notifyLongPressAtAncestorGroups(isLongPress as boolean, key as string, HID as string, groupHIDs = [] as object)
+            ' Notify all ancestor groups
+            if groupHIDs.Count() > 0
+                for each groupHID in groupHIDs
+                    group = m.groupStack.get(groupHID)
+                    handled = group.callLongPressHandler(isLongPress, key)
+                    if handled then exit for
+                end for
+            end if
+        end sub
+
+        sub delegateLongPressChanged(isLongPress as boolean, key as string)
+            focused = m.getFocusedItem()
+            handled = focused.callLongPressHandler(isLongPress, key)
+            if handled then return
+
+            focusChainGroups = m.findAncestorGroups(focused.HID)
+            m.notifyLongPressAtAncestorGroups(isLongPress, key, focused.HID, focusChainGroups)
+        end sub
+
+        function spatialNavigation(focused as object, direction as string, focusItemsHIDlist as object) as string
+            if focused.enableSpatialNavigation = false then return ""
+            if direction = Rotor.Const.Direction.BACK then return ""
+
+            ' Remove current focused item from candidates
+            index = Rotor.Utils.findInArray(focusItemsHIDlist, focused.HID)
+            if index >= 0 then focusItemsHIDlist.delete(index)
+
+            ' Find closest focusable item in direction
+            segments = m.collectSegments(focused, direction, focusItemsHIDlist)
+            if segments.Count() > 0
+                return m.findClosestSegment(segments, focused.metrics.middlePoint)
+            end if
+
+            return ""
+        end function
+
+        function findClosestSegment(segments as object, middlePoint as object) as string
+            distances = []
+
+            ' Calculate distance from middle point to each segment
+            for each HID in segments
+                segment = segments[HID]
+                distance = m.distanceCalculator.distToSegment(middlePoint, {
+                    x: segment.x1,
+                    y: segment.y1
+                }, {
+                    x: segment.x2,
+                    y: segment.y2
+                })
+
+                distances.push({
+                    HID: HID,
+                    distance: distance
+                })
+            end for
+
+            ' Find segment with minimum distance
+            minDistItem = Rotor.Utils.checkArrayItemsByHandler(distances, "distance", function(a, b) as dynamic
+                return a < b
+            end function)
+
+            return minDistItem.HID
+        end function
+
+
+        ' Waterfall of fallback's of groups (linked together with defaultFocusId)
+        function capturingFocus_recursively(identifier as string, direction = "", ancestorHID = "0" as string) as string
+            ' Resolve identifier to a group
+            group = m.groupStack.get(identifier)
+            if group = invalid then group = m.groupStack.getByNodeId(identifier, ancestorHID)
+            if group = invalid then return ""
+
+            ' Get fallback identifier for this group
+            newHID = group.getFallbackIdentifier()
+
+            ' Check if we found a FocusItem
+            if m.focusItemStack.has(newHID)
+                ' Apply spatial enter feature if enabled
+                if group.enableSpatialEnter = true and direction <> ""
+                    focused = m.focusItemStack.get(m.globalFocusHID)
+                    newSpatialHID = m.spatialNavigation(focused, direction, group.getGroupMembersHIDs())
+                    if newSpatialHID <> "" then newHID = newSpatialHID
+                end if
+
+            else if newHID <> ""
+                ' Try to find as group first, then deep search
+                newHID = m.capturingFocus_recursively(newHID, direction, group.HID)
+
+                ' If still not found, perform deep search in all descendants
+                if newHID = ""
+                    newHID = m.deepSearchFocusItemByNodeId(group.HID, group.getFallbackNodeId())
+                end if
+            end if
+
+            ' Prevent capturing by fallback in the same group where original focus was
+            if newHID <> "" and m.globalFocusHID <> ""
+                currentAncestors = m.findAncestorGroups(m.globalFocusHID)
+                newAncestors = m.findAncestorGroups(newHID)
+                if currentAncestors.Count() > 0 and newAncestors.Count() > 0
+                    if currentAncestors[0] = newAncestors[0] then newHID = ""
+                end if
+            end if
+
+            return newHID
+        end function
+
+        '
+        ' deepSearchFocusItemByNodeId - Deep search for a FocusItem or Group by nodeId within a group hierarchy
+        '
+        ' @param {string} groupHID - The HID of the group to search within
+        ' @param {string} nodeId - The node ID to search for
+        ' @returns {string} The HID of the found FocusItem or Group, or empty string if not found
+        '
+        function deepSearchFocusItemByNodeId(groupHID as string, nodeId as string) as string
+            if nodeId = "" then return ""
+
+            ' Get all descendants of this group (both FocusItems and nested Groups)
+            allFocusItems = m.focusItemStack.getAll()
+            allGroups = m.groupStack.getAll()
+
+            ' First, search in direct and nested FocusItems
+            for each focusItemHID in allFocusItems
+                if Rotor.Utils.isDescendantHID(focusItemHID, groupHID)
+                    focusItem = m.focusItemStack.get(focusItemHID)
+                    if focusItem <> invalid and focusItem.id = nodeId
+                        return focusItemHID
+                    end if
+                end if
+            end for
+
+            ' Second, search in nested Groups (and if found, apply fallback logic on that group)
+            for each nestedGroupHID in allGroups
+                if Rotor.Utils.isDescendantHID(nestedGroupHID, groupHID) and nestedGroupHID <> groupHID
+                    nestedGroup = m.groupStack.get(nestedGroupHID)
+                    if nestedGroup <> invalid and nestedGroup.id = nodeId
+                        ' Found a matching group - now apply fallback logic on it
+                        fallbackHID = nestedGroup.getFallbackIdentifier()
+                        if m.focusItemStack.has(fallbackHID)
+                            return fallbackHID
+                        else if fallbackHID <> ""
+                            ' Recursively resolve the fallback
+                            return m.capturingFocus_recursively(fallbackHID, "", nestedGroupHID)
+                        end if
+                    end if
+                end if
+            end for
+
+            return ""
+        end function
+
+        function bubblingFocus(groupHID, direction = "" as string) as dynamic
+            newHID = ""
+
+            ' Build ancestor chain (current group + all ancestors)
+            ancestorGroups = m.findAncestorGroups(groupHID)
+            ancestorGroups.unshift(groupHID)
+            ancestorGroupsCount = ancestorGroups.Count()
+            ancestorIndex = 0
+
+            ' Bubble up through ancestor groups until we find a target or reach the top
+            while Rotor.Utils.isString(newHID) and newHID = "" and ancestorIndex < ancestorGroupsCount
+                ' Get next ancestor group
+                groupHID = ancestorGroups[ancestorIndex]
+                group = m.groupStack.get(groupHID)
+
+                ' Check group's direction configuration
+                nodeId = group.getStaticNodeIdInDirection(direction)
+
+                if Rotor.Utils.isBoolean(nodeId)
+                    ' Boolean means focus is explicitly handled
+                    if nodeId = true
+                        newHID = true ' Block navigation (exit loop)
+                    else
+                        newHID = "" ' Continue bubbling
+                    end if
+                else
+                    ' String nodeId - try to resolve target
+                    if nodeId <> ""
+                        otherGroup = m.groupStack.getByNodeId(nodeId)
+                        if otherGroup <> invalid
+                            newHID = m.capturingFocus_recursively(otherGroup.HID, direction)
+                        end if
+                    end if
+                end if
+
+                ancestorIndex++
+            end while
+
+            return newHID
+        end function
+
+        ' * KEY EVENT HANDLER
+        function onKeyEventHandler(key as string, press as boolean) as object
+            ' Check long-press
+            if m.enableLongPressFeature = true
+                m.checkLongPressState(key, press)
+            end if
+            ' Prevent any navigation if it is disabled
+            #if debug
+                if m.enableFocusNavigation = false and press = true then print "[PLUGIN][FOCUS][INFO] Focus navigation is disabled. Call enableFocusNavigation(true) to make it enabled"
+            #end if
+            if m.enableFocusNavigation = false then return m.parseOnKeyEventResult(key, false, false)
+            ' Execute action according to key press
+            return m.executeNavigationAction(key, press)
+        end function
+
+        function executeNavigationAction(key as string, press as boolean) as object
+
+            if true = press
+
+                if -1 < Rotor.Utils.findInArray([
+                        Rotor.Const.Direction.UP,
+                        Rotor.Const.Direction.RIGHT,
+                        Rotor.Const.Direction.DOWN,
+                        Rotor.Const.Direction.LEFT,
+                        Rotor.Const.Direction.BACK
+                    ], key)
+
+                    newHID = ""
+                    direction = key
+
+                    ' (1) Pick up current focused item
+
+                    focused = m.focusItemStack.get(m.globalFocusHID)
+
+                    if focused = invalid
+                        #if debug
+                            print `[PLUGIN][FOCUS][WARNING] Focus lost issue detected. Last known focus id:\"${m.globalFocusHID}\". Please ensure valid focus.`
+                        #end if
+                        return m.parseOnKeyEventResult(key, false, false)
+                    end if
+
+
+                    ancestorGroups = m.findAncestorGroups(focused.HID)
+                    ancestorGroupsCount = ancestorGroups.Count()
+
+                    if ancestorGroupsCount = 0
+                        allFocusItems = m.focusItemStack.getAll()
+                        possibleFocusItems = allFocusItems.keys()
+                        parentGroupHID = ""
+                    else
+                        parentGroupHID = ancestorGroups[0]
+                        group = m.groupStack.get(parentGroupHID)
+                        possibleFocusItems = group.getGroupMembersHIDs()
+                    end if
+
+                    ' (2) Try static direction, defined on the focusItem, among possible focusItems
+                    nodeId = focused.getStaticNodeIdInDirection(direction) ' Note that this is a nodeId
+
+                    if Rotor.Utils.isBoolean(nodeId) and nodeId = true
+                        ' It means that focus is handled, and no need further action by plugin.
+                        return m.parseOnKeyEventResult(key, true, false)
+                    end if
+
+                    if nodeId <> ""
+                        newHID = m.focusItemStack.convertNodeIdToHID(nodeId, possibleFocusItems)
+                    end if
+
+                    if newHID = ""
+                        ' (3) Try spatial navigation in direction, among possible focusItems
+                        ' all = m.focusItemStack.getAll()
+                        ' allKeys = all.Keys()
+                        newHID = m.spatialNavigation(focused, direction, possibleFocusItems)
+                    end if
+
+                    ' (4) Check if found group. FocusItem can not point out of group.
+                    if newHID = "" and ancestorGroupsCount > 0 ' (5/2) If this focused has parent group, lets try bubbling focus on ancestors (groups)
+                        newHID = m.bubblingFocus(parentGroupHID, direction)
+                        if Rotor.Utils.isBoolean(newHID)
+                            if newHID = true
+                                ' It means that focus is handled, and no need further action by plugin.
+                                return m.parseOnKeyEventResult(key, true, false)
+                            else
+                                newHID = ""
+                            end if
+                        end if
+                    end if
+
+                    handled = m.setFocus(newHID)
+                    return m.parseOnKeyEventResult(key, handled, false)
+
+                else if key = "OK"
+
+                    return m.parseOnKeyEventResult(key, true, true)
+
+                end if
+            end if
+
+            return m.parseOnKeyEventResult(key, false, false)
+
+        end function
+
+        function parseOnKeyEventResult(key as string, handled as boolean, isSelected as boolean) as object
+            result = {
+                handled: handled,
+                key: key
+            }
+            if m.globalFocusHID <> "" and handled = true
+                focusItem = m.focusItemStack.get(m.globalFocusHID)
+                widget = m.widgetTree.get(focusItem.HID)
+                ' viewModelState = Rotor.Utils.deepCopy(widget.viewModelState)
+                result.widget = widget
+                if isSelected
+                    result.isSelected = isSelected
+                    focusItem.callOnSelectedFnOnWidget()
+                end if
+            end if
+            return result
+        end function
+
+        sub checkLongPressState(key as string, press as boolean)
+            m.longPressTimer.control = "stop"
+            if press = true
+                if m.isLongPress = false
+                    m.longPressKey = key
+                    m.longPressTimer.control = "start"
+                end if
+            else
+                wasLongPress = m.isLongPress = true
+                lastKey = m.longPressKey
+                m.isLongPress = false
+                m.longPressKey = ""
+                if wasLongPress
+                    m.delegateLongPressChanged(false, lastKey)
+                end if
+            end if
+        end sub
+
+        function proceedLongPress() as object
+            return m.executeNavigationAction(m.longPressKey, true)
+        end function
+
+        ' Find all the relevant(closest in direction) segments that are in the same group as the focused item.
+        function collectSegments(focused as object, direction as string, focusItemsHIDlist as object) as object
+            focused.refreshBounding()
+
+            refSegmentTop = focused.metrics.segments[Rotor.Const.Segment.TOP]
+            refSegmentRight = focused.metrics.segments[Rotor.Const.Segment.RIGHT]
+            referencePoint = { x: (refSegmentTop.x1 + refSegmentRight.x2) / 2, y: (refSegmentTop.y1 + refSegmentRight.y2) / 2 }
+
+            validators = {
+
+                "left": function(referencePoint as object, segments as object) as object
+                    right = segments[Rotor.Const.Segment.RIGHT]
+                    ' stop
+                    return right.x1 <= referencePoint.x ? { isValid: true, segment: right } : { isValid: false }
+                end function,
+
+                "up": function(referencePoint as object, segments as object) as object
+                    bottom = segments[Rotor.Const.Segment.BOTTOM]
+                    ' stop
+                    return bottom.y1 <= referencePoint.y ? { isValid: true, segment: bottom } : { isValid: false }
+                end function,
+
+                "right": function(referencePoint as object, segments as object) as object
+                    left = segments[Rotor.Const.Segment.LEFT]
+                    ' stop
+                    return left.x1 >= referencePoint.x ? { isValid: true, segment: left } : { isValid: false }
+                end function,
+
+                "down": function(referencePoint as object, segments as object) as object
+                    top = segments[Rotor.Const.Segment.TOP]
+                    ' stop
+                    return top.y1 >= referencePoint.y ? { isValid: true, segment: top } : { isValid: false }
+                end function
+            }
+            segments = {}
+            validator = validators[direction]
+            for each HID in focusItemsHIDlist
+                if HID <> focused.HID
+                    focusItem = m.focusItemStack.get(HID)
+                    focusItem.refreshBounding()
+                    result = validator(referencePoint, focusItem.metrics.segments)
+                    if result.isValid
+                        segments[HID] = result.segment
+                    end if
+                end if
+            end for
+
+            return segments
+        end function
+
+        sub destroy()
+            ' Remove all groups
+            for each HID in m.groupStack.getAll()
+                m.groupStack.remove(HID)
+            end for
+            ' Remove all focus items
+            for each HID in m.focusItemStack.getAll()
+                m.focusItemStack.remove(HID)
+            end for
+            m.longPressTimer.unobserveFieldScoped("fire")
+            m.longPressTimer = invalid
+            m.widgetTree = invalid
+        end sub
+
+    end class
+
+    namespace FocusPluginHelper
+
+        class BaseEntryStack extends Rotor.BaseStack
+
+            function getByNodeId(nodeId as string, ancestorHID = "0" as string) as object
+                if ancestorHID <> "0"
+                    filteredStack = {}
+                    for each HID in m.stack
+                        if Rotor.Utils.isDescendantHID(HID, ancestorHID)
+                            filteredStack[HID] = m.get(HID)
+                        end if
+                    end for
+                else
+                    filteredStack = m.stack
+                end if
+                HID = Rotor.Utils.findInAArrayByKey(filteredStack, "id", nodeId)
+                return HID <> "" ? m.get(HID) : invalid
+            end function
+
+            override sub remove(HID as string)
+                item = m.get(HID)
+                item.destroy()
+                super.remove(HID)
+            end sub
+
+        end class
+
+        class GroupStack extends BaseEntryStack
+
+            function convertNodeIdToHID(nodeId as string, possibleGroups as object) as string
+                foundHID = ""
+                for each HID in possibleGroups
+                    group = m.get(HID)
+                    if group.id = nodeId
+                        foundHID = group.HID
+                        exit for
+                    end if
+                end for
+                return foundHID
+            end function
+
+        end class
+
+
+        class FocusItemStack extends BaseEntryStack
+
+            function convertNodeIdToHID(nodeId as string, possibleFocusItems as object) as string
+                foundHID = ""
+                for each HID in possibleFocusItems
+                    focusItem = m.get(HID)
+                    if focusItem.id = nodeId
+                        foundHID = focusItem.HID
+                        exit for
+                    end if
+                end for
+                return foundHID
+            end function
+
+            function hasEnabled(HID as string) as boolean
+                if m.has(HID)
+                    focusItem = m.get(HID)
+                    return focusItem.isEnabled
+                else
+                    return false
+                end if
+            end function
+
+        end class
+
+        class BaseFocusConfig
+
+            autoSetIsFocusedOnContext as boolean
+            staticDirection as object
+
+            sub new (config as object)
+
+                m.HID = config.HID
+                m.id = config.id
+
+                m.widget = config.widget
+                m.node = m.widget.node
+                m.isFocused = config.isFocused ?? false
+
+                m.autoSetIsFocusedOnContext = config.autoSetIsFocusedOnContext ?? true
+
+                m.isEnabled = config.isEnabled ?? true
+                m.staticDirection = {}
+                m.staticDirection[Rotor.Const.Direction.UP] = config.up ?? ""
+                m.staticDirection[Rotor.Const.Direction.RIGHT] = config.right ?? ""
+                m.staticDirection[Rotor.Const.Direction.DOWN] = config.down ?? ""
+                m.staticDirection[Rotor.Const.Direction.LEFT] = config.left ?? ""
+                m.staticDirection[Rotor.Const.Direction.BACK] = config.back ?? ""
+
+                m.onFocusChanged = config.onFocusChanged
+                m.longPressHandler = config.longPressHandler
+                m.onFocus = config.onFocus
+
+                Rotor.Utils.setCustomFields(m.node, { "isFocused": false }, true, true)
+
+                ' convenience (usually this is used on viewModelState)
+                if false = m.widget.viewModelState.DoesExist("isFocused") and true = m.autoSetIsFocusedOnContext
+                    m.widget.viewModelState.isFocused = false ' as default
+                end if
+
+            end sub
+
+
+            HID as string
+            id as string
+            idByKeys as object
+            isEnabled as boolean
+            isFocused as boolean
+            onFocusChanged as dynamic
+            onFocus as dynamic
+            longPressHandler as dynamic
+            node as object
+            widget as object
+
+            function getStaticNodeIdInDirection(direction as dynamic) as dynamic
+                direction = m.staticDirection[direction]
+                if Rotor.Utils.isFunction(direction)
+                    return Rotor.Utils.callbackScoped(direction, m.widget) ?? ""
+                else
+                    return direction ?? ""
+                end if
+            end function
+
+            sub callOnFocusedFnOnWidget(isFocused as boolean)
+                Rotor.Utils.callbackScoped(m.onFocusChanged, m.widget, isFocused)
+                if true = isFocused
+                    Rotor.Utils.callbackScoped(m.onFocus, m.widget)
+                end if
+            end sub
+
+            function callLongPressHandler(isLongPress as boolean, key as string) as boolean
+                if Rotor.Utils.isFunction(m.longPressHandler)
+                    return Rotor.Utils.callbackScoped(m.longPressHandler, m.widget, isLongPress, key)
+                else
+                    return false
+                end if
+            end function
+
+            sub destroy()
+                m.widget = invalid
+                m.node = invalid
+                m.onFocusChanged = invalid
+                m.longPressHandler = invalid
+            end sub
+
+        end class
+
+        class GroupClass extends BaseFocusConfig
+            ' Note: Spatial navigation is supported within group, there is no spatial navigation between groups
+            ' If you want to focus out to another group, you need to config a direction prop.
+            ' You can set a groupId or any focusItem widgetId.
+            ' > Point to a groupId: focus will be set to defaultFocusId or lastFocusedHID if available
+            ' > Point to a widgetId: focus will be set to widgetId (and relevant group will be activated)
+
+            sub new (config as object)
+                super(config)
+                m.defaultFocusId = config.defaultFocusId ?? ""
+                m.lastFocusedHID = config.lastFocusedHID ?? ""
+                m.enableSpatialEnter = config.enableSpatialEnter ?? false
+            end sub
+
+            defaultFocusId as string
+            lastFocusedHID as string
+            enableSpatialEnter as boolean
+            focusItemsRef as object
+            groupsRef as object
+
+            isFocusItem = false
+            isGroup = true
+
+            sub setLastFocusedHID(lastFocusedHID as string)
+                m.lastFocusedHID = lastFocusedHID
+            end sub
+
+            function getGroupMembersHIDs()
+                ' Collect all focusItems that are descendants of this group
+                ' Exclude items that belong to nested sub-groups
+                focusItems = m.focusItemsRef.getAll()
+                groups = m.groupsRef.getAll()
+                HIDlen = Len(m.HID)
+                collection = []
+                groupsKeys = groups.keys()
+                groupsCount = groups.Count()
+
+                for each focusItemHID in focusItems
+                    ' Check if focusItem is a descendant of this group
+                    isDescendant = Left(focusItemHID, HIDlen) = m.HID
+                    if isDescendant
+                        ' Check if focusItem belongs to a nested sub-group
+                        shouldExclude = false
+                        otherGroupIndex = 0
+                        while shouldExclude = false and otherGroupIndex < groupsCount
+                            otherGroupHID = groupsKeys[otherGroupIndex]
+                            otherGroupHIDlen = Len(otherGroupHID)
+                            ' Exclude if belongs to deeper nested group
+                            shouldExclude = Left(focusItemHID, otherGroupHIDlen) = otherGroupHID and otherGroupHIDlen > HIDlen
+                            otherGroupIndex++
+                        end while
+
+                        if not shouldExclude then collection.push(focusItemHID)
+                    end if
+                end for
+
+                return collection
+            end function
+
+            '
+            ' getFallbackNodeId - Returns the nodeId to use for fallback (defaultFocusId or lastFocusedHID)
+            '
+            ' @returns {string} The nodeId to use for fallback, or empty string if none
+            '
+            function getFallbackNodeId() as string
+                if m.lastFocusedHID <> ""
+                    ' Note: lastFocusedHID is already a HID, not a nodeId, so we need to get the nodeId
+                    lastFocusedItem = m.focusItemsRef.get(m.lastFocusedHID)
+                    if lastFocusedItem <> invalid
+                        return lastFocusedItem.id
+                    end if
+                end if
+
+                if Rotor.Utils.isFunction(m.defaultFocusId)
+                    return Rotor.Utils.callbackScoped(m.defaultFocusId, m.widget) ?? ""
+                else
+                    return m.defaultFocusId
+                end if
+            end function
+
+            function getFallbackIdentifier() as string
+                HID = ""
+                if m.lastFocusedHID <> ""
+                    return m.lastFocusedHID
+                else
+                    if Rotor.Utils.isFunction(m.defaultFocusId)
+                        defaultFocusId = Rotor.Utils.callbackScoped(m.defaultFocusId, m.widget) ?? ""
+                    else
+                        defaultFocusId = m.defaultFocusId
+                    end if
+
+                    if defaultFocusId <> ""
+                        focusItemsHIDlist = m.getGroupMembersHIDs()
+                        if focusItemsHIDlist.Count() > 0
+
+                            ' Try find valid HID in focusItems by node id
+                            focusItemHID = m.findHIDinFocusItemsByNodeId(defaultFocusId, focusItemsHIDlist)
+                            if focusItemHID <> ""
+                                HID = focusItemHID
+                            end if
+
+                        else
+
+                            return defaultFocusId
+
+                        end if
+                    end if
+
+                end if
+
+                return HID
+            end function
+
+            function findHIDinFocusItemsByNodeId(nodeId as string, focusItemsHIDlist as object) as string
+                HID = ""
+                for each HID in focusItemsHIDlist
+                    focusItem = m.focusItemsRef.get(HID)
+                    if focusItem <> invalid and focusItem.id = nodeId
+                        HID = focusItem.HID
+                        exit for
+                    end if
+                end for
+                return HID
+            end function
+
+            sub applyFocus(isFocused as boolean)
+                if m.isFocused = isFocused then return
+
+                m.isFocused = isFocused
+
+                if m.autoSetIsFocusedOnContext
+                    m.widget.viewModelState.isInFocusChain = isFocused
+                end if
+                m.node.setField("isFocused", isFocused)
+                m.callOnFocusedFnOnWidget(isFocused)
+            end sub
+
+            override sub destroy()
+                super.destroy()
+                m.focusItemsRef = invalid
+                m.groupsRef = invalid
+            end sub
+
+
+
+        end class
+
+        class FocusItemClass extends BaseFocusConfig
+
+            sub new (config as object)
+                super(config)
+
+                m.onSelected = config.onSelected ?? ""
+                m.enableSpatialNavigation = config.enableSpatialNavigation ?? true
+                m.enableNativeFocus = config.enableNativeFocus ?? false
+            end sub
+
+            ' You can set a groupId or any focusItem widgetId.
+            ' > Point to a groupId: focus will be set to defaultFocusId or lastFocusedHID if available
+            ' > Point to a widgetId: focus will be set to widgetId (and relevant group will be activated)
+
+            ' key as string
+            isFocusItem = true
+            isGroup = false
+            enableNativeFocus as boolean
+            enableSpatialNavigation as boolean
+            onSelected as dynamic
+
+            private metrics = {
+                segments: {}
+            }
+            private bounding as object
+
+
+            sub refreshBounding()
+                b = m.node.sceneBoundingRect()
+                rotation = m.node.rotation
+
+                ' If both bounding x and y are zero, then we assume that inheritParentTransform = false
+                ' That is why we can use translation without knowing the value of inheritParentTransform
+                ' If bounding x or y are not zero, then bounding will include the node's translation
+                if rotation = 0
+                    if b.y = 0 and b.x = 0
+                        t = m.node.translation
+                        b.x += t[0]
+                        b.y += t[1]
+                    end if
+
+                    m.metrics.append(b)
+                    m.metrics.segments[Rotor.Const.Segment.LEFT] = {
+                        x1: b.x, y1: b.y,
+                        x2: b.x, y2: b.y + b.height
+                    }
+                    m.metrics.segments[Rotor.Const.Segment.TOP] = {
+                        x1: b.x, y1: b.y,
+                        x2: b.x + b.width, y2: b.y
+                    }
+                    m.metrics.segments[Rotor.Const.Segment.RIGHT] = {
+                        x1: b.x + b.width, y1: b.y,
+                        x2: b.x + b.width, y2: b.y + b.height
+                    }
+                    m.metrics.segments[Rotor.Const.Segment.BOTTOM] = {
+                        x1: b.x, y1: b.y + b.height,
+                        x2: b.x + b.width, y2: b.y + b.height
+                    }
+                    m.metrics.middlePoint = { x: b.x + b.width / 2, y: b.y + b.height / 2 }
+                else
+                    scaleRotateCenter = m.node.scaleRotateCenter
+                    dims = m.node.localBoundingRect() ' We need this to get proper (rotated value of rotated x and y)
+                    if b.y = 0 and b.x = 0
+                        t = m.node.translation
+                        b.x += t[0]
+                        b.y += t[1]
+                    end if
+                    b.width = dims.width
+                    b.height = dims.height
+                    m.metrics.append(b)
+
+                    ' Calculate rotated segments
+                    segmentLEFT = { x1: b.x, y1: b.y, x2: b.x, y2: b.y + b.height }
+                    rotatedSegment = Rotor.Utils.rotateSegment(segmentLEFT.x1, segmentLEFT.y1, segmentLEFT.x2, segmentLEFT.y2, rotation, scaleRotateCenter)
+                    m.metrics.segments[Rotor.Const.Segment.LEFT] = rotatedSegment
+
+                    segmentTOP = { x1: b.x, y1: b.y, x2: b.x + b.width, y2: b.y }
+                    rotatedSegment = Rotor.Utils.rotateSegment(segmentTOP.x1, segmentTOP.y1, segmentTOP.x2, segmentTOP.y2, rotation, scaleRotateCenter)
+                    m.metrics.segments[Rotor.Const.Segment.TOP] = rotatedSegment
+
+                    segmentRIGHT = { x1: b.x + b.width, y1: b.y, x2: b.x + b.width, y2: b.y + b.height }
+                    rotatedSegment = Rotor.Utils.rotateSegment(segmentRIGHT.x1, segmentRIGHT.y1, segmentRIGHT.x2, segmentRIGHT.y2, rotation, scaleRotateCenter)
+                    m.metrics.segments[Rotor.Const.Segment.RIGHT] = rotatedSegment
+
+                    segmentBOTTOM = { x1: b.x, y1: b.y + b.height, x2: b.x + b.width, y2: b.y + b.height }
+                    rotatedSegment = Rotor.Utils.rotateSegment(segmentBOTTOM.x1, segmentBOTTOM.y1, segmentBOTTOM.x2, segmentBOTTOM.y2, rotation, scaleRotateCenter)
+                    m.metrics.segments[Rotor.Const.Segment.BOTTOM] = rotatedSegment
+
+                    ' Calculate rotated middle point
+                    middlePoint = { x: b.x + b.width / 2, y: b.y + b.height / 2 }
+                    rotatedMiddlePoint = Rotor.Utils.rotateSegment(middlePoint.x, middlePoint.y, 0, 0, rotation, scaleRotateCenter)
+                    m.metrics.middlePoint = { x: rotatedMiddlePoint.x1, y: rotatedMiddlePoint.y1 }
+
+                end if
+            end sub
+
+            override sub destroy()
+                m.onSelected = invalid
+                m.metrics.segments.Clear()
+                super.destroy()
+            end sub
+
+            sub applyFocus(isFocused as boolean, enableNativeFocus = false as boolean)
+                if m.isFocused = isFocused then return
+
+                m.isFocused = isFocused
+
+                if m.autoSetIsFocusedOnContext
+                    m.widget.viewModelState.isFocused = isFocused
+                end if
+
+                m.node.setField("isFocused", isFocused)
+
+                if enableNativeFocus or m.enableNativeFocus
+                    m.node.setFocus(isFocused)
+                end if
+
+                m.callOnFocusedFnOnWidget(isFocused)
+
+            end sub
+
+            sub callOnSelectedFnOnWidget()
+                Rotor.Utils.callbackScoped(m.onSelected, m.widget)
+            end sub
+
+        end class
+
+        class ClosestSegmentToPointCalculatorClass
+
+            ' Translated from js; source: https://stackoverflow.com/a/6853926/16164491 (author:Joshua)
+            function pDistance(x, y, x1, y1, x2, y2)
+
+                A = x - x1
+                B = y - y1
+                C = x2 - x1
+                D = y2 - y1
+
+                dot = A * C + B * D
+                len_sq = C * C + D * D
+                param = -1
+                if len_sq <> 0
+                    param = dot / len_sq
+                end if
+
+                xx = 0
+                yy = 0
+
+                if param < 0
+                    xx = x1
+                    yy = y1
+                else if param > 1
+                    xx = x2
+                    yy = y2
+                else
+                    xx = x1 + param * C
+                    yy = y1 + param * D
+                end if
+
+                dx = x - xx
+                dy = y - yy
+                return dx * dx + dy * dy
+            end function
+
+            function distToSegment(p as object, s1 as object, s2 as object)
+                return m.pDistance(p.x, p.y, s1.x, s1.y, s2.x, s2.y)
+            end function
+
+        end class
+
+    end namespace
+
+    namespace FocusPluginHelper
+
+        sub longPressObserverCallback(msg)
+            extraInfo = msg.GetInfo()
+
+            pluginKey = extraInfo["pluginKey"]
+
+            globalScope = GetGlobalAA()
+            frameworkInstance = globalScope.rotor_framework_helper.frameworkInstance
+            plugin = frameworkInstance.plugins[pluginKey]
+            plugin.isLongPress = true
+            ' plugin.longPressStartHID = plugin.globalFocusHID
+            plugin.delegateLongPressChanged(true, plugin.longPressKey)
+
+        end sub
+
+    end namespace
+
+end namespace

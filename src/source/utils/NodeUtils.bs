@@ -1,0 +1,180 @@
+namespace Rotor.Utils
+
+    '==========================================================================
+    ' NODE CREATION UTILITIES
+    '==========================================================================
+
+    ' ---------------------------------------------------------------------
+    ' createNode - Creates a SceneGraph node with custom fields
+    '
+    ' @param {string} nodeType - Type of SceneGraph node to create
+    ' @param {object} fields - Fields to set on the node (default: {})
+    ' @returns {object} Created SceneGraph node
+    '
+    function createNode(nodeType as string, fields = {} as object) as object
+        node = CreateObject("roSGNode", nodeType)
+        setCustomFields(node, fields, true, true)
+        return node
+    end function
+
+    ' ---------------------------------------------------------------------
+    ' createContentNode - Creates a ContentNode with fields
+    '
+    ' @param {object} fields - Fields to add to the content node (default: {})
+    ' @param {string} nodeType - Type of content node (default: "ContentNode")
+    ' @returns {object} Created ContentNode
+    '
+    function createContentNode(fields = {} as object, nodeType = "ContentNode" as string) as object
+        contentNode = CreateObject("roSGNode", nodeType)
+        if nodeType = "ContentNode"
+            contentNode.addFields(fields)
+        else
+            contentNode.setFields(fields)
+        end if
+        return contentNode
+    end function
+
+    '==========================================================================
+    ' FIELD MANIPULATION UTILITIES
+    '==========================================================================
+
+    ' ---------------------------------------------------------------------
+    ' setCustomFields - Sets custom fields on a SceneGraph node
+    '
+    ' Dynamically adds fields if they don't exist, then sets their values.
+    ' Uses addField to enable alwaysNotify feature for runtime field creation.
+    '
+    ' @param {object} node - SceneGraph node to modify
+    ' @param {object} fields - Fields to set (key-value pairs)
+    ' @param {boolean} overwrite - If true, overwrites existing field values (default: true)
+    ' @param {boolean} alwaysNotify - If true, field changes always trigger observers (default: true)
+    '
+    sub setCustomFields(node as object, fields as object, overwrite = true as boolean, alwaysNotify = true as boolean)
+        for each attr in fields.Items()
+            key = attr.key
+            value = attr.value
+
+
+            if node.hasField(key) = false
+
+                ' Only addFiled can set `alwaysNotify` feature to true in runtime, so we need it;
+                ' Type conversion and formatting are mandatory to make it possible.
+                typeStr = convertIntrinsicType(type(value))
+                node.addField(key, typeStr, alwaysNotify)
+
+            end if
+
+            if overwrite = true
+                node.setField(key, value)
+            end if
+
+        end for
+    end sub
+
+    '==========================================================================
+    ' CALLBACK UTILITIES
+    '==========================================================================
+
+    ' ---------------------------------------------------------------------
+    ' callbackScoped - Invokes a callback function in a specific scope
+    '
+    ' Supports both function references and method name strings.
+    ' Automatically handles 0-2 payload parameters.
+    '
+    ' @param {dynamic} callback - Function reference or method name string
+    ' @param {object} scope - Scope (m) in which to execute the callback
+    ' @param {dynamic} payload1 - Optional first parameter (default: invalid)
+    ' @param {dynamic} payload2 - Optional second parameter (default: invalid)
+    ' @returns {dynamic} Result of callback invocation or invalid
+    '
+    function callbackScoped(callback as dynamic, scope as object, payload1 = invalid as dynamic, payload2 = invalid as dynamic) as dynamic
+
+        if callback = invalid or scope = invalid then return invalid
+
+        ' check if callback valid, otherwise return
+        if not (Rotor.Utils.isFunction(callback) or (Rotor.Utils.isString(callback) and callback <> "")) then return invalid
+
+        ' check possible arguments
+        isValidPayload1 = Rotor.Utils.isValid(payload1)
+        isValidPayload2 = Rotor.Utils.isValid(payload2)
+
+        if Rotor.Utils.isString(callback)
+            if true = isValidPayload2
+                return scope[callback](payload1, payload2)
+            else if true = isValidPayload1
+                return scope[callback](payload1)
+            else
+                return scope[callback]()
+            end if
+        else if Rotor.Utils.isFunction(callback)
+            scope.rotor_tmp_callback_scoped = callback
+            if true = isValidPayload2
+                return scope.rotor_tmp_callback_scoped(payload1, payload2)
+            else if true = isValidPayload1
+                return scope.rotor_tmp_callback_scoped(payload1)
+            else
+                return scope.rotor_tmp_callback_scoped()
+            end if
+        end if
+        scope.rotor_tmp_callback_scoped = invalid
+        return invalid
+    end function
+
+    '==========================================================================
+    ' FONT UTILITIES
+    '==========================================================================
+
+    ' ---------------------------------------------------------------------
+    ' setFontAttribute - Sets font attributes on a node
+    '
+    ' @param {object} node - SceneGraph node to modify
+    ' @param {object} params - Font parameters (uri, size)
+    '
+    sub setFontAttribute(node as object, params as object)
+        font = createNode("Font", {
+            uri: params.uri,
+            size: params.size
+        })
+        node.font = font
+    end sub
+
+    ' ---------------------------------------------------------------------
+    ' removeFontAttribute - Removes font from a node
+    '
+    ' @param {object} node - SceneGraph node to modify
+    '
+    sub removeFontAttribute(node as object)
+        node.font = invalid
+    end sub
+
+    '==========================================================================
+    ' TYPE CONVERSION UTILITIES
+    '==========================================================================
+
+    ' ---------------------------------------------------------------------
+    ' convertIntrinsicType - Converts BrightScript intrinsic type to field type string
+    '
+    ' Converts type strings like "roInt" to "integer", "roAssocArray" to "assocarray", etc.
+    ' Used for dynamic field creation via addField.
+    '
+    ' @param {string} typeKey - Intrinsic type string (e.g., "roInt", "roAssocArray")
+    ' @returns {string} Converted field type string
+    '
+    function convertIntrinsicType(typeKey as string) as string
+        typeKey = LCase(typeKey)
+        types = {
+            roint: "integer",
+            roassocarray: "assocarray",
+            rosgnode: "node"
+        }
+        converted = types.lookUp(typeKey)
+        if converted <> invalid
+            return converted
+        else if Left(typeKey, 2) = "ro"
+            return Right(typeKey, Len(typeKey) - 2)
+        end if
+        return typeKey
+
+    end function
+
+end namespace

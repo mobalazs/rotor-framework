@@ -36,10 +36,10 @@ namespace test
         end function
     end class
 
-    function createFooDispatcher() as Rotor.Dispatcher
+    sub createFooDispatcher()
         ' Create the fooDispatcher instance (first argument defines the global dispatcher key)
-        return Rotor.createDispatcher("fooDispatcher", new test.TestModel(), new test.TestReducer())
-    end function
+        Rotor.createDispatcher("fooDispatcher", new test.TestModel(), new test.TestReducer())
+    end sub
 
 
 end namespace

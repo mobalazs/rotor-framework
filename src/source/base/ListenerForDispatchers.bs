@@ -1,0 +1,246 @@
+' =====================================================================
+' Intent Interface - Standard interface for MVI intents
+'
+' Properties:
+'   - type: Intent type identifier (e.g., "FETCH_DATA", "UPDATE_USER")
+'   - payload: Optional data associated with intent
+'
+' Example:
+'   { type: "INCREMENT", payload: { amount: 1 } }
+' =====================================================================
+interface Intent
+    type as string
+    payload as object
+end interface
+
+namespace Rotor
+
+    ' =====================================================================
+    ' ListenerForDispatchers - Base class for dispatcher state change listener management
+    '
+    ' Provides listener registration, notification, and lifecycle management
+    ' for both internal and external dispatchers.
+    '
+    ' Listener Features:
+    '   - State mapping: mapStateToProps for updating widget props
+    '   - Conditional updates: shouldUpdate/allowUpdate for optimization
+    '   - Callbacks: callback (no args) or callbackWithState (receives state)
+    '   - One-time listeners: once flag for auto-removal after first trigger
+    '
+    ' Update Flow:
+    '   1. Check shouldUpdate/allowUpdate condition
+    '   2. If true: Map state to props (if configured)
+    '   3. Invoke callback functions
+    '   4. Remove 'once' listeners
+    ' =====================================================================
+    class ListenerForDispatchers
+
+        ' =============================================================
+        ' MEMBER VARIABLES
+        ' =============================================================
+
+        listeners = []                  ' Array of listener configurations
+
+        ' =============================================================
+        ' LISTENER NOTIFICATION
+        ' =============================================================
+
+        ' ---------------------------------------------------------------------
+        ' notifyListeners - Notifies all registered listeners of state change
+        '
+        ' Process flow:
+        '   1. For each listener, check shouldUpdate/allowUpdate condition
+        '   2. If condition passes:
+        '      - Map state to props (if mapStateToProps configured)
+        '      - Or deep extend props with state (default behavior)
+        '      - Invoke callback (if configured)
+        '      - Invoke callbackWithState (if configured)
+        '      - Remove listener if 'once' flag is true
+        '   3. Skip listener if condition fails
+        '
+        ' @param {object} state - New state to notify listeners about
+        '
+        sub notifyListeners(state as object)
+            listenerCount = m.listeners.Count()
+            listenerIndex = 0
+
+            ' Iterate through all listeners
+            while listenerIndex < listenerCount
+                listener = m.listeners[listenerIndex]
+                scope = listener.listenerScope
+
+                ' Determine if listener should be notified
+                if Rotor.Utils.isFunction(listener.shouldUpdate)
+                    ' Widget/ViewModel: Check shouldUpdate(props, state)
+                    shouldUpdate = Rotor.Utils.callbackScoped(listener.shouldUpdate, scope, scope.props, state)
+                else if Rotor.Utils.isFunction(listener.allowUpdate)
+                    ' Task thread: Check allowUpdate(state)
+                    shouldUpdate = Rotor.Utils.callbackScoped(listener.allowUpdate, scope, state)
+                else
+                    ' Default: always update
+                    shouldUpdate = true
+                end if
+
+                if shouldUpdate
+                    ' Map state to props
+                    if Rotor.Utils.isFunction(listener.mapStateToProps)
+                        ' Custom mapping: mapStateToProps(props, state)
+                        listener.mapStateToProps(scope.props, state)
+                    else if Rotor.Utils.isAssociativeArray(scope.props)
+                        ' Default: deep extend props with state
+                        Rotor.Utils.deepExtendAA(scope.props, state)
+                    end if
+
+                    ' Invoke callback without state
+                    callback = listener.callback
+                    if callback <> invalid
+                        Rotor.Utils.callbackScoped(callback, scope)
+                    end if
+
+                    ' Invoke callback with state
+                    callbackWithState = listener.callbackWithState
+                    if callbackWithState <> invalid
+                        Rotor.Utils.callbackScoped(callbackWithState, scope, state)
+                    end if
+
+                    ' Handle 'once' listeners (auto-remove after trigger)
+                    if listener?.once = true
+                        listener.listenerScope = invalid
+                        listener.callback = invalid
+                        m.listeners.Delete(listenerIndex)
+                        listenerCount--
+                    else
+                        listenerIndex++
+                    end if
+                else
+                    ' Skip this listener (condition not met)
+                    listenerIndex++
+                end if
+            end while
+        end sub
+
+        ' =============================================================
+        ' LISTENER REGISTRATION
+        ' =============================================================
+
+        ' ---------------------------------------------------------------------
+        ' addListener - Registers a new state change listener
+        '
+        ' Listener Configuration:
+        '   - listenerId: Identifier for grouping related listeners
+        '   - listenerScope: Scope (m) where callbacks are executed
+        '   - mapStateToProps: Optional function(props, state) for custom state mapping
+        '   - shouldUpdate: Optional function(props, state) for Widget/ViewModel update checks
+        '   - allowUpdate: Optional function(state) for task thread update checks
+        '   - callback: Optional function() invoked on state change
+        '   - callbackWithState: Optional function(state) invoked with new state
+        '   - once: Optional boolean (default false) - auto-remove after first trigger
+        '
+        ' @param {object} listenerConfig - Listener configuration object
+        ' @param {string} listenerId - Listener identifier for batch operations
+        ' @param {object} listenerScope - Scope where callbacks are executed
+        '
+        sub addListener(listenerConfig as object, listenerId as string, listenerScope as object)
+            ' Debug validation: ensure props exists when using widget-specific features
+            #if debug
+                hasPropsMapper = Rotor.Utils.isFunction(listenerConfig.mapStateToProps)
+                hasPropsUpdateChecker = Rotor.Utils.isFunction(listenerConfig.shouldUpdate)
+                isPropsAA = Rotor.Utils.isAssociativeArray(listenerScope.props)
+                if not isPropsAA and (hasPropsMapper or hasPropsUpdateChecker)
+                    throw { message: "props does not exist in caller scope. `mapStateToProps` and `shouldUpdate` only can be used in Widgets and ViewModels. Use allowUpdate instead." }
+                end if
+            #end if
+
+            ' Register listener
+            m.listeners.push({
+                listenerId: listenerId,
+                listenerScope: listenerScope,
+
+                mapStateToProps: listenerConfig?.mapStateToProps,
+                shouldUpdate: listenerConfig?.shouldUpdate,
+                allowUpdate: listenerConfig?.allowUpdate,
+                callback: listenerConfig?.callback,
+                callbackWithState: listenerConfig?.callbackWithState,
+                once: listenerConfig?.once ?? false
+            })
+        end sub
+
+        ' =============================================================
+        ' LISTENER REMOVAL
+        ' =============================================================
+
+        ' ---------------------------------------------------------------------
+        ' removeAllListenersByListenerId - Removes all listeners with matching ID
+        '
+        ' Iterates backwards through listener array for safe removal during iteration.
+        '
+        ' @param {string} listenerId - Listener identifier to remove
+        '
+        sub removeAllListenersByListenerId(listenerId as string)
+            listenerCount = m.listeners.Count()
+            listenerIndex = listenerCount - 1
+
+            ' Iterate backwards for safe removal
+            while listenerIndex >= 0 and listenerCount > 0
+                if m.listeners[listenerIndex].listenerId = listenerId
+                    ' Clear listener references
+                    m.listeners[listenerIndex].Clear()
+                    m.listeners.delete(listenerIndex)
+                    listenerCount--
+                end if
+                listenerIndex--
+            end while
+        end sub
+
+        ' =============================================================
+        ' STATE MAPPING HELPERS
+        ' =============================================================
+
+        ' ---------------------------------------------------------------------
+        ' runMapStateToProps - Executes mapStateToProps function with validation
+        '
+        ' This helper is used by getState() methods to apply optional state mapping.
+        ' Only works in render thread contexts where props exist.
+        '
+        ' @param {object} state - Current state
+        ' @param {dynamic} mapStateToProps - Optional mapping function(props, state)
+        ' @param {object} callerScope - Caller scope containing props
+        '
+        sub runMapStateToProps(state as object, mapStateToProps = invalid as dynamic, callerScope = invalid as object)
+            if Rotor.Utils.isFunction(mapStateToProps)
+                if Rotor.Utils.isAssociativeArray(callerScope?.props)
+                    ' Execute mapping: updates props in-place
+                    mapStateToProps(callerScope.props, state)
+                else
+                    ' Debug validation: props must exist for mapping
+                    #if debug
+                        throw { message: "Props does not exist in caller scope. `mapStateToProps` can only be used in Widgets and ViewModels (render thread). In task threads, use `getState()` without mapStateToProps and access state directly." }
+                    #end if
+                end if
+            end if
+        end sub
+
+        ' =============================================================
+        ' CLEANUP
+        ' =============================================================
+
+        ' ---------------------------------------------------------------------
+        ' destroy - Cleans up all listeners
+        '
+        ' Invalidates all listener references and clears listener array.
+        '
+        sub destroy()
+            ' Clear all listener references
+            if m.listeners.Count() > 0
+                for each listener in m.listeners
+                    listener.listenerScope = invalid
+                    listener.callback = invalid
+                end for
+            end if
+
+            m.listeners.Clear()
+        end sub
+
+    end class
+
+end namespace

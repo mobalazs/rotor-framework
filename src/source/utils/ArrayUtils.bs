@@ -1,0 +1,495 @@
+namespace Rotor.Utils
+
+    '==========================================================================
+    ' Array and AssociativeArray Utility Functions
+    '
+    ' Comprehensive collection of helper functions for array and associative array operations.
+    '
+    ' Categories:
+    '   - Conversion: Array to hash, object wrapping
+    '   - Deep Operations: Deep copy, deep extend, cloning
+    '   - Path Resolution: Get/clone by key path
+    '   - Filtering & Search: Filter, find in arrays/AAs
+    '   - Comparison: Difference checking
+    '   - Array Helpers: Ensure array, extend arrays, remove duplicates
+    '   - HID Operations: Ancestor/descendant checks
+    '   - Index Helpers: Wrapped index calculation
+    '
+    '==========================================================================
+
+    '==========================================================================
+    ' CONVERSION FUNCTIONS
+    '==========================================================================
+
+    ' ---------------------------------------------------------------------
+    ' wrapObject - Wraps a value in an associative array with specified key
+    '
+    ' @param {string} key - Key name
+    ' @param {dynamic} value - Value to wrap
+    ' @returns {object} Associative array { key: value }
+    '
+    function wrapObject(key as string, value as dynamic) as object
+        obj = {}
+        obj[key] = value
+        return obj
+    end function
+
+    '==========================================================================
+    ' DEEP OPERATIONS
+    '==========================================================================
+
+    ' ---------------------------------------------------------------------
+    ' deepExtendAA - Recursively merges source AA into target AA
+    '
+    ' Merge behavior:
+    '   - Both AA: Recursive merge
+    '   - Source overwrites other types
+    '   - Skips widgets (isWidget = true)
+    '
+    ' @param {dynamic} target - Target associative array to extend
+    ' @param {dynamic} source - Source associative array providing new values
+    ' @returns {dynamic} Modified target associative array
+    '
+    function deepExtendAA(target as dynamic, source as dynamic) as dynamic
+        if type(target) <> "roAssociativeArray" or type(source) <> "roAssociativeArray"
+            return source
+        end if
+
+        for each key in source
+            sourceVal = source[key]
+
+            if target.doesExist(key)
+                targetVal = target[key]
+                sourceType = type(sourceVal)
+                targetType = type(targetVal)
+
+                ' Recursively merge nested AAs (but not widgets)
+                if sourceType = "roAssociativeArray" and targetType = "roAssociativeArray" and not (sourceType = "roAssociativeArray" and sourceVal?.isWidget = true)
+                    target[key] = deepExtendAA(targetVal, sourceVal)
+                else
+                    ' Overwrite with source value
+                    target[key] = sourceVal
+                end if
+            else
+                ' Key doesn't exist in target, assign directly
+                target[key] = sourceVal
+            end if
+        end for
+
+        return target
+    end function
+
+    ' ---------------------------------------------------------------------
+    ' deepCopy - Creates a deep copy of an object
+    '
+    ' Recursively copies all nested arrays and associative arrays.
+    ' Primitive values are copied by value.
+    '
+    ' @param {dynamic} source - Source object to copy
+    ' @returns {dynamic} Deep copy of source
+    '
+    function deepCopy(source as dynamic) as dynamic
+        if source = invalid
+            return invalid
+        end if
+
+        sourceType = type(source)
+
+        if sourceType = "roArray"
+            target = []
+            for each item in source
+                target.push(deepCopy(item))
+            end for
+        else if sourceType = "roAssociativeArray"
+            target = {}
+            for each key in source
+                target[key] = deepCopy(source[key])
+            end for
+        else
+            ' Primitive type - return as-is
+            return source
+        end if
+
+        return target
+    end function
+
+    ' ---------------------------------------------------------------------
+    ' cloneExtendAA - Creates a deep copy of source and extends it with newData
+    '
+    ' Combines deepCopy and deepExtendAA operations.
+    '
+    ' @param {object} source - Source AA to clone
+    ' @param {object} newData - Data to merge into clone
+    ' @returns {object} Extended clone
+    '
+    function cloneExtendAA(source as object, newData as object)
+        clone = deepCopy(source)
+        return deepExtendAA(clone, newData)
+    end function
+
+    '==========================================================================
+    ' PATH RESOLUTION
+    '==========================================================================
+
+    ' ---------------------------------------------------------------------
+    ' getValueByKeyPath - Gets value from nested object using dot-separated path
+    '
+    ' Traverses nested AAs using path like "parent.child.grandchild".
+    '
+    ' @param {object} source - Source object to traverse
+    ' @param {string} keyPath - Dot-separated path (e.g., "user.address.city")
+    ' @param {boolean} lastKeyAsProp - If true, wraps result in { lastKey: value }
+    ' @param {string} separator - Path separator (default: ".")
+    ' @returns {dynamic} Value at path, or invalid if not found
+    '
+    function getValueByKeyPath(source as object, keyPath as string, lastKeyAsProp = false as boolean, separator = "." as string) as object
+        keys = keyPath.split(separator)
+        keysCount = keys.Count()
+        current = source
+        index = 0
+
+        ' Traverse path
+        while index < keysCount and current <> invalid and current.doesExist(keys[index])
+            current = current[keys[index]]
+            index++
+        end while
+
+        ' Not found
+        if index < keysCount then return invalid
+
+        ' Return format
+        if lastKeyAsProp and current <> invalid
+            obj = wrapObject(keys[keysCount - 1], current)
+            return obj
+        else
+            return current
+        end if
+    end function
+
+    ' ---------------------------------------------------------------------
+    ' getCloneByKeyPath - Gets a deep copy of nested path structure
+    '
+    ' Creates a nested AA structure matching the path with deep copied leaf value.
+    '
+    ' @param {object} source - Source object
+    ' @param {string} keyPath - Dot-separated path
+    ' @param {string} separator - Path separator (default: ".")
+    ' @returns {object} Nested structure with cloned value, or invalid if not found
+    '
+    ' Example:
+    '   getCloneByKeyPath({a: {b: {c: 1}}}, "a.b.c") => {a: {b: {c: 1}}}
+    '
+    function getCloneByKeyPath(source as object, keyPath as string, separator = "." as string) as object
+        keys = keyPath.split(separator)
+        keysCount = keys.Count()
+        current = source
+        index = 0
+        fullPath = {}
+        path = fullPath
+
+        while index < keysCount and current <> invalid and current.doesExist(keys[index])
+            key = keys[index]
+            current = current[key]
+
+            if index = keysCount - 1
+                ' Last key - deep copy value
+                path[key] = Rotor.Utils.deepCopy(current)
+            else
+                ' Intermediate key - create nested object
+                path[key] = {}
+                path = path[key]
+            end if
+
+            index++
+        end while
+
+        ' Not found
+        if index < keysCount then return invalid
+
+        return fullPath
+    end function
+
+    '==========================================================================
+    ' FILTERING & SEARCH
+    '==========================================================================
+
+    ' ---------------------------------------------------------------------
+    ' filterArrayUseHandler - Filters array using handler function
+    '
+    ' @param {object} array - Array to filter
+    ' @param {function} handler - Filter function (item, context) => boolean
+    ' @param {dynamic} context - Context passed to handler
+    ' @returns {object} New array with filtered elements
+    '
+    function filterArrayUseHandler(array as object, handler as function, context) as object
+        index = 0
+        newArray = []
+        while index < array.Count()
+            if handler(array[index], context)
+                newArray.push(array[index])
+            end if
+            index++
+        end while
+        return newArray
+    end function
+
+    ' ---------------------------------------------------------------------
+    ' findInArray - Finds target value in array
+    '
+    ' @param {object} array - Array to search
+    ' @param {dynamic} target - Value to find
+    ' @returns {integer} Index of target, or -1 if not found
+    '
+    function findInArray(array as object, target) as integer
+        index = 0
+        foundIndex = -1
+        while foundIndex = -1 and index < array.Count()
+            if array[index] = target
+                foundIndex = index
+            else
+                index++
+            end if
+        end while
+        return foundIndex
+    end function
+
+    ' ---------------------------------------------------------------------
+    ' findInArrayOfAA - Finds AA in array by key value
+    '
+    ' Searches array of AAs for first element where element[key] = target.
+    '
+    ' @param {object} array - Array of associative arrays
+    ' @param {string} key - Key to check in each AA
+    ' @param {dynamic} target - Target value to find
+    ' @returns {integer} Index of matching AA, or -1 if not found
+    '
+    function findInArrayOfAA(array as object, key as string, target) as integer
+        index = 0
+        foundIndex = -1
+        while foundIndex = -1 and index < array.Count()
+            if array[index][key] = target
+                foundIndex = index
+            else
+                index++
+            end if
+        end while
+        return foundIndex
+    end function
+
+    ' ---------------------------------------------------------------------
+    ' checkArrayItemsByHandler - Finds array element matching handler condition
+    '
+    ' Compares array elements using handler function to find best match.
+    '
+    ' @param {object} array - Array to search
+    ' @param {string} targetKey - Key to compare in each element
+    ' @param {function} handlerFn - Comparison function (value1, value2) => boolean
+    ' @returns {dynamic} Element matching condition
+    '
+    function checkArrayItemsByHandler(array as object, targetKey as string, handlerFn as function) as dynamic
+        targetIndex = 0
+        length = array.Count()
+
+        if length = 1
+            return array[0]
+        end if
+
+        for index = 1 to length - 1
+            if handlerFn(array[index][targetKey], array[targetIndex][targetKey]) = true
+                targetIndex = index
+            end if
+        end for
+
+        return array[targetIndex]
+    end function
+
+    ' ---------------------------------------------------------------------
+    ' findInAArrayByKey - Finds key in AA where nested value matches target
+    '
+    ' Searches AA where each value is an AA, looking for value[key] = target.
+    ' Case-insensitive for string comparisons.
+    '
+    ' @param {object} aa - Associative array to search
+    ' @param {string} key - Nested key to check
+    ' @param {dynamic} value - Target value
+    ' @returns {string} Key of matching entry, or empty string if not found
+    '
+    function findInAArrayByKey(aa as object, key as string, value as dynamic) as string
+        keys = aa.Keys()
+        keysCount = keys.Count()
+        index = 0
+        foundIndex = -1
+        isTypeString = Rotor.Utils.isString(value)
+        if isTypeString then value = LCase(value)
+
+        while foundIndex = -1 and index < keysCount
+            targetValue = aa[keys[index]][key]
+            if (isTypeString = true ? LCase(targetValue) : targetValue) = value
+                foundIndex = index
+            else
+                index++
+            end if
+        end while
+
+        return foundIndex > -1 ? keys[foundIndex] : ""
+    end function
+
+    ' ---------------------------------------------------------------------
+    ' findInArrayByKey - Finds element in array by nested key path
+    '
+    ' Searches array of AAs using key path (e.g., "user.name").
+    ' Case-insensitive for string comparisons.
+    '
+    ' @param {object} array - Array to search (elements must be AAs)
+    ' @param {string} key - Key path to search (e.g., "parent.child")
+    ' @param {dynamic} value - Target value
+    ' @returns {integer} Index of matching element, or -1 if not found
+    '
+    function findInArrayByKey(array as object, key as string, value as dynamic) as integer
+        arrayCount = array.Count()
+        index = 0
+        foundIndex = -1
+        if Rotor.Utils.isString(value) then value = LCase(value)
+
+        while foundIndex = -1 and index < arrayCount
+            targetValue = Rotor.Utils.getValueByKeyPath(array[index], key)
+            if Rotor.Utils.isString(targetValue) then targetValue = LCase(targetValue)
+
+            if targetValue = value
+                foundIndex = index
+            else
+                index++
+            end if
+        end while
+
+        return foundIndex
+    end function
+
+    '==========================================================================
+    ' COMPARISON
+    '==========================================================================
+
+    ' ---------------------------------------------------------------------
+    ' isDifferent - Checks if two items are different
+    '
+    ' Comparison logic:
+    '   - roSGNode: Uses isSameNode()
+    '   - AA/Array: JSON comparison
+    '   - Function: String comparison
+    '   - Other: Direct comparison
+    '
+    ' @param {dynamic} item1 - First item
+    ' @param {dynamic} item2 - Second item
+    ' @returns {boolean} True if items are different
+    '
+    function isDifferent(item1, item2) as boolean
+        if type(item1) = "roSGNode"
+            return not item1.isSameNode(item2)
+        else if Rotor.Utils.isAssociativeArray(item1) or Rotor.Utils.isArray(item1)
+            return FormatJSON(item1) <> FormatJSON(item2)
+        else if Rotor.Utils.isFunction(item1)
+            return item1.ToStr() <> item2.ToStr()
+        else
+            return item1 <> item2
+        end if
+    end function
+
+    '==========================================================================
+    ' ARRAY HELPERS
+    '==========================================================================
+
+    ' ---------------------------------------------------------------------
+    ' ensureArray - Ensures value is wrapped in array
+    '
+    ' @param {dynamic} array - Input value or array
+    ' @returns {object} Array containing the value, or original if already array
+    '
+    function ensureArray(array as dynamic) as object
+        if isArray(array)
+            resolvedArray = array
+        else
+            resolvedArray = [array]
+        end if
+        return resolvedArray
+    end function
+
+    ' ---------------------------------------------------------------------
+    ' extendArrayOfStrings - Merges two string arrays without duplicates
+    '
+    ' Adds strings from sourceArray to targetArray only if not already present.
+    '
+    ' @param {object} targetArray - Target array to extend
+    ' @param {object} sourceArray - Source array to merge from
+    ' @returns {object} Extended target array
+    '
+    function extendArrayOfStrings(targetArray = [] as object, sourceArray = [] as object) as object
+        for each itemStr in sourceArray
+            foundIndex = Rotor.Utils.findInArray(targetArray, itemStr)
+            if foundIndex = -1
+                targetArray.push(itemStr)
+            end if
+        end for
+        return targetArray
+    end function
+
+    ' ---------------------------------------------------------------------
+    ' removeRedundantValuesInArray - Removes duplicate values from array in-place
+    '
+    ' Sorts array and removes consecutive duplicates.
+    ' Modifies the original array.
+    '
+    ' @param {object} array - Array to deduplicate
+    '
+    sub removeRedundantValuesInArray(array as object)
+        itemCount = array.Count()
+        if itemCount = 0 then return
+
+        array.Sort()
+
+        index = 0
+        while index + 1 < itemCount
+            if array[index] = array[index + 1]
+                array.delete(index + 1)
+                itemCount--
+            else
+                index++
+            end if
+        end while
+    end sub
+
+    '==========================================================================
+    ' HID (Hierarchical ID) OPERATIONS
+    '==========================================================================
+
+    ' ---------------------------------------------------------------------
+    ' isAncestorHID - Checks if ancestorHID is an ancestor of HID
+    '
+    ' Uses string prefix matching on HIDs.
+    '
+    ' @param {string} ancestorHID - Potential ancestor HID
+    ' @param {string} HID - HID to check
+    ' @returns {boolean} True if ancestorHID is ancestor of HID
+    '
+    ' Example:
+    '   isAncestorHID("scene.header", "scene.header.logo") => true
+    '
+    function isAncestorHID(ancestorHID as string, HID as string) as boolean
+        ancestorHIDLen = Len(ancestorHID)
+        return Left(HID, ancestorHIDLen) = ancestorHID and ancestorHIDLen < Len(HID)
+    end function
+
+    ' ---------------------------------------------------------------------
+    ' isDescendantHID - Checks if descendantHID is a descendant of HID
+    '
+    ' Inverse of isAncestorHID.
+    '
+    ' @param {string} descendantHID - Potential descendant HID
+    ' @param {string} HID - HID to check against
+    ' @returns {boolean} True if descendantHID is descendant of HID
+    '
+    function isDescendantHID(descendantHID as string, HID as string) as boolean
+        HIDlen = Len(HID)
+        return Left(descendantHID, HIDlen) = HID and HIDlen < Len(descendantHID)
+    end function
+
+end namespace

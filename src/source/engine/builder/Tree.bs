@@ -1,0 +1,278 @@
+import "TreeBase.bs"
+
+namespace Rotor.ViewBuilder
+
+    ' =====================================================================
+    ' TreeRoot - Root node of the widget tree
+    '
+    ' Provides minimal API for rendering and erasing at the root level.
+    ' =====================================================================
+    class TreeRoot
+
+        node as object
+
+        children = {}
+
+        viewModelState = {}
+
+        id = ""
+        HID = "0"
+        vmHID = "0"
+        parentHID = invalid
+        isViewModel = true
+        childrenHIDhash = {}
+
+        function getFrameworkInstance() as object
+            return GetGlobalAA().rotor_framework_helper.frameworkInstance
+        end function
+
+        sub render(payloads as dynamic, params = {} as object)
+            for each payload in Rotor.Utils.ensureArray(payloads)
+                if payload.DoesExist("id") = false and payload.DoesExist("HID") = false
+                    payload.id = m.id
+                    payload.HID = m.HID
+                end if
+            end for
+            if Rotor.Utils.isValid(params.callback) then params.callbackScope = m
+            m.getFrameworkInstance().builder.render(payloads, params)
+        end sub
+
+        sub erase(payloads as dynamic, shouldSkipNodePool)
+            m.getFrameworkInstance().builder.erase(payloads, m.parentHID, shouldSkipNodePool)
+        end sub
+
+        sub destroy()
+            m.node = invalid
+        end sub
+
+    end class
+
+    ' =====================================================================
+    ' WidgetTree - Main widget tree implementation extending WidgetTreeBase
+    '
+    ' Manages widget hierarchy, parent-child relationships,
+    ' and ViewModel scope propagation through the tree.
+    ' =====================================================================
+    class WidgetTree extends Rotor.ViewBuilder.WidgetTreeBase
+
+        ' sub new()
+        ' end sub
+
+        ' ---------------------------------------------------------------------
+        ' init - Initializes the widget tree
+        '
+        sub init()
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' destroy - Destroys the widget tree and cleans up resources
+        '
+        sub destroy()
+            m.tree.destroy()
+            m.tree_HIDHash.stack.Clear()
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' add - Adds a widget to the tree and returns the widget instance
+        '
+        ' @param {object} config - Widget configuration with id and parentHID
+        ' @param {object} ViewModelClass - Optional ViewModel class constructor (default: invalid)
+        ' @returns {object} Created widget instance with generated HID
+        '
+        function add(config as object, ViewModelClass = invalid) as object
+
+            if Rotor.Utils.isFunction(ViewModelClass as function) ' Custom View extends Widget
+                ' bs:disable-next-line
+                widget = new ViewModelClass()
+            else
+                widget = new Rotor.Widget() ' Standard Widget
+            end if
+
+            id = config.id
+
+            ' Parse config properties
+            widget.id = id
+            widget.childrenHIDhash = {} ' prepare local HID cache
+            widget.isRootChild = config.parentHID = "0" ' detect root
+            widget.children = {} ' default
+
+            ' Check if has parent widget
+            if widget.isRootChild
+                parent = m.tree
+            else
+                parent = m.get(config.parentHID)
+            end if
+            widget.parentHID = config.parentHID
+            HID = m.generateHID(parent)
+
+            ' register as child by readable id
+            parent.children[LCase(id)] = widget
+
+            ' register as child by readable HID (Hierarchical Identifier)
+            parent.childrenHIDhash[HID] = true ' local cache for HID
+
+            widget.HID = HID
+            widget.parent = parent ' link parent widget
+
+            if widget?.isViewModel = true
+                widget.vmHID = widget.HID ' start new VM reference in hierarchy
+            else
+                widget.vmHID = parent.vmHID ' populate down the current VM reference in hierarchy
+                VM = m.getByHID(parent.vmHID)
+                widget.props = VM.props ' reference to ancestor's viewModel's props (sharing props across descendant widgets)
+                widget.viewModelState = VM.viewModelState ' reference to ancestor ViewModel's viewModelState
+            end if
+
+
+            ' Build virtual widget tree
+            m.tree_HIDHash.set(HID, widget)
+
+            return widget
+        end function
+
+        ' ---------------------------------------------------------------------
+        ' getChildrenWidgets - Gets child widgets of a parent in SceneGraph node order
+        '
+        ' @param {object} parentWidget - Parent widget to get children from
+        ' @param {string} matchingPattern - Optional glob pattern to filter children (default: "")
+        ' @returns {object} Array of child widgets in node order
+        '
+        function getChildrenWidgets(parentWidget as object, matchingPattern = "" as string) as object
+
+            if parentWidget = invalid then return invalid
+
+            ' Get all children in node order
+            childrenWidgets = parentWidget.children.items()
+
+            childrenWidgetsCount = childrenWidgets.Count()
+            childrenNodes = parentWidget.node.getChildren(-1, 0)
+
+            orderedWidgets = []
+            for each node in childrenNodes
+                isFound = false
+                itemIndex = 0
+                while isFound = false and itemIndex < childrenWidgetsCount
+                    widget = childrenWidgets[itemIndex].value
+                    if widget.node.isSameNode(node)
+                        ' Apply ID filtering if pattern is provided
+                        if matchingPattern = "" or m.matchesPattern(LCase(widget.id), LCase(matchingPattern))
+                            orderedWidgets.push(widget)
+                        end if
+                        isFound = true
+                    else
+                        itemIndex++
+                    end if
+                end while
+            end for
+
+            return orderedWidgets
+        end function
+
+        ' ---------------------------------------------------------------------
+        ' remove - Removes a widget from the tree by HID
+        '
+        ' @param {string} HID - Hierarchical ID of widget to remove
+        '
+        sub remove (HID as string)
+            widget = m.getByHID(HID)
+            ' if widget = invalid then return
+
+            ' remove from parent
+            parent = widget.parent
+            parent.children.Delete(widget.id)
+
+            parent.childrenHIDhash.Delete(widget.HID)
+
+            m.tree_HIDHash.remove(HID)
+
+            ' remove animators
+            if widget.animators <> invalid and widget.animators.Count() > 0
+                for each animatorId in widget.animators
+                    widget.animator(animatorId).destroy()
+                end for
+            end if
+
+            if widget.isViewModel = true
+                widget.props.Clear()
+                widget.viewModelState.Clear()
+            end if
+
+            widget.Clear()
+
+        end sub
+
+        ' ===== HELPER METHODS =====
+
+        ' ---------------------------------------------------------------------
+        ' isBranchOfRemove - Checks if widget is a top-level branch marked for removal
+        '
+        ' @param {object} widget - Widget to check
+        ' @returns {boolean} True if widget is removal branch root
+        '
+        function isBranchOfRemove(widget as object) as boolean
+            if false = widget.DoesExist("markedToRemove") then return false
+            if widget.isRootChild = true
+                return true
+            end if
+
+            return widget.parent.DoesExist("markedToRemove") ? false : true
+        end function
+
+        ' ---------------------------------------------------------------------
+        ' isBranchOfAppend - Checks if widget is a top-level branch marked for append
+        '
+        ' @param {object} widget - Widget to check
+        ' @returns {boolean} True if widget is append branch root
+        '
+        function isBranchOfAppend(widget as object) as boolean
+            if false = widget.DoesExist("markedToAppend") then return false
+            if widget.isRootChild = true
+                return true
+            end if
+            return widget.parent.DoesExist("markedToAppend") ? false : true
+        end function
+
+        ' ---------------------------------------------------------------------
+        ' getTreeItem - Gets tree item by HID or returns root if HID is empty
+        '
+        ' @param {string} HID - Hierarchical ID to lookup
+        ' @returns {object} Widget at HID or tree root
+        '
+        function getTreeItem(HID)
+            return HID = "" ? m.tree : m.getByHID(HID)
+        end function
+
+        ' Deprecated
+        ' function checkRegexIncluded(part as string) as object
+        '     if Left(part, 6) = "regex:"
+        '         return {
+        '             isRegex: true,
+        '             regex: CreateObject("roRegex", Right(part, Len(part) - 6), "i")
+        '         }
+        '     else
+        '         return {
+        '             isRegex: false
+        '         }
+        '     end if
+        ' end function
+
+        ' ---------------------------------------------------------------------
+        ' setRootNode - Sets the SceneGraph node for the tree root
+        '
+        ' @param {object} node - SceneGraph node to set as root
+        '
+        sub setRootNode (node as object)
+            m.tree.node = node
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' getRootNode - Gets the root SceneGraph node
+        '
+        ' @returns {object} Root SceneGraph node
+        '
+        function getRootNode() as object
+            return m.tree.node
+        end function
+    end class
+
+end namespace
