@@ -68,7 +68,6 @@
             "rendezvousTracking": false,
             "enableDebugProtocol": false,
             "injectRdbOnDeviceComponent": false
-
         }
     ]
 }

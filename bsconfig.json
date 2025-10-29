@@ -3,7 +3,7 @@
 	"stagingDir": "dist",
 
 	"bs_const": {
-		"debug": false,
+		"debug": true,
 		"unittest": false
 	},
 
