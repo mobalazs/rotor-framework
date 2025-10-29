@@ -1,78 +1,143 @@
 namespace Rotor
 
-    '--------------------------------------------------------------------------
-    ' @class Reducer
-    ' @description Base Reducer class that handles state transitions in the Rotor framework.
-    '              Reducers are pure functions that compute the next state based on the current
-    '              state and an intent (action). They work in conjunction with dispatchers and
-    '              models to implement unidirectional data flow. Reducers can also apply
-    '              middleware functions to intercept and transform intents before state computation.
-    ' @notes:
-    ' Override the reducer() method in derived classes to implement custom state logic.
-    ' Override the middlewares variable in derived classes to implement array of middleware functions.
-    '--------------------------------------------------------------------------
+    '******************************************************************
+    '** Reducer (BaseReducer)
+    '**
+    '** Base class for state reducers in the MVI pattern.
+    '**
+    '** Responsibilities:
+    '**   - Computes next state from current state + intent
+    '**   - Applies middleware pipeline for async operations, logging, validation
+    '**   - Provides pure state transformation logic
+    '**   - Integrates with Dispatcher for state updates
+    '**
+    '** MVI Flow:
+    '**   Intent → Middleware → Reducer → New State → Model → View Update
+    '**
+    '** Override Points:
+    '**   - reducer(state, intent): Define state transitions
+    '**   - applyMiddlewares(): Return array of middleware functions
+    '**   - middlewares: Set middleware array directly
+    '**
+    '** @namespace Rotor
+    '******************************************************************
     class Reducer
 
-        model as object
+        ' =============================================================
+        ' MEMBER VARIABLES
+        ' =============================================================
 
-        ' Array of middleware functions with signature: function(intent as Intent, state as Object) as Dynamic
-        ' Each middleware can intercept/transform intents or return invalid to cancel state change
-        middlewares = [] as function[]
+        model as object                 ' Reference to Model holding state
+        middlewares = [] as function[]  ' Middleware function array
+        port as object                  ' Framework port for async operations
 
-        middlewareFnScoped as dynamic
-        getDispatcher as function
-        dispatch as function
-        ownerDispatcher as object
-        ownerDispatcherId as string
-        port as object
+        ' Dispatcher integration
+        getDispatcher as function       ' Get dispatcher facade by ID
+        dispatch as function            ' Dispatch intent to owner dispatcher
+        ownerDispatcher as object       ' Owning dispatcher instance
+        ownerDispatcherId as string     ' Owning dispatcher ID
 
+        ' Internal
+        middlewareFnScoped as dynamic   ' Currently executing middleware
+
+        ' =============================================================
+        ' CONSTRUCTOR
+        ' =============================================================
+
+        '**
+        '** Constructor - Initializes reducer with framework integration
+        '**
         sub new()
-
             frameworkInstance = GetGlobalAA().rotor_framework_helper.frameworkInstance
-            m.port = frameworkInstance.port ' Add port to reducer
+            m.port = frameworkInstance.port
 
+            ' Inject getDispatcher method
             m.getDispatcher = function(dispatcherId as string) as object
                 return GetGlobalAA().rotor_framework_helper.frameworkInstance.dispatcherProvider.getFacade(dispatcherId, m)
             end function
 
+            ' Inject dispatch method for self-dispatching
             m.dispatch = sub(intent as object)
                 m.ownerDispatcher.dispatch(intent)
             end sub
-
         end sub
 
-        '--------------------------------------------------------------------------
-        ' @method reducer
-        ' @description Pure function that computes the next state based on the current
-        '              state and intent. Override this method in derived classes to
-        '              implement custom state transitions.
-        ' @param {Object} state - The current state object
-        ' @param {Intent} intent - The intent object containing the action type and payload
-        ' @return {Object} The new state object (default implementation returns unchanged state)
-        '--------------------------------------------------------------------------
+        ' =============================================================
+        ' REDUCER LOGIC
+        ' =============================================================
+
+        '**
+        '** reducer - Pure function that computes next state
+        '**
+        '** Override this method to implement custom state transitions based on intent type.
+        '** Should return a new state object (immutable pattern).
+        '**
+        '** @param {object} state - Current state
+        '** @param {Intent} intent - Intent object { type, payload, ... }
+        '** @return {object} New state
+        '**
+        '** Example:
+        '**   function reducer(state as object, intent as Intent)
+        '**       if intent.type = "INCREMENT"
+        '**           newState = Rotor.Utils.deepCopy(state)
+        '**           newState.count = state.count + 1
+        '**           return newState
+        '**       end if
+        '**       return state
+        '**   end function
+        '**
         public function reducer(state as object, intent as Intent)
             return state
         end function
 
-        '--------------------------------------------------------------------------
-        ' @method applyMiddlewares
-        ' @description Returns an array of middleware functions to process intents before
-        '              they reach the reducer. Override this method in derived classes to
-        '              implement custom middleware logic for async operations, logging,
-        '              validation, or intent transformation.
-        ' @return {Array} Array of middleware functions. Each middleware has signature:
-        '                function(intent as Intent, state as Object) as Dynamic.
-        '                Middlewares can return the intent (to continue), transform it,
-        '                or return invalid (to stop reducer execution).
-        '--------------------------------------------------------------------------
+        ' =============================================================
+        ' MIDDLEWARE
+        ' =============================================================
+
+        '**
+        '** applyMiddlewares - Returns middleware function array
+        '**
+        '** Override to implement middleware logic for:
+        '**   - Async operations (API calls, timers)
+        '**   - Logging and debugging
+        '**   - Intent validation
+        '**   - Intent transformation
+        '**
+        '** @return {function[]} Array of middleware functions
+        '**
+        '** Middleware signature:
+        '**   function(intent as Intent, state as object) as Dynamic
+        '**   - Return intent to continue pipeline
+        '**   - Return modified intent to transform
+        '**   - Return invalid to cancel reducer execution
+        '**
         public function applyMiddlewares() as function[]
             return [] as function[]
         end function
 
-        function reduce(state as object, intent as Intent) as object
-            if intent?.payload <> invalid and intent.payload.Count() > 1 and intent.payload = invalid then throw "[WARNING] Intent payload is invalid."
+        ' =============================================================
+        ' REDUCE PIPELINE
+        ' =============================================================
 
-            ' Resolve middlewares
+        '**
+        '** reduce - Executes middleware pipeline and reducer
+        '**
+        '** Process flow:
+        '**   1. Validate intent payload
+        '**   2. Execute middleware pipeline
+        '**   3. If intent survives, execute reducer
+        '**   4. Return new state or invalid
+        '**
+        '** @param {object} state - Current state
+        '** @param {Intent} intent - Intent to process
+        '** @return {object} New state, or invalid if cancelled
+        '**
+        function reduce(state as object, intent as Intent) as object
+            if intent?.payload <> invalid and intent.payload.Count() > 1 and intent.payload = invalid
+                throw "[WARNING] Intent payload is invalid."
+            end if
+
+            ' Execute middleware pipeline
             middlewares = m.applyMiddlewares()
             mwIndex = 0
             mwCount = middlewares.Count()
@@ -82,20 +147,37 @@ namespace Rotor
                 intent = m.middlewareFnScoped(intent, state)
                 mwIndex++
             end while
-            m.middlewareFnScoped = invalid ' invalidate scoped fn
+            m.middlewareFnScoped = invalid
+
+            ' Middleware cancelled intent
             if intent = invalid then return invalid
 
-            ' Resolve Reducer
+            ' Execute reducer
             newState = m.reducer(state, intent)
 
             return newState
-
         end function
 
+        ' =============================================================
+        ' ASYNC CALLBACK
+        ' =============================================================
+
+        '**
+        '** asyncReducerCallback - Callback for async middleware operations
+        '**
+        '** @param {object} msg - Message from async operation
+        '**
         sub asyncReducerCallback(msg)
-            ' data = msg.getData()
+            ' Override in subclass to handle async responses
         end sub
 
+        ' =============================================================
+        ' CLEANUP
+        ' =============================================================
+
+        '**
+        '** destroy - Cleans up reducer references
+        '**
         sub destroy()
             m.ownerDispatcher = invalid
             m.port = invalid

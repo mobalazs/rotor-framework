@@ -1,73 +1,128 @@
 namespace Rotor
 
-    '--------------------------------------------------------------------------
-    ' @class ViewModel
-    ' @description Base ViewModel class that extends Rotor.Widget to provide view lifecycle management.
-    '              ViewModels act as controllers for views, managing props, local state, and template
-    '              rendering. They provide lifecycle hooks for creation, mounting, updating, and destruction
-    '              of views, enabling reactive UI patterns in the Rotor framework.
-    '--------------------------------------------------------------------------
+    '******************************************************************
+    '** ViewModel (BaseViewModel)
+    '**
+    '** Base class for ViewModels that extends Widget to provide view lifecycle management.
+    '**
+    '** ViewModels act as controllers for views, managing:
+    '**   - props: Immutable properties passed from parent (read-only)
+    '**   - viewModelState: Mutable local state (read-write)
+    '**   - template: Declarative UI structure
+    '**   - Lifecycle hooks: onCreateView, onMountView, onUpdateView, onDestroyView
+    '**
+    '** Key Features:
+    '**   - Scoped state: props and viewModelState shared across all child widgets
+    '**   - Template system: template() returns widget tree configuration
+    '**   - Lifecycle management: Hooks for view creation, mounting, updates, destruction
+    '**   - No prop drilling: Children access parent ViewModel state directly
+    '**
+    '** @namespace Rotor
+    '** @extends Rotor.Widget
+    '******************************************************************
     class ViewModel extends Rotor.Widget
-        isViewModel = true
 
-        viewModelState = {} ' shared across viewModel's widgets
-        props = {} ' shared across viewModel's widgets
+        ' =============================================================
+        ' MEMBER VARIABLES
+        ' =============================================================
 
-        '--------------------------------------------------------------------------
-        ' @method setProps
-        ' @description Updates the viewModel's props with new properties and triggers a view update.
-        ' @param {Object} newProps - New properties to merge with existing props
-        '--------------------------------------------------------------------------
+        isViewModel = true              ' Identifies this as a ViewModel
+
+        viewModelState = {}             ' Mutable state shared across ViewModel's widgets
+        props = {}                      ' Immutable props shared across ViewModel's widgets
+
+        ' =============================================================
+        ' PROPS MANAGEMENT
+        ' =============================================================
+
+        '**
+        '** setProps - Updates props and triggers view update
+        '**
+        '** Merges new props into existing props and calls onUpdateView lifecycle hook.
+        '**
+        '** @param {object} newProps - New properties to merge
+        '**
         sub setProps(newProps as object)
             m.props.append(newProps)
             m.onUpdateView()
         end sub
 
-        '--------------------------------------------------------------------------
-        ' @method onCreateView
-        ' @description Lifecycle hook called when the view is being created. Override this method to perform initialization tasks.
-        '--------------------------------------------------------------------------
+        ' =============================================================
+        ' LIFECYCLE HOOKS
+        ' =============================================================
+
+        '**
+        '** onCreateView - Called when view is being created
+        '**
+        '** Override to perform initialization tasks before template is generated.
+        '** Use this to set up initial viewModelState or props.
+        '**
         sub onCreateView()
         end sub
 
-        '--------------------------------------------------------------------------
-        ' @method onTemplateCreated
-        ' @description Lifecycle hook called after the template has been created. Use this to access and modify the created template structure.
-        ' @param {Object} template - The created template object containing the view hierarchy
-        '--------------------------------------------------------------------------
+        '**
+        '** onTemplateCreated - Called after template has been created
+        '**
+        '** Override to access and modify the created template structure.
+        '** Useful for dynamic template manipulation.
+        '**
+        '** @param {object} template - The created template object
+        '**
         sub onTemplateCreated(template as object)
         end sub
 
-        '--------------------------------------------------------------------------
-        ' @method onMountView
-        ' @description Lifecycle hook called when the view is mounted to the scene graph. Override this method to perform post-mount operations.
-        '--------------------------------------------------------------------------
+        '**
+        '** onMountView - Called when view is mounted to SceneGraph
+        '**
+        '** Override to perform post-mount operations like starting animations,
+        '** fetching data, or setting up observers.
+        '**
         sub onMountView()
         end sub
 
-        '--------------------------------------------------------------------------
-        ' @method onUpdateView
-        ' @description Lifecycle hook called when the view needs to be updated due to state or props changes. Override this method to handle updates.
-        '--------------------------------------------------------------------------
+        '**
+        '** onUpdateView - Called when view needs to update
+        '**
+        '** Override to handle state or props changes.
+        '** Called automatically when setProps() is invoked.
+        '**
         sub onUpdateView()
         end sub
 
-        '--------------------------------------------------------------------------
-        ' @method onDestroyView
-        ' @description Lifecycle hook called when the view is being destroyed. Override this method to perform cleanup tasks.
-        '--------------------------------------------------------------------------
+        '**
+        '** onDestroyView - Called when view is being destroyed
+        '**
+        '** Override to perform cleanup tasks like removing observers,
+        '** stopping timers, or clearing resources.
+        '**
         sub onDestroyView()
         end sub
 
-        '--------------------------------------------------------------------------
-        ' @method template
-        ' @description Returns the default template structure for the view. Override this method to define custom view structure.
-        ' @return {Object} Empty object representing the default template
-        '--------------------------------------------------------------------------
+        ' =============================================================
+        ' TEMPLATE
+        ' =============================================================
+
+        '**
+        '** template - Returns view template structure
+        '**
+        '** Override to define custom view structure using declarative widget config.
+        '** Return an object with widget configuration including children.
+        '**
+        '** @return {object} Widget tree configuration
+        '**
+        '** Example:
+        '**   function template() as object
+        '**       return {
+        '**           nodeType: "Group",
+        '**           children: [
+        '**               { id: "label", nodeType: "Label", fields: { text: m.props.title } }
+        '**           ]
+        '**       }
+        '**   end function
+        '**
         function template() as object
             return {}
         end function
-
 
     end class
 

@@ -1,75 +1,108 @@
 namespace Rotor
 
-    '--------------------------------------------------------------------------
-    ' @class Widget
-    ' @description Base Widget class that represents a UI component in the Rotor framework.
-    '              Widgets are the fundamental building blocks of the UI tree, providing
-    '              properties and methods for lifecycle management, navigation, state access,
-    '              and rendering. The framework automatically decorates widgets with additional
-    '              helper methods and plugin functionality at runtime.
-    ' @note Many properties and methods are injected/decorated by the builder and plugins
-    '       during widget instantiation and lifecycle execution.
-    '--------------------------------------------------------------------------
+    '******************************************************************
+    '** Widget (BaseWidget)
+    '**
+    '** Base class for UI components in the Rotor framework.
+    '**
+    '** Widgets are the fundamental building blocks of the UI tree, providing:
+    '**   - Lifecycle management (mount, update, destroy)
+    '**   - Tree navigation methods
+    '**   - State access (viewModelState, props)
+    '**   - Rendering and updates
+    '**   - Plugin integration
+    '**
+    '** IMPORTANT: Many properties and methods are injected/decorated by the
+    '** framework builder and plugins during widget instantiation.
+    '**
+    '** Widget Creation Flow:
+    '**   1. builder.WidgetTreeBase.add() - Registers widget in tree
+    '**   2. builder.processor.createWidget() - Decorates with methods
+    '**
+    '** @namespace Rotor
+    '******************************************************************
     class Widget
 
-        ' Public properties
+        ' =============================================================
+        ' CORE PROPERTIES
+        ' =============================================================
 
-        id as string
-        children as object
+        id as string                    ' Widget identifier
+        children as object              ' Child widgets collection
 
-        ' Commonly injected at runtime by the builder
-        node as object
-        parent as object
-        plugins as object
+        ' =============================================================
+        ' RUNTIME-INJECTED PROPERTIES
+        ' =============================================================
+        ' These are populated by the builder during widget creation
 
-        viewModelState as object ' shared across viewModel's widgets
-        props as object ' shared across viewModel's widgets
-        nodeType as string ' roSgNode type
-        zIndex as integer
+        node as object                  ' SceneGraph node reference
+        parent as object                ' Parent widget reference
+        plugins as object               ' Plugin methods and state
 
-        onMountWidget as Function ' widget's lifecycle callback
-        onUpdateWidget as Function ' widget's lifecycle callback
-        onDestroyWidget as Function ' widget's lifecycle callback
+        viewModelState as object        ' Mutable state shared across ViewModel's widgets
+        props as object                 ' Immutable props shared across ViewModel's widgets
+        nodeType as string              ' SceneGraph node type (e.g., "Group", "Label")
+        zIndex as integer               ' Z-order for rendering
 
-        ' Public methods
+        ' =============================================================
+        ' LIFECYCLE CALLBACKS
+        ' =============================================================
 
-        getWidget as Function ' decorated by widget - find widget by ID (any depth) or path
-        findWidgets as Function ' decorated by widget - find widgets by glob pattern
-        getChildrenWidgets as Function ' decorated by widget - get direct children (optionally filtered by ID pattern)
-        getSubtreeClone as Function ' decorated by widget - clone widget subtree
-        render as Function ' decorated by widget
-        refresh as Function ' decorated by widget
-        getDispatcher as Function ' decorated by widget
-        createDispatcher as Function ' decorated by widget
-        animator as Function ' decorated by widget
+        onMountWidget as Function       ' Called after widget is mounted
+        onUpdateWidget as Function      ' Called before widget updates
+        onDestroyWidget as Function     ' Called before widget is destroyed
 
-        ' Helper methods provided/injected by the framework/builder
-        getParentViewModel as Function
-        getViewModel as Function
-        getRootWidget as Function
-        getFrameworkInstance as Function
-        erase as Function
-        getSiblingWidget as Function
+        ' =============================================================
+        ' DECORATED METHODS
+        ' =============================================================
+        ' These methods are injected by WidgetCreate.bs
 
-        ' Focus plugin methods (populated via rotorFramework/plugins/focusPlugin.bs)
-        optional enableFocusNavigation as function
-        optional isFocusNavigationEnabled as function
-        optional setFocus as function
-        optional getFocusedWidget as function
-        optional proceedLongPress as function
-        optional isLongPressActive as function
+        ' Tree Navigation
+        getWidget as Function           ' Find widget by ID or path (any depth)
+        findWidgets as Function         ' Find widgets by glob pattern
+        getChildrenWidgets as Function  ' Get direct children (optionally filtered)
+        getSiblingWidget as Function    ' Get sibling widget by ID
+        getSubtreeClone as Function     ' Clone widget subtree
 
-        ' Rotor engine properties
+        ' ViewModel Access
+        getParentViewModel as Function  ' Get parent ViewModel
+        getViewModel as Function        ' Get owning ViewModel
+        getRootWidget as Function       ' Get root widget (HID "0")
 
-        private HID as string ' used by rotor engine
-        private vmHID as string ' used by rotor engine
-        private isRootChild as boolean ' used by rotor engine
-        private childrenHIDhash as object ' used by rotor engine
-        private parentHID as string ' used by rotor engine
+        ' Rendering
+        render as Function              ' Render widget updates
+        refresh as Function             ' Refresh specific properties by key paths
+        erase as Function               ' Remove widget(s) from tree
+
+        ' Framework Integration
+        getFrameworkInstance as Function ' Get framework instance
+        getDispatcher as Function       ' Get dispatcher facade by ID
+        createDispatcher as Function    ' Create dispatcher
+        animator as Function            ' Get animator factory
+
+        ' =============================================================
+        ' PLUGIN METHODS
+        ' =============================================================
+        ' These are optionally injected by plugins
+
+        ' Focus Plugin Methods (from FocusPlugin.bs)
+        optional enableFocusNavigation as function   ' Enable focus navigation
+        optional isFocusNavigationEnabled as function ' Check if focus enabled
+        optional setFocus as function                ' Set focus on widget
+        optional getFocusedWidget as function        ' Get currently focused widget
+        optional proceedLongPress as function        ' Trigger long press
+        optional isLongPressActive as function       ' Check if long press active
+
+        ' =============================================================
+        ' PRIVATE PROPERTIES (Engine Use Only)
+        ' =============================================================
+
+        private HID as string           ' Hierarchical ID (e.g., "0.header.logo")
+        private vmHID as string         ' Owning ViewModel's HID
+        private isRootChild as boolean  ' True if direct child of root
+        private childrenHIDhash as object ' Hash of child HIDs for fast lookup
+        private parentHID as string     ' Parent's HID
 
     end class
-
-    ' (1) builder.WidgetTreeBase.add
-    ' (2) builder.processor.createWidget
 
 end namespace
