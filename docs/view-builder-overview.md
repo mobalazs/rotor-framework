@@ -11,8 +11,9 @@ The Rotor ViewBuilder provides a declarative way to build Roku SceneGraph UIs en
 ![ViewBuilder Architecture](images/Rotor_Framework_ViewBuilder.jpeg)
 
 The ViewBuilder system consists of three main layers:
+## Core Engine (Under-the-hood insight)
 
-### 1. View Builder (Core Engine)
+### 1. View Builder 
 
 The View Builder is responsible for the complete lifecycle management of widgets and ViewModels:
 
@@ -102,6 +103,7 @@ The Virtual Node Tree acts as a single source of truth, allowing the framework t
 **NEXT STEP: [Widget Reference](./view-builder-widget-reference.md)**
 
 **Reference Documentation:**
+- [Framework Initialization](./framework-initialization.md) - Configuration, task synchronization, and lifecycle
 - [Widget Reference](./view-builder-widget-reference.md) - Complete Widget properties, methods, and usage patterns
 - [ViewModel Reference](./view-builder-viewmodel-reference.md) - Complete ViewModel structure, lifecycle, and state management
 

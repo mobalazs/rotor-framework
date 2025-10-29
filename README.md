@@ -77,9 +77,9 @@ You can find [🌱](./docs/ai/readme.opt.yaml) symbols in all documentation page
 ## 📚 Learn More
 ![Version](https://img.shields.io/badge/version-v0.2.7-blue?label=Documents%20TAG)
 
-### MVI Documentation
+### Framework Core
 
--   [Cross-Thread MVI design pattern](./docs/cross-thread-mvi.md) - State management across threads
+-   [Framework Initialization](./docs/framework-initialization.md) - Configuration, task synchronization
 
 ### ViewBuilder Reference
 
@@ -93,6 +93,10 @@ You can find [🌱](./docs/ai/readme.opt.yaml) symbols in all documentation page
 -   [ViewBuilder FontStyle Plugin](./docs/view-builder-fontstyle-plugin.md) - Typography and styling
 -   [ViewBuilder Observer Plugin](./docs/view-builder-observer-plugin.md) - State observation patterns
 -   [ViewBuilder Focus Plugin](./docs/view-builder-focus-plugin.md) - Focus management system
+
+### MVI Documentation
+
+-   [Cross-Thread MVI design pattern](./docs/cross-thread-mvi.md) - State management across threads
 
 ### i18N Documentation
 

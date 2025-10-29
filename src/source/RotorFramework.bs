@@ -60,6 +60,7 @@ namespace Rotor
     '**                                       observers when initialization completes.
     '**   - nodePool (array, optional): Array of node pool configurations for pre-instantiating
     '**                                  SceneGraph nodes to improve rendering performance.
+    '**                                  Supported types: Group, Rectangle, Poster, Label
     '**                                  Format: [{ nodeType: "Label", count: 10 }, ...]
     '**   - debug (object): Debug configuration options
     '**       - autoSetNodeId (boolean): Automatically set node IDs for debugging (default: false)

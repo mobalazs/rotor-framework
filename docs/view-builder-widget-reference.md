@@ -74,9 +74,9 @@ Every widget automatically receives these methods:
 
 | Method | Parameters | Return | Description |
 |--------|------------|--------|-------------|
-| `render` | `payloads`, `params` | void | Render or update widgets |
-| `refresh` | `keyPaths` | void | Refresh specific features |
-| `erase` | `payloads`, `skipPool` | void | Destroy widgets |
+| `render` | `payloads`, `params` | - | Render or update widgets |
+| `refresh` | `keyPaths` | - | Refresh specific features |
+| `erase` | `payloads`, `skipPool` | - | Destroy widgets |
 
 ### State Management
 
@@ -348,6 +348,20 @@ m.render(payload, {
     end sub
 })
 ```
+
+### Render Before Tasks Ready
+
+When the framework is configured with tasks, renders are queued until tasks are synchronized. You can bypass this queue:
+
+```brightscript
+' Render immediately, bypassing the task synchronization queue
+m.render({
+    id: "loadingScreen",
+    viewModel: ViewModels.LoadingScreen
+}, { enableRenderBeforeReady: true })
+```
+
+**Warning:** Don't use task-dependent features (dispatchers, task data) when using `enableRenderBeforeReady: true`. See [Framework Initialization](./framework-initialization.md#how-it-works-with-the-render-queue) for details.
 
 ### Destroy Widgets
 
@@ -629,6 +643,7 @@ end if
 **NEXT STEP: [ViewModel Reference](./view-builder-viewmodel-reference.md)**
 
 **Reference Documentation:**
+- [Framework Initialization](./framework-initialization.md) - Configuration, task synchronization, and lifecycle
 - [ViewBuilder Overview](./view-builder-overview.md) - High-level architecture and concepts
 - [ViewModel Reference](./view-builder-viewmodel-reference.md) - Complete ViewModel structure, lifecycle, and state management
 

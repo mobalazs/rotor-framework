@@ -134,7 +134,7 @@ The project includes token-efficient YAML documentation for AI assistants in `do
 **Start here:** `docs/ai/index.yaml` - Categorized index of all documentation with topic tags
 
 **Available Documentation:**
-- Core: Framework overview, Cross-Thread MVI architecture
+- Core: Framework initialization, Framework overview, Cross-Thread MVI architecture
 - ViewBuilder: Overview, Widget reference, ViewModel reference
 - Plugins: Fields, Focus, FontStyle, Observer
 - Features: i18n support

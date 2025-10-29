@@ -313,6 +313,7 @@ pkg:/fonts/
 **NEXT STEP: [Observer Plugin](./view-builder-observer-plugin.md)**
 
 **Reference Documentation:**
+- [Framework Initialization](./framework-initialization.md) - Configuration, task synchronization, and lifecycle
 - [ViewBuilder Overview](./view-builder-overview.md) - High-level architecture and concepts
 - [Widget Reference](./view-builder-widget-reference.md) - Complete Widget properties, methods, and usage patterns
 - [ViewModel Reference](./view-builder-viewmodel-reference.md) - Complete ViewModel structure, lifecycle, and state management
