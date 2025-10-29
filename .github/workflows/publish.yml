@@ -79,3 +79,17 @@ jobs:
           draft: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build source package for npm
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          npm ci
+          npm run build
+          npm pack
+          ls -lh *.tgz
+
+      - name: Publish to npm
+        if: startsWith(github.ref, 'refs/tags/')
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

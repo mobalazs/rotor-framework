@@ -15,18 +15,20 @@
 		"update-version": "node scripts/update-version.js"
 	},
 	"files": [
-		"src/source/**/*",
+		"src/source/base/**/*",
+		"src/source/engine/**/*",
+		"src/source/libs/**/*",
+		"src/source/plugins/**/*",
+		"src/source/utils/**/*",
 		"!src/source/**/*.spec.bs",
 		"README.md",
 		"LICENSE"
 	],
 	"publishConfig": {
-		"registry": "https://npm.pkg.github.com",
-		"access": "public"
+	    "registry": "https://registry.npmjs.org/"
 	},
 	"ropm": {
-		"rootDir": "src",
-		"packageRootDir": "dist"
+		"packageRootDir": "src"
 	},
 	"repository": {
 		"type": "git",
