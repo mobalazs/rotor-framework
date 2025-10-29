@@ -1,47 +1,76 @@
 namespace Rotor.ViewBuilder
 
+    '******************************************************************
+    '** createWidget - Creates and initializes a widget instance
+    '**
+    '** Core widget factory function that handles the complete widget creation lifecycle:
+    '**   1. Widget tree registration
+    '**   2. Decorator method injection
+    '**   3. ViewModel initialization (if applicable)
+    '**   4. SceneGraph node creation
+    '**   5. Plugin registration and lifecycle hooks
+    '**
+    '** @param {object} postProcessBuffer - Buffer for deferred plugin/lifecycle operations
+    '** @param {object} config - Widget configuration object
+    '** @param {string} parentHID - Parent's Hierarchical ID (default: "0" for root)
+    '** @return {object} Widget metadata { HID, children, parentHID, id }
+    '**
+    '** @namespace Rotor.ViewBuilder
+    '******************************************************************
     function createWidget(postProcessBuffer as object, config as object, parentHID = "0" as string) as object
 
+        ' Extract and remove ViewModel class from config
         ViewModelClass = config.viewModel
         config.delete("viewModel")
 
-        ' Store widget
+        ' =============================================================
+        ' WIDGET TREE REGISTRATION
+        ' =============================================================
+
+        ' Register widget in tree and get HID
         widget = m.frameworkInstance.builder.widgetTree.add({
             id: config.id,
             parentHID: parentHID
         }, ViewModelClass)
         HID = widget.HID
 
-        ' * Decorators
+        ' =============================================================
+        ' WIDGET DECORATOR METHODS
+        ' =============================================================
+        ' These methods provide widget API for tree navigation,
+        ' rendering, state management, and framework integration
 
+        '** getFrameworkInstance - Returns framework instance *'
         widget.getFrameworkInstance = function() as object
             return GetGlobalAA().rotor_framework_helper.frameworkInstance
         end function
 
+        '** getInfo - Returns framework info *'
         widget.getInfo = function() as object
             return m.getFrameworkInstance().getInfo()
         end function
 
+        '** refresh - Refreshes specific widget properties by key paths *'
         widget.refresh = sub(featureKeyPaths as object)
             iterateKeyPaths = Rotor.Utils.ensureArray(featureKeyPaths)
-            refreshObject = {
-                ' id: m.id, ' not required
-                ' HID: m.HID ' will be applied by render
-            }
+            refreshObject = {}
             for each keyPath in iterateKeyPaths
                 refreshObject.append(Rotor.Utils.getCloneByKeyPath(m, keyPath))
             end for
             m.render(refreshObject)
         end sub
 
+        '** getWidget - Finds widget by search pattern from this widget's context *'
         widget.getWidget = function(searchPattern as string) as object
             return m.getFrameworkInstance().builder.widgetTree.get(searchPattern, m.HID)
         end function
 
+        '** getSiblingWidget - Gets sibling widget by ID *'
         widget.getSiblingWidget = function(id as string) as object
             return m.parent.children[id]
         end function
 
+        '** getViewModel - Returns owning ViewModel (self if ViewModel, or parent VM) *'
         widget.getViewModel = function() as object
             if m.isViewModel = true
                 return m
@@ -50,27 +79,33 @@ namespace Rotor.ViewBuilder
             end if
         end function
 
+        '** getParentViewModel - Returns parent's ViewModel *'
         widget.getParentViewModel = function() as object
             return m.getViewModel().parent.getViewModel()
         end function
 
+        '** getRootWidget - Returns root widget (HID "0") *'
         widget.getRootWidget = function() as object
             return m.getFrameworkInstance().builder.widgetTree.getByHID("0")
         end function
 
+        '** findWidgets - Finds multiple widgets by search pattern *'
         widget.findWidgets = function(searchPattern as string) as object
             return m.getFrameworkInstance().builder.widgetTree.find(searchPattern, m.HID)
         end function
 
+        '** getChildrenWidgets - Gets child widgets with optional pattern matching *'
         widget.getChildrenWidgets = function(matchingPattern = "" as string) as object
             return m.getFrameworkInstance().builder.widgetTree.getChildrenWidgets(m, matchingPattern)
         end function
 
+        '** getSubtreeClone - Creates a clone of widget subtree *'
         widget.getSubtreeClone = function(searchPattern = "" as string, keyPathList = [] as object) as object
             if searchPattern = "" then searchPattern = m.HID
             return m.getFrameworkInstance().builder.widgetTree.getSubtreeClone(searchPattern, keyPathList, m.parentHID)
         end function
 
+        '** render - Renders widget updates (self, descendants, or children) *'
         widget.render = sub(payloads as dynamic, params = {} as object)
             for each payload in Rotor.Utils.ensureArray(payloads)
                 if payload.DoesExist("id") = false
@@ -89,63 +124,72 @@ namespace Rotor.ViewBuilder
             m.getFrameworkInstance().builder.render(payloads, params)
         end sub
 
+        '** erase - Removes widget(s) from tree *'
         widget.erase = sub(payloads = invalid as dynamic, shouldSkipNodePool = false as boolean)
             if payloads = invalid
-                ' for self destroy
+                ' Self destroy
                 payloads = m.HID
                 parentHID = m.parentHID
             else
-                ' for children destroy
+                ' Children destroy
                 parentHID = m.HID
             end if
             m.getFrameworkInstance().builder.erase(payloads, shouldSkipNodePool, parentHID)
         end sub
 
+        '** getDispatcher - Gets dispatcher facade by ID *'
         widget.getDispatcher = function(dispatcherId as string) as object
             return m.getFrameworkInstance().dispatcherProvider.getFacade(dispatcherId, m)
         end function
 
+        '** animator - Gets animator factory by ID *'
         widget.animator = function(animatorId) as object
             return m.getFrameworkInstance().animatorProvider.getFactory(animatorId, m)
         end function
 
-        ' Extend config from View template
+        ' =============================================================
+        ' VIEWMODEL INITIALIZATION
+        ' =============================================================
+
         if widget.isViewModel = true
 
-            ' merge props
+            ' Merge props from config
             if Rotor.Utils.isAssociativeArray(config.props)
                 Rotor.Utils.deepExtendAA(widget.props, config.props)
             end if
-            ' merge viewModelState
+
+            ' Merge viewModelState from config
             if Rotor.Utils.isAssociativeArray(config.viewModelState)
                 Rotor.Utils.deepExtendAA(widget.viewModelState, config.viewModelState)
             end if
 
-            ' l10n
+            ' Setup i18n (l10n)
             i18nService = widget.getFrameworkInstance().i18nService
-            ' Always include l10n
             keysPaths = Rotor.Utils.isString(config.i18n?.path) ? config.i18n.path : Rotor.Utils.isArray(config.i18n?.paths) ? config.i18n.paths : invalid
             widget.viewModelState.l10n = i18nService.getL10n(keysPaths)
-            ' Include isRTL flag
+
+            ' Include isRTL flag if requested
             if config?.i18n?.includeIsRtl = true
                 widget.viewModelState.isRTL = i18nService.getIsRtl()
             end if
-            ' Include locale str
+
+            ' Include locale string if requested
             if config?.i18n?.includeLocale = true
                 widget.viewModelState.locale = i18nService.getLocale()
             end if
 
-
-            ' Call onCreateView before compile template, because templates may require props served by onCreateView.
-
+            ' Call lifecycle hook before template compilation
             widget.onCreateView()
 
+            ' Generate template
             template = widget.template()
 
+            ' Optional template post-processing hook
             if Rotor.Utils.isFunction(widget.onTemplateCreated)
-                widget.onTemplateCreated(template) ' hook
+                widget.onTemplateCreated(template)
             end if
 
+            ' Merge template into config
             if template <> invalid and template.Count() > 0
                 templateChildren = template.children
                 template.delete("children")
@@ -155,6 +199,11 @@ namespace Rotor.ViewBuilder
 
         end if
 
+        ' =============================================================
+        ' LIFECYCLE HOOK REGISTRATION
+        ' =============================================================
+
+        ' Register custom lifecycle hooks from config
         if Rotor.Utils.isFunction(config.onMountWidget)
             widget.onMountWidget = config.onMountWidget
         end if
@@ -167,6 +216,7 @@ namespace Rotor.ViewBuilder
             widget.onDestroyWidget = config.onDestroyWidget
         end if
 
+        ' Queue onRenderSettled callback
         if Rotor.Utils.isFunction(config.onRenderSettled) = true
             m.frameworkInstance.builder.callbackQueue.push({
                 callback: config.onRenderSettled,
@@ -175,40 +225,42 @@ namespace Rotor.ViewBuilder
             config.delete("onRenderSettled")
         end if
 
+        ' =============================================================
+        ' SCENEGRAPH NODE CREATION
+        ' =============================================================
 
-        ' get finalized children, will be passed to processor
+        ' Get children for processing
         if config.children = invalid then config.children = {}
         children = config.children
 
-        ' Create node
-        if Rotor.Utils.isString(config.nodeType) then config.nodeType = config.nodeType ' both key is available
+        ' Create SceneGraph node from node pool
         nodeType = Rotor.Utils.isString(config.nodeType) ? config.nodeType : "Group"
         widget.node = m.frameworkInstance.builder.nodePool.acquireNode(nodeType)
         widget.nodeType = nodeType
-
         widget.markedToAppend = true
 
+        ' Debug: Set node ID for scene graph inspector
         #if debug
             Rotor.Utils.setCustomFields(widget.node, {
                 id: `${widget.id}-${widget.HID}`
-            },
-            true, false)
+            }, true, false)
         #end if
 
-        ' * Plugins
+        ' =============================================================
+        ' PLUGIN INTEGRATION
+        ' =============================================================
 
-
-        ' Add plugin specific decorators to widget
+        ' Process plugins and inject addon methods
         widgetAddon = {}
-
         pluginKeyList = m.frameworkInstance.builder.pluginAdapter.pluginKeyList
         pluginKeyList.ResetIndex()
         pluginKey = pluginKeyList.GetIndex()
+
         while pluginKey <> invalid
 
             if config.doesExist(pluginKey)
 
-                ' plugin :: hooks
+                ' Register plugin lifecycle hooks (beforeMount, afterMounted)
                 for each LifeCycleHookType in [Rotor.Const.LifeCycleHookType.BEFORE_MOUNT, Rotor.Const.LifeCycleHookType.AFTER_MOUNTED]
                     if m.frameworkInstance.builder.pluginAdapter.pluginHooks[LifeCycleHookType].DoesExist(pluginKey)
                         widget[pluginKey] = config[pluginKey]
@@ -216,13 +268,12 @@ namespace Rotor.ViewBuilder
                             isPlugin: true,
                             widget: widget,
                             hookType: LifeCycleHookType,
-                            ' isView: widget?.isView ?? false,
                             pluginKey: pluginKey
                         })
                     end if
                 end for
 
-                ' plugin :: addons
+                ' Inject plugin widget methods
                 plugin = m.frameworkInstance.plugins[pluginKey]
                 if Rotor.Utils.isValid(plugin["widgetMethods"])
                     if widgetAddon.plugins = invalid then widgetAddon.plugins = {}
@@ -230,9 +281,7 @@ namespace Rotor.ViewBuilder
                         pluginKey: pluginKey,
                         id: widget.id,
                         HID: widget.HID,
-                        ' isView: widget?.isView ?? false,
                         parentHID: widget.parentHID
-                        ' future improvement: make more widget params available
                     }
                     widgetAddon.plugins[pluginKey].append(plugin["widgetMethods"])
                 end if
@@ -242,13 +291,16 @@ namespace Rotor.ViewBuilder
             pluginKey = pluginKeyList.GetIndex()
         end while
 
-        ' APPEND ADDONS
+        ' Append all plugin addon methods to widget
         if widgetAddon.Count() > 0
             widget.append(widgetAddon)
         end if
 
+        ' =============================================================
+        ' POST-PROCESS QUEUE
+        ' =============================================================
 
-
+        ' Queue child append operation
         appendChildProcess = {
             hookType: Rotor.Const.LifeCycleHookType.APPEND_CHILD,
             widget: widget
@@ -256,9 +308,9 @@ namespace Rotor.ViewBuilder
         if config.zIndex <> invalid
             appendChildProcess.zIndex = config.zIndex
         end if
-
         postProcessBuffer.add(appendChildProcess)
 
+        ' Queue mounted lifecycle hook
         if Rotor.Utils.isFunction(widget.onMountWidget) or widget?.isViewModel = true
             postProcessBuffer.add({
                 hookType: Rotor.Const.LifeCycleHookType.MOUNTED,
@@ -266,6 +318,7 @@ namespace Rotor.ViewBuilder
             })
         end if
 
+        ' Return widget metadata for tree processing
         return {
             HID: HID,
             children: children,
