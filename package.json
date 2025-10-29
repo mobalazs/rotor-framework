@@ -1,6 +1,6 @@
 {
 	"name": "@mobalazs/rotor-framework",
-	"version": "0.3.0",
+	"version": "0.3.1",
 	"description": "A Roku toolkit library providing a ViewBuilder, full UI lifecycle with focus handling and many core features, plus MVI-based state management.",
 	"author": "Balázs Molnár",
 	"license": "MIT",
@@ -20,12 +20,14 @@
 		"src/source/libs/**/*",
 		"src/source/plugins/**/*",
 		"src/source/utils/**/*",
-		"!src/source/**/*.spec.bs",
+		"src/source/RotorFramework.bs",
+		"src/source/RotorFrameworkTask.bs",
 		"README.md",
-		"LICENSE"
+		"LICENSE.md",
+		"!src/source/**/*.spec.bs"
 	],
 	"publishConfig": {
-	    "registry": "https://registry.npmjs.org/"
+		"registry": "https://registry.npmjs.org/"
 	},
 	"ropm": {
 		"packageRootDir": "src"
@@ -37,11 +39,13 @@
 	"keywords": [
 		"roku",
 		"brightscript",
+		"brighterscript",
 		"framework",
 		"mvi",
 		"state-management",
 		"ui-framework",
-		"view-builder"
+		"view-builder",
+		"ropm"
 	],
 	"bugs": {
 		"url": "https://github.com/mobalazs/rotor-framework/issues"
