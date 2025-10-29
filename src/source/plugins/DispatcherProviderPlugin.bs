@@ -1,31 +1,84 @@
 import "../base/BasePlugin.bs"
 
-'**
-' A Brighterscript class for handling font style attribute in a widget.
-'
-' @extends BasePlugin class
-'/
 namespace Rotor
+
+    '******************************************************************
+    '** DispatcherProviderPlugin
+    '**
+    '** Rotor Framework plugin for managing MVI dispatcher integration with widgets.
+    '**
+    '** Key Responsibilities:
+    '**   - Provides dispatcher facades to widgets for state management
+    '**   - Manages dispatcher lifecycle (creation, updates, cleanup)
+    '**   - Integrates cross-thread MVI pattern with widget context
+    '**   - Stores dispatcher references in viewModelState for easy access
+    '**
+    '** Usage:
+    '**   Widget config: dispatcher: "dispatcherId" or dispatcher: ["id1", "id2"]
+    '**   Access: widget.viewModelState.dispatcher[dispatcherId]
+    '**
+    '** @namespace Rotor
+    '** @extends BasePlugin
+    '******************************************************************
     class DispatcherProviderPlugin extends Rotor.BasePlugin
-        BasePlugin
-        ' Constructor
+
+        ' =============================================================
+        ' CONSTRUCTOR
+        ' =============================================================
+
+        '**
+        '** Constructor - Initializes the DispatcherProviderPlugin instance
+        '**
+        '** @param {string} key - Plugin identifier (default: "dispatcher")
+        '**
         sub new(key = "dispatcher" as string)
             super(key)
         end sub
 
+        ' =============================================================
+        ' LIFECYCLE HOOKS
+        ' =============================================================
+
         hooks = {
+            '**
+            '** beforeMount - Attaches dispatchers when widget is mounted
+            '**
+            '** Creates dispatcher facades and stores them in viewModelState.
+            '**
+            '** @param {object} scope - Plugin instance (m)
+            '** @param {object} widget - Widget being mounted
+            '**
             beforeMount: sub(scope as object, widget as object)
                 scope.setDispatcherOnContext(widget, scope.key)
             end sub,
 
+            '**
+            '** beforeUpdate - Updates dispatcher configuration
+            '**
+            '** Extends existing dispatcher list with new IDs (prevents duplicates).
+            '** Creates facades for any newly added dispatchers.
+            '**
+            '** @param {object} scope - Plugin instance (m)
+            '** @param {object} widget - Widget being updated
+            '** @param {dynamic} newValue - New dispatcher ID(s)
+            '** @param {dynamic} oldValue - Previous dispatcher ID(s)
+            '**
             beforeUpdate: sub(scope as object, widget as object, newValue, oldValue = [])
-                ' In this plugin, we would like to extend old config on update if it is assocArray
+                ' Merge old and new dispatcher IDs (no duplicates)
                 oldArrayOfDispatcherIds = Rotor.Utils.ensureArray(oldValue ?? [])
                 newArrayOfDispatcherIds = Rotor.Utils.ensureArray(newValue)
                 widget[scope.key] = Rotor.Utils.extendArrayOfStrings(oldArrayOfDispatcherIds, newArrayOfDispatcherIds)
                 scope.setDispatcherOnContext(widget, scope.key)
             end sub,
 
+            '**
+            '** beforeDestroy - Cleans up dispatchers before widget destruction
+            '**
+            '** Destroys all dispatcher facades and clears references.
+            '**
+            '** @param {object} scope - Plugin instance (m)
+            '** @param {object} widget - Widget being destroyed
+            '**
             beforeDestroy: sub(scope as object, widget as object)
                 dispatcherFacades = widget.viewModelState[scope.key]
                 if dispatcherFacades.Count() > 0
@@ -36,14 +89,33 @@ namespace Rotor
                     end for
                 end if
             end sub
-
         }
 
+        ' =============================================================
+        ' DISPATCHER MANAGEMENT
+        ' =============================================================
+
+        '**
+        '** setDispatcherOnContext - Creates and stores dispatcher facades
+        '**
+        '** For each dispatcher ID in the widget config:
+        '**   1. Initializes viewModelState.dispatcher object if needed
+        '**   2. Checks if facade already exists for this ID
+        '**   3. Creates new facade via DispatcherProvider if not present
+        '**   4. Stores facade in viewModelState.dispatcher[dispatcherId]
+        '**
+        '** @param {object} widget - Widget instance
+        '** @param {string} scopeKey - Plugin key (typically "dispatcher")
+        '**
         sub setDispatcherOnContext(widget, scopeKey)
             viewModelState = widget.viewModelState
             config = widget[scopeKey]
+
             for each dispatcherId in Rotor.Utils.ensureArray(config)
+                ' Initialize dispatcher storage in viewModelState
                 if viewModelState[m.key] = invalid then viewModelState[m.key] = {}
+
+                ' Create facade if it doesn't exist
                 if not viewModelState[m.key].DoesExist(dispatcherId)
                     globalScope = GetGlobalAA()
                     frameworkInstance = globalScope.rotor_framework_helper.frameworkInstance

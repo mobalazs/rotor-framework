@@ -1,123 +1,181 @@
 import "../base/BasePlugin.bs"
 
-'**
-' A Brighterscript class for handling custom fields in a widget.
-'
-' @extends BasePlugin class
-'/
 namespace Rotor
+
+    '******************************************************************
+    '** FieldsPlugin
+    '**
+    '** Rotor Framework plugin for handling dynamic field expressions and interpolation.
+    '**
+    '** Key Features:
+    '**   - Evaluates function-based field values
+    '**   - Interpolates @-prefixed expressions (e.g., @viewModelState.value)
+    '**   - Supports dynamic field resolution from widget context
+    '**   - Automatically updates fields on widget lifecycle changes
+    '**
+    '** Expression Syntax:
+    '**   @key.path - Resolves from widget.viewModelState
+    '**
+    '** @namespace Rotor
+    '** @extends BasePlugin
+    '******************************************************************
     class FieldsPlugin extends Rotor.BasePlugin
 
-        ' Constructor
+        ' =============================================================
+        ' MEMBER VARIABLES
+        ' =============================================================
+
+        ' Regex pattern for matching @-prefixed expressions
+        ' Matches: @ followed by any characters except space, @, or comma
+        configRegex = /(\@)([^\s\@\,]*)/i
+
+        ' =============================================================
+        ' CONSTRUCTOR
+        ' =============================================================
+
+        '**
+        '** Constructor - Initializes the FieldsPlugin instance
+        '**
+        '** @param {string} key - Plugin identifier (default: "fields")
+        '** @param {object} params - Additional parameters (unused)
+        '**
         sub new(key = "fields" as string, params = invalid as object)
             super(key)
         end sub
 
-        ' This regex is designed to match a pattern starting with the @ symbol, followed by a sequence of characters that can include any character except space, @, or ,.
-        configRegex = /(\@)([^\s\@\,]*)/i
+        ' =============================================================
+        ' LIFECYCLE HOOKS
+        ' =============================================================
 
-        ' Hooks to attach custom field handling to widget lifecycle events.
         hooks = {
+            '**
+            '** beforeMount - Sets custom fields when widget is mounted
+            '**
+            '** Evaluates and applies all field expressions after widget creation.
+            '**
+            '** @param {object} scope - Plugin instance (m)
+            '** @param {object} widget - Widget being mounted
+            '**
             beforeMount: sub(scope as object, widget as object)
-                ' After a widget is created, set custom fields.
                 value = widget[scope.key]
                 scope.setCustomFields(widget, value)
             end sub,
 
+            '**
+            '** beforeUpdate - Updates custom fields when widget config changes
+            '**
+            '** Merges new field config with existing config and re-evaluates all fields.
+            '**
+            '** @param {object} scope - Plugin instance (m)
+            '** @param {object} widget - Widget being updated
+            '** @param {object} newValue - New field configuration
+            '** @param {object} oldValue - Previous field configuration
+            '**
             beforeUpdate: sub(scope as object, widget as object, newValue = {}, oldValue = {})
-                ' In this plugin, we would like to extend old config on update
+                ' Extend old config with new values
                 Rotor.Utils.deepExtendAA(widget[scope.key], newValue)
-                ' Before a widget updates, set custom fields.
                 scope.setCustomFields(widget, newValue)
             end sub,
 
+            '**
+            '** beforeDestroy - Clears field configuration on destruction
+            '**
+            '** @param {object} scope - Plugin instance (m)
+            '** @param {object} widget - Widget being destroyed
+            '**
             beforeDestroy: sub(scope as object, widget as object)
                 widget[scope.key].Clear()
             end sub
         }
 
-        ' cache = {}
+        ' =============================================================
+        ' FIELD PROCESSING
+        ' =============================================================
 
-        ' sub clearCache()
-        '     m.cache.Clear()
-        ' end sub
-
-        ' Sets custom fields on a widget's node.
+        '**
+        '** setCustomFields - Evaluates and applies fields to widget node
+        '**
+        '** Parses field expressions and sets the resolved values on the widget's SceneGraph node.
+        '**
+        '** @param {object} widget - Widget instance
+        '** @param {object} fields - Field configuration object
+        '**
         sub setCustomFields(widget as object, fields)
             parsedFields = m.parseFields(widget, fields)
-            ' Get the node associated with the widget.
             node = widget.node
-            ' Apply custom fields to the node.
             Rotor.Utils.setCustomFields(node, parsedFields, true)
         end sub
 
-        ' /**
-        '  * Parses the fields from the provided widget.
-        '  *
-        '  * @param {Object} data - The data from which to parse the fields.
-        '  * @returns {Object} The parsed fields.
-        '  */
+        '**
+        '** parseFields - Parses and resolves field expressions
+        '**
+        '** Processes field values through multiple resolution strategies:
+        '**   1. Function values - Executes function in widget scope
+        '**   2. String interpolation - Resolves @-prefixed expressions
+        '**   3. Direct values - Passes through unchanged
+        '**
+        '** Expression Resolution:
+        '**   - @key.path resolves from widget.viewModelState
+        '**   - If result is string, performs string interpolation
+        '**   - If result is non-string, replaces entire value
+        '**
+        '** @param {object} widget - Widget instance providing context
+        '** @param {object} fields - Field configuration to parse
+        '** @return {object} Parsed fields with resolved values
+        '**
         function parseFields(widget as object, fields as object) as object
             parsedFields = {}
-            for each fieldId in fields
 
+            for each fieldId in fields
                 value = fields[fieldId]
 
+                ' Step 1: Resolve function-based values
                 if Rotor.Utils.isFunction(value)
-                    ' Resolve expression
                     parsedFields[fieldId] = Rotor.Utils.callbackScoped(value, widget)
-
                     value = parsedFields[fieldId]
-
                 end if
 
+                ' Step 2: Process string interpolation
                 if Rotor.Utils.isString(value)
-
                     results = m.configRegex.MatchAll(value)
 
                     if results.Count() > 0
                         for each result in results
-                            matchKey = result[2]
-                            sourceTypeOperator = result[1]
+                            matchKey = result[2]        ' The key path after @
+                            sourceTypeOperator = result[1]  ' The @ symbol
+
+                            ' Determine source based on operator
                             if sourceTypeOperator = "@"
                                 source = widget.viewModelState
                             else
                                 source = widget
                             end if
 
-                            ' Resolve a value from a dot-separated key path, using cache to avoid redundant lookups
-
-                            ' if m.cache.DoesExist(matchKey)
-                            ' assetValue = m.cache[matchKey]
-                            ' else
+                            ' Resolve value from key path
                             asset = Rotor.Utils.getValueByKeyPath(source, matchKey)
-                            ' m.cache[matchKey] = asset
-                            ' end if
 
+                            ' Handle string vs non-string results
                             if Rotor.Utils.isString(asset)
+                                ' String interpolation - replace in original string
                                 replaceRegex = CreateObject("roRegex", sourceTypeOperator + matchKey, "ig")
                                 value = replaceRegex.ReplaceAll(value, asset)
                             else
+                                ' Non-string value - replace entire field value
                                 value = asset
                                 exit for
                             end if
-
                         end for
                     end if
 
                     parsedFields[fieldId] = value
-
                 else
+                    ' Step 3: Direct value assignment
                     parsedFields[fieldId] = value
                 end if
-
             end for
 
             return parsedFields
-
-
         end function
-
 
     end class
 
