@@ -215,7 +215,7 @@ namespace Rotor
             end sub
         }
 
-        ' Methods injected into widgets managed by this plugin
+        ' Widget methods - Injected into widgets managed by this plugin
         widgetMethods = {
 
             '''''''''
@@ -309,24 +309,26 @@ namespace Rotor
 
         }
 
+        ' Configuration
+        longPressDuration = 0.4
+        enableLongPressFeature = true
+        enableFocusNavigation = true
 
+        ' State tracking
+        globalFocusHID = ""
+        globalFocusId = ""
+        isLongPress = false
+        longPressKey = ""
 
+        ' References
+        widgetTree as object
+        frameworkInstance as Rotor.Framework
 
-        longPressDuration = 0.4 ' Default seconds for long press detection
-        globalFocusHID = "" ' HID of the currently focused item
-        globalFocusId = "" ' ID of the currently focused item
-        isLongPress = false ' Flag indicating if a long press is active
-        longPressKey = "" ' Key being held for long press
-        ' m.longPressStartHID = "" ' Key being held for long press
-        measurementCheckHIDs = [] ' Potentially for deferred measurement checks (unused currently)
-        enableLongPressFeature = true ' Global flag for enabling/disabling navigation
-        enableFocusNavigation = true ' Global flag for enabling/disabling navigation
-        widgetTree as object ' Reference to the main widget tree
-        focusItemStack = new Rotor.FocusPluginHelper.FocusItemStack() ' Stores FocusItem instances
-        groupStack = new Rotor.FocusPluginHelper.GroupStack() ' Stores Group instances
-        distanceCalculator = new Rotor.FocusPluginHelper.ClosestSegmentToPointCalculatorClass() ' Helper for spatial navigation
-        longPressTimer = CreateObject("roSGNode", "Timer") ' Timer for long press detection
-        frameworkInstance as Rotor.Framework ' injected by framework
+        ' Helper objects
+        focusItemStack = new Rotor.FocusPluginHelper.FocusItemStack()
+        groupStack = new Rotor.FocusPluginHelper.GroupStack()
+        distanceCalculator = new Rotor.FocusPluginHelper.ClosestSegmentToPointCalculatorClass()
+        longPressTimer = CreateObject("roSGNode", "Timer")
 
         '''''''''
         ' init: Initializes the plugin instance. Sets up internal state and helpers.
@@ -394,7 +396,6 @@ namespace Rotor
             ' Ensure essential identifiers are in the config
             config.id = id
             config.HID = widget.HID
-            ' config.HID = widget.HID ' Duplicate line removed
 
             ' Handle group configuration if present
             if isGroup
@@ -418,7 +419,6 @@ namespace Rotor
             ' Copy essential info to the group-specific config
             groupConfig.id = config.id
             groupConfig.HID = config.HID
-            ' groupConfig.HID = config.HID ' Duplicate line removed
             groupConfig.widget = widget
             ' Create and configure the Group instance
             newGroup = new Rotor.FocusPluginHelper.GroupClass(groupConfig)
@@ -440,8 +440,6 @@ namespace Rotor
             ' Create and register the FocusItem instance
             newFocusItem = new Rotor.FocusPluginHelper.FocusItemClass(config)
             m.focusItemStack.set(HID, newFocusItem)
-
-            ' m.measurementCheckHIDs.push(HID) ' Potential future use for measurement checks
         end sub
 
         '''''''''
@@ -461,10 +459,11 @@ namespace Rotor
             end for
             ' Sort by HID length descending (parent first)
             ancestorGroups.Sort("r")
+
             ' Note:
-            ' - Parent group is at index 0.
-            ' - If HID is a focusItem, its direct parent group is included.
-            ' - If HID is a group, the group itself is NOT included.
+            ' - Parent group is at index 0
+            ' - If HID is a focusItem, its direct parent group is included
+            ' - If HID is a group, the group itself is NOT included
             return ancestorGroups
         end function
 
@@ -627,15 +626,12 @@ namespace Rotor
         end sub
 
         sub notifyLongPressAtAncestorGroups(isLongPress as boolean, key as string, HID as string, groupHIDs = [] as object)
-
             ' Notify all ancestor groups
             if groupHIDs.Count() > 0
                 for each groupHID in groupHIDs
-
                     group = m.groupStack.get(groupHID)
                     handled = group.callLongPressHandler(isLongPress, key)
                     if handled then exit for
-
                 end for
             end if
         end sub
@@ -646,27 +642,30 @@ namespace Rotor
             if handled then return
 
             focusChainGroups = m.findAncestorGroups(focused.HID)
-            ' focusChainGroups = m.findAncestorGroups(m.longPressStartHID) ' alternative approach; future improvement to make it optional
             m.notifyLongPressAtAncestorGroups(isLongPress, key, focused.HID, focusChainGroups)
         end sub
 
         function spatialNavigation(focused as object, direction as string, focusItemsHIDlist as object) as string
-
             if focused.enableSpatialNavigation = false then return ""
             if direction = Rotor.Const.Direction.BACK then return ""
 
+            ' Remove current focused item from candidates
             index = Rotor.Utils.findInArray(focusItemsHIDlist, focused.HID)
             if index >= 0 then focusItemsHIDlist.delete(index)
+
+            ' Find closest focusable item in direction
             segments = m.collectSegments(focused, direction, focusItemsHIDlist)
             if segments.Count() > 0
                 return m.findClosestSegment(segments, focused.metrics.middlePoint)
-            else
-                return ""
             end if
+
+            return ""
         end function
 
         function findClosestSegment(segments as object, middlePoint as object) as string
             distances = []
+
+            ' Calculate distance from middle point to each segment
             for each HID in segments
                 segment = segments[HID]
                 distance = m.distanceCalculator.distToSegment(middlePoint, {
@@ -683,39 +682,36 @@ namespace Rotor
                 })
             end for
 
-            minDistItem = Rotor.Utils.checkArrayItemsByHandler(distances, "distance",
-            function(a, b) as dynamic
+            ' Find segment with minimum distance
+            minDistItem = Rotor.Utils.checkArrayItemsByHandler(distances, "distance", function(a, b) as dynamic
                 return a < b
-            end function
-            )
+            end function)
 
             return minDistItem.HID
         end function
 
 
-        ' Technically this is a waterfall of fallback's of groups (linked together with defaultFocusId).
+        ' Waterfall of fallback's of groups (linked together with defaultFocusId)
         function capturingFocus_recursively(identifier as string, direction = "", ancestorHID = "0" as string) as string
-
-            ' Next group
-            group = m.groupStack.get(identifier) ' if identifier is a HID
+            ' Resolve identifier to a group
+            group = m.groupStack.get(identifier)
             if group = invalid then group = m.groupStack.getByNodeId(identifier, ancestorHID)
             if group = invalid then return ""
 
-            ' Get fallback on this group
+            ' Get fallback identifier for this group
             newHID = group.getFallbackIdentifier()
 
+            ' Check if we found a FocusItem
             if m.focusItemStack.has(newHID)
-                ' FOUND,
-                ' but check "spatial enter to group" feature ...
+                ' Apply spatial enter feature if enabled
                 if group.enableSpatialEnter = true and direction <> ""
                     focused = m.focusItemStack.get(m.globalFocusHID)
                     newSpatialHID = m.spatialNavigation(focused, direction, group.getGroupMembersHIDs())
                     if newSpatialHID <> "" then newHID = newSpatialHID
                 end if
-                ' FOUND at least
 
             else if newHID <> ""
-                ' NEXT - try to find as group first, then deep search
+                ' Try to find as group first, then deep search
                 newHID = m.capturingFocus_recursively(newHID, direction, group.HID)
 
                 ' If still not found, perform deep search in all descendants
@@ -724,15 +720,16 @@ namespace Rotor
                 end if
             end if
 
-            ' Prevent capturing by fallback in the same group where original focus was. (This is useful for setting top level focus directions)
+            ' Prevent capturing by fallback in the same group where original focus was
             if newHID <> "" and m.globalFocusHID <> ""
                 currentAncestors = m.findAncestorGroups(m.globalFocusHID)
                 newAncestors = m.findAncestorGroups(newHID)
-                if currentAncestors.Count() > 0 and newAncestors.Count() > 0 and currentAncestors[0] = newAncestors[0] then newHID = ""
+                if currentAncestors.Count() > 0 and newAncestors.Count() > 0
+                    if currentAncestors[0] = newAncestors[0] then newHID = ""
+                end if
             end if
 
             return newHID
-
         end function
 
         '''''''''
@@ -782,40 +779,36 @@ namespace Rotor
         function bubblingFocus(groupHID, direction = "" as string) as dynamic
             newHID = ""
 
+            ' Build ancestor chain (current group + all ancestors)
             ancestorGroups = m.findAncestorGroups(groupHID)
             ancestorGroups.unshift(groupHID)
             ancestorGroupsCount = ancestorGroups.Count()
             ancestorIndex = 0
-            ' Note that
-            ' # parent group is at zero index
-            ' # if HID is a focusItem then the closest group is included
-            ' # if HID is a group then itself is not included
 
+            ' Bubble up through ancestor groups until we find a target or reach the top
             while Rotor.Utils.isString(newHID) and newHID = "" and ancestorIndex < ancestorGroupsCount
-
-                ' next group
+                ' Get next ancestor group
                 groupHID = ancestorGroups[ancestorIndex]
                 group = m.groupStack.get(groupHID)
 
-                ' Check if the current group is pointing to another group, which has a valid focusItem member - defined by defaultFocusId
-                nodeId = group.getStaticNodeIdInDirection(direction) ' Note that this is a nodeId
+                ' Check group's direction configuration
+                nodeId = group.getStaticNodeIdInDirection(direction)
 
                 if Rotor.Utils.isBoolean(nodeId)
-                    ' It means that focus is handled, and no need further action by plugin.
+                    ' Boolean means focus is explicitly handled
                     if nodeId = true
-                        newHID = true ' Note that type changed, so loop will exit
+                        newHID = true ' Block navigation (exit loop)
                     else
-                        newHID = ""
+                        newHID = "" ' Continue bubbling
                     end if
                 else
-
+                    ' String nodeId - try to resolve target
                     if nodeId <> ""
                         otherGroup = m.groupStack.getByNodeId(nodeId)
                         if otherGroup <> invalid
                             newHID = m.capturingFocus_recursively(otherGroup.HID, direction)
                         end if
                     end if
-
                 end if
 
                 ancestorIndex++
@@ -1210,29 +1203,35 @@ namespace Rotor
             end sub
 
             function getGroupMembersHIDs()
+                ' Collect all focusItems that are descendants of this group
+                ' Exclude items that belong to nested sub-groups
                 focusItems = m.focusItemsRef.getAll()
                 groups = m.groupsRef.getAll()
                 HIDlen = Len(m.HID)
                 collection = []
                 groupsKeys = groups.keys()
                 groupsCount = groups.Count()
+
                 for each focusItemHID in focusItems
+                    ' Check if focusItem is a descendant of this group
                     isDescendant = Left(focusItemHID, HIDlen) = m.HID
-                    if true = isDescendant
+                    if isDescendant
+                        ' Check if focusItem belongs to a nested sub-group
                         shouldExclude = false
                         otherGroupIndex = 0
                         while shouldExclude = false and otherGroupIndex < groupsCount
                             otherGroupHID = groupsKeys[otherGroupIndex]
                             otherGroupHIDlen = Len(otherGroupHID)
+                            ' Exclude if belongs to deeper nested group
                             shouldExclude = Left(focusItemHID, otherGroupHIDlen) = otherGroupHID and otherGroupHIDlen > HIDlen
                             otherGroupIndex++
                         end while
+
                         if not shouldExclude then collection.push(focusItemHID)
                     end if
                 end for
+
                 return collection
-                ' Collect all focusItems which contain the group HID
-                ' Exclude any other Group HID's
             end function
 
             '''''''''
@@ -1349,16 +1348,13 @@ namespace Rotor
             }
             private bounding as object
 
-            ' override sub update(newConfig as object)
-            ' super.update(newConfig)
-            ' end sub
 
             sub refreshBounding()
                 b = m.node.sceneBoundingRect()
                 rotation = m.node.rotation
-                ' if m.node.id = "option-blueTheme" then stop
+
                 ' If both bounding x and y are zero, then we assume that inheritParentTransform = false
-                ' That is way we can use translation without knowing the value of inheritParentTransform
+                ' That is why we can use translation without knowing the value of inheritParentTransform
                 ' If bounding x or y are not zero, then bounding will include the node's translation
                 if rotation = 0
                     if b.y = 0 and b.x = 0
@@ -1366,9 +1362,8 @@ namespace Rotor
                         b.x += t[0]
                         b.y += t[1]
                     end if
-                    b.height = 40
-                    b.width = 150
-                    m.metrics.append(b) ' shallow copy
+
+                    m.metrics.append(b)
                     m.metrics.segments[Rotor.Const.Segment.LEFT] = {
                         x1: b.x, y1: b.y,
                         x2: b.x, y2: b.y + b.height
@@ -1398,48 +1393,27 @@ namespace Rotor
                     b.height = dims.height
                     m.metrics.append(b)
 
-                    segmentLEFT = {
-                        x1: b.x, y1: b.y,
-                        x2: b.x, y2: b.y + b.height
-                    }
+                    ' Calculate rotated segments
+                    segmentLEFT = { x1: b.x, y1: b.y, x2: b.x, y2: b.y + b.height }
                     rotatedSegment = Rotor.Utils.rotateSegment(segmentLEFT.x1, segmentLEFT.y1, segmentLEFT.x2, segmentLEFT.y2, rotation, scaleRotateCenter)
-                    segmentLEFT = rotatedSegment
-                    m.metrics.segments[Rotor.Const.Segment.LEFT] = segmentLEFT
+                    m.metrics.segments[Rotor.Const.Segment.LEFT] = rotatedSegment
 
-
-                    segmentTOP = {
-                        x1: b.x, y1: b.y,
-                        x2: b.x + b.width, y2: b.y
-                    }
+                    segmentTOP = { x1: b.x, y1: b.y, x2: b.x + b.width, y2: b.y }
                     rotatedSegment = Rotor.Utils.rotateSegment(segmentTOP.x1, segmentTOP.y1, segmentTOP.x2, segmentTOP.y2, rotation, scaleRotateCenter)
-                    segmentTOP = rotatedSegment
-                    m.metrics.segments[Rotor.Const.Segment.TOP] = segmentTOP
+                    m.metrics.segments[Rotor.Const.Segment.TOP] = rotatedSegment
 
-
-                    segmentRIGHT = {
-                        x1: b.x + b.width, y1: b.y,
-                        x2: b.x + b.width, y2: b.y + b.height
-                    }
+                    segmentRIGHT = { x1: b.x + b.width, y1: b.y, x2: b.x + b.width, y2: b.y + b.height }
                     rotatedSegment = Rotor.Utils.rotateSegment(segmentRIGHT.x1, segmentRIGHT.y1, segmentRIGHT.x2, segmentRIGHT.y2, rotation, scaleRotateCenter)
-                    segmentRIGHT = rotatedSegment
-                    m.metrics.segments[Rotor.Const.Segment.RIGHT] = segmentRIGHT
+                    m.metrics.segments[Rotor.Const.Segment.RIGHT] = rotatedSegment
 
-
-                    segmentBOTTOM = {
-                        x1: b.x, y1: b.y + b.height,
-                        x2: b.x + b.width, y2: b.y + b.height
-                    }
+                    segmentBOTTOM = { x1: b.x, y1: b.y + b.height, x2: b.x + b.width, y2: b.y + b.height }
                     rotatedSegment = Rotor.Utils.rotateSegment(segmentBOTTOM.x1, segmentBOTTOM.y1, segmentBOTTOM.x2, segmentBOTTOM.y2, rotation, scaleRotateCenter)
-                    segmentBOTTOM = rotatedSegment
-                    m.metrics.segments[Rotor.Const.Segment.BOTTOM] = segmentBOTTOM
+                    m.metrics.segments[Rotor.Const.Segment.BOTTOM] = rotatedSegment
 
-
+                    ' Calculate rotated middle point
                     middlePoint = { x: b.x + b.width / 2, y: b.y + b.height / 2 }
                     rotatedMiddlePoint = Rotor.Utils.rotateSegment(middlePoint.x, middlePoint.y, 0, 0, rotation, scaleRotateCenter)
-                    m.metrics.middlePoint = {
-                        y: rotatedMiddlePoint.y1,
-                        x: rotatedMiddlePoint.x1
-                    }
+                    m.metrics.middlePoint = { x: rotatedMiddlePoint.x1, y: rotatedMiddlePoint.y1 }
 
                 end if
             end sub
