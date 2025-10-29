@@ -2,6 +2,18 @@ import "ListenerForDispatchers.bs"
 
 namespace Rotor
 
+    '******************************************************************
+    '** createDispatcher - Factory function for creating dispatchers
+    '**
+    '** Creates a dispatcher instance and returns its facade for external use.
+    '**
+    '** @param {string} customDispatcherId - Dispatcher identifier
+    '** @param {Model} modelInstance - Model holding state
+    '** @param {Reducer} reducerInstance - Reducer for state transitions
+    '** @return {Dispatcher} Dispatcher facade instance
+    '**
+    '** @namespace Rotor
+    '******************************************************************
     function createDispatcher(customDispatcherId as string, modelInstance as Model, reducerInstance as Reducer) as Dispatcher
         m.dispatcherInstance = new Rotor.DispatcherCreator(customDispatcherId, modelInstance, reducerInstance)
 
@@ -11,18 +23,51 @@ namespace Rotor
         return dispatcherFacadeInstance
     end function
 
-    ' Dispatcher
+    '******************************************************************
+    '** DispatcherCreator
+    '**
+    '** Internal dispatcher implementation for MVI pattern state management.
+    '**
+    '** Responsibilities:
+    '**   - Dispatches intents to reducer
+    '**   - Manages state updates via Model
+    '**   - Notifies listeners of state changes
+    '**   - Handles dispatch queue to prevent reentrancy
+    '**   - Exposes state to render thread via task node field
+    '**
+    '** MVI Flow:
+    '**   dispatch(intent) → reducer.reduce() → update state → notify listeners
+    '**
+    '** @namespace Rotor
+    '** @extends ListenerForDispatchers
+    '******************************************************************
     class DispatcherCreator extends ListenerForDispatchers
 
-        middlewares = []
-        isExternal = false
-        isDispatchingInProgress = false
-        dispatchQueue = []
-        dispatcherId as string
-        taskNode as object
-        reducerInstance as object
-        modelInstance as object
+        ' =============================================================
+        ' MEMBER VARIABLES
+        ' =============================================================
 
+        middlewares = []                ' Middleware array (unused, handled by Reducer)
+        isExternal = false              ' False for internal dispatchers
+        isDispatchingInProgress = false ' Prevents reentrant dispatch
+        dispatchQueue = []              ' Queue for intents during active dispatch
+        dispatcherId as string          ' Dispatcher identifier
+        taskNode as object              ' Task node for cross-thread state exposure
+        reducerInstance as object       ' Reducer instance
+        modelInstance as object         ' Model instance holding state
+        listeners = []                  ' State change listeners
+
+        ' =============================================================
+        ' CONSTRUCTOR
+        ' =============================================================
+
+        '**
+        '** Constructor - Initializes dispatcher and registers with provider
+        '**
+        '** @param {string} dispatcherId - Dispatcher identifier (auto-generated if empty)
+        '** @param {object} modelInstance - Model instance
+        '** @param {object} reducerInstance - Reducer instance
+        '**
         sub new(dispatcherId = "" as string, modelInstance = invalid as object, reducerInstance = invalid as object)
             super()
             if dispatcherId = "" then dispatcherId = Rotor.Utils.getUUIDHex()
@@ -31,72 +76,117 @@ namespace Rotor
             globalScope = GetGlobalAA()
             m.taskNode = globalScope.top
 
+            ' Link reducer to this dispatcher
             m.reducerInstance = reducerInstance
-            m.reducerInstance.ownerDispatcher = m ' will be destroyed properly
+            m.reducerInstance.ownerDispatcher = m
             m.reducerInstance.ownerDispatcherId = dispatcherId
             m.modelInstance = modelInstance
 
-            ' for render thread (notification and data)
+            ' Create field on task node for render thread communication
             m.taskNode.addField(m.dispatcherId, "node", true)
 
+            ' Expose initial state
             m.exposeState()
 
-            ' REGISTER DISPATCHER
+            ' Register with dispatcher provider
             dispatcherProvider = globalScope.rotor_framework_helper.frameworkInstance.dispatcherProvider
-            dispatcherProvider.registerDispatcher(m, dispatcherId) ' self registration
+            dispatcherProvider.registerDispatcher(m, dispatcherId)
         end sub
 
-        sub exposeState()
+        ' =============================================================
+        ' STATE MANAGEMENT
+        ' =============================================================
 
+        '**
+        '** exposeState - Exposes current state to render thread via task node field
+        '**
+        '** Creates a ContentNode with state fields and sets it on task node.
+        '** This allows render thread to observe state changes.
+        '**
+        sub exposeState()
             newState = CreateObject("roSGNode", "ContentNode")
             newState.addFields(m.modelInstance.state)
             m.taskNode.setField(m.dispatcherId, newState)
-
         end sub
 
-        listeners = []
+        '**
+        '** getState - Returns current state (optionally mapped)
+        '**
+        '** @param {dynamic} mapStateToProps - Optional mapping function
+        '** @param {object} callerScope - Caller scope for mapping function
+        '** @return {object} Current state
+        '**
+        function getState(mapStateToProps = invalid as Dynamic, callerScope = invalid as object) as object
+            state = m.modelInstance.state
+            m.runMapStateToProps(state, mapStateToProps, callerScope)
+            return state
+        end function
 
+        ' =============================================================
+        ' DISPATCH
+        ' =============================================================
+
+        '**
+        '** dispatch - Dispatches intent to reducer and updates state
+        '**
+        '** Process flow:
+        '**   1. Validate intent payload
+        '**   2. If not dispatching, execute reducer and notify listeners
+        '**   3. If dispatching, queue intent for later processing
+        '**   4. Process queued intents after completion
+        '**
+        '** @param {Intent} intent - Intent object to dispatch
+        '**
         sub dispatch(intent as Intent)
-
-            if intent?.payload <> invalid and intent.payload.Count() > 1 and intent.payload = invalid then throw "[WARNING] Intent payload is invalid."
+            if intent?.payload <> invalid and intent.payload.Count() > 1 and intent.payload = invalid
+                throw "[WARNING] Intent payload is invalid."
+            end if
 
             if m.isDispatchingInProgress = false
-
+                ' Execute reducer
                 currentState = m.modelInstance.state
                 newState = m.reducerInstance.reduce(currentState, intent)
 
-                ' If intention has been dropped by a middleware
+                ' Middleware cancelled intent
                 if newState = invalid then return
 
+                ' Update state and notify
                 m.exposeState()
-                m.notifyListeners(newState) ' Notify listeners which are also owned by the same thread and not external (synchronously)
+                m.notifyListeners(newState)
 
+                ' Process queued intents
                 if m.dispatchQueue.Count() > 0
                     intent = m.dispatchQueue.shift()
                     m.dispatch(intent)
                 end if
-
             else
-
+                ' Queue intent to prevent reentrancy
                 m.dispatchQueue.push(intent)
-
             end if
-
         end sub
 
-        function getState(mapStateToProps = invalid as Dynamic, callerScope = invalid as object) as object
+        ' =============================================================
+        ' ASYNC CALLBACK
+        ' =============================================================
 
-            state = m.modelInstance.state
-
-            m.runMapStateToProps(state, mapStateToProps, callerScope)
-
-            return state
-        end function
-
+        '**
+        '** asyncReducerCallback - Routes async callback to reducer
+        '**
+        '** @param {object} msg - Message from async operation
+        '**
         sub asyncReducerCallback(msg)
             m.reducerInstance.asyncReducerCallback(msg)
         end sub
 
+        ' =============================================================
+        ' CLEANUP
+        ' =============================================================
+
+        '**
+        '** destroy - Cleans up dispatcher resources
+        '**
+        '** Deregisters from provider and clears all references.
+        '**
         override sub destroy()
             super.destroy()
 
@@ -113,4 +203,3 @@ namespace Rotor
     end class
 
 end namespace
-

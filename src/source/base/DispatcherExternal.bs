@@ -2,28 +2,82 @@ import "ListenerForDispatchers.bs"
 
 namespace Rotor
 
+    '******************************************************************
+    '** DispatcherExternal
+    '**
+    '** External dispatcher for cross-thread MVI state management.
+    '**
+    '** This dispatcher is used when accessing dispatchers from a different thread
+    '** than where they were created (render thread accessing task thread dispatcher
+    '** or vice versa).
+    '**
+    '** Responsibilities:
+    '**   - Dispatches intents across thread boundaries via rotorSync field
+    '**   - Observes state changes on task node field
+    '**   - Manages cross-thread listener notifications
+    '**   - Lazy observer setup (only when listeners are added)
+    '**   - Auto cleanup when last listener is removed
+    '**
+    '** MVI Cross-Thread Flow:
+    '**   Render Thread: dispatch(intent) → rotorSync field → Task Thread
+    '**   Task Thread: reduce state → task node field → Render Thread observer callback
+    '**
+    '** @namespace Rotor
+    '** @extends ListenerForDispatchers
+    '******************************************************************
     class DispatcherExternal extends ListenerForDispatchers
 
+        ' =============================================================
+        ' MEMBER VARIABLES
+        ' =============================================================
+
+        dispatcherId as string          ' Dispatcher identifier
+        taskNode as object              ' Task node for cross-thread communication
+        threadType as string            ' Current thread type (RENDER or TASK)
+        isExternal = true               ' True for external dispatchers
+        isStateObserved = false         ' Tracks if observer is active
+
+        ' =============================================================
+        ' CONSTRUCTOR
+        ' =============================================================
+
+        '**
+        '** Constructor - Initializes external dispatcher
+        '**
+        '** @param {string} dispatcherId - Dispatcher identifier
+        '** @param {object} taskNode - Task node for cross-thread communication
+        '** @param {string} threadType - Current thread type (RENDER or TASK)
+        '**
         sub new(dispatcherId as string, taskNode as object, threadType as string)
             super()
 
-            ' Register dispatcher into dispatcher provider
+            ' Store dispatcher configuration
             m.dispatcherId = dispatcherId
             m.taskNode = taskNode
             m.threadType = threadType
-
         end sub
 
-        dispatcherId as string
-        taskNode as object
-        threadType as string
-        isExternal = true
-        isStateObserved = false
+        ' =============================================================
+        ' DISPATCH
+        ' =============================================================
 
+        '**
+        '** dispatch - Sends intent to internal dispatcher via cross-thread sync
+        '**
+        '** Process flow:
+        '**   1. Validate intent payload
+        '**   2. Package intent with dispatcher ID
+        '**   3. Set rotorSync field to trigger task thread processing
+        '**
+        '** @param {Intent} intent - Intent object to dispatch
+        '**
         sub dispatch(intent as Intent)
+            ' Validate intent payload
+            if intent?.payload <> invalid and intent.payload.Count() > 1 and intent.payload = invalid
+                throw "[WARNING] Intent payload is invalid."
+            end if
 
-            if intent?.payload <> invalid and intent.payload.Count() > 1 and intent.payload = invalid then throw "[WARNING] Intent payload is invalid."
-
+            ' Send intent to task thread via rotorSync field
             m.taskNode.setField("rotorSync", {
                 type: Rotor.Const.ThreadSyncType.DISPATCH,
                 payload: {
@@ -33,58 +87,133 @@ namespace Rotor
             })
         end sub
 
-        override sub addListener(listenerConfig as object, listenerId as string, listenerScope as object)
-            if m.isStateObserved = false
-                m.setupObserver()
-            end if
-            super.addListener(listenerConfig, listenerId, listenerScope)
-        end sub
+        ' =============================================================
+        ' STATE ACCESS
+        ' =============================================================
 
-        override sub removeAllListenersByListenerId(listenerId as string)
-            super.removeAllListenersByListenerId(listenerId)
-            if m.isStateObserved = true and m.listeners.Count() = 0
-                m.removeObserver()
-            end if
-        end sub
-
+        '**
+        '** getState - Returns current state from task node field (optionally mapped)
+        '**
+        '** Reads state from task node field set by internal dispatcher.
+        '**
+        '** @param {dynamic} mapStateToProps - Optional mapping function
+        '** @param {object} callerScope - Caller scope for mapping function
+        '** @return {object} Current state
+        '**
         function getState(mapStateToProps = invalid as Dynamic, callerScope = invalid as object) as object
-
+            ' Read state from task node field
             state = m.taskNode.getField(m.dispatcherId)
 
+            ' Apply optional state mapping
             m.runMapStateToProps(state, mapStateToProps, callerScope)
 
             return state
         end function
 
+        ' =============================================================
+        ' LISTENER MANAGEMENT
+        ' =============================================================
+
+        '**
+        '** addListener - Adds state change listener with lazy observer setup
+        '**
+        '** Sets up observer on first listener registration (lazy initialization).
+        '**
+        '** @param {object} listenerConfig - Listener configuration
+        '** @param {string} listenerId - Listener identifier
+        '** @param {object} listenerScope - Listener scope for callback
+        '**
+        override sub addListener(listenerConfig as object, listenerId as string, listenerScope as object)
+            ' Setup observer on first listener (lazy initialization)
+            if m.isStateObserved = false
+                m.setupObserver()
+            end if
+
+            ' Register listener with parent class
+            super.addListener(listenerConfig, listenerId, listenerScope)
+        end sub
+
+        '**
+        '** removeAllListenersByListenerId - Removes all listeners with given ID
+        '**
+        '** Automatically removes observer when last listener is removed.
+        '**
+        '** @param {string} listenerId - Listener identifier to remove
+        '**
+        override sub removeAllListenersByListenerId(listenerId as string)
+            ' Remove listeners via parent class
+            super.removeAllListenersByListenerId(listenerId)
+
+            ' Auto cleanup: remove observer when no listeners remain
+            if m.isStateObserved = true and m.listeners.Count() = 0
+                m.removeObserver()
+            end if
+        end sub
+
+        ' =============================================================
+        ' OBSERVER MANAGEMENT
+        ' =============================================================
+
+        '**
+        '** setupObserver - Sets up observer for state changes on task node field
+        '**
+        '** Thread-specific observer setup:
+        '**   - RENDER thread: Uses observeFieldScoped with callback name
+        '**   - TASK thread: Uses framework's observer system
+        '**
         sub setupObserver()
             if m.threadType = Rotor.Const.ThreadType.RENDER
+                ' Render thread: use native SceneGraph observer
                 m.taskNode.observeFieldScoped(m.dispatcherId, "Rotor_dispatcherStateCallback")
             else
+                ' Task thread: use framework observer system
                 fieldId = m.dispatcherId
                 frameworkInstance = GetGlobalAA().rotor_framework_helper.frameworkInstance
                 frameworkInstance.addObserver(fieldId, m.taskNode)
             end if
+
             m.isStateObserved = true
         end sub
 
+        '**
+        '** removeObserver - Removes observer for state changes
+        '**
+        '** Thread-specific observer cleanup matching setupObserver.
+        '**
         sub removeObserver()
             if m.threadType = Rotor.Const.ThreadType.RENDER
+                ' Render thread: unobserve SceneGraph field
                 m.taskNode.unobserveFieldScoped(m.dispatcherId)
             else
+                ' Task thread: remove framework observer
                 fieldId = m.dispatcherId
                 frameworkInstance = GetGlobalAA().rotor_framework_helper.frameworkInstance
                 frameworkInstance.removeObserver(fieldId, m.taskNode)
             end if
+
             m.isStateObserved = false
         end sub
 
+        ' =============================================================
+        ' CLEANUP
+        ' =============================================================
+
+        '**
+        '** destroy - Cleans up external dispatcher resources
+        '**
+        '** Cleanup steps:
+        '**   1. Call parent cleanup
+        '**   2. Remove observer if active
+        '**   3. Clear listeners
+        '**   4. Deregister from dispatcher provider
+        '**
         override sub destroy()
             super.destroy()
 
             frameworkInstance = GetGlobalAA().rotor_framework_helper.frameworkInstance
 
+            ' Remove observer if active
             if m.isStateObserved = true
-
                 if m.threadType = Rotor.Const.ThreadType.RENDER
                     m.taskNode.unobserveFieldScoped(m.dispatcherId)
                 else
@@ -92,11 +221,13 @@ namespace Rotor
                     frameworkInstance.removeObserver(fieldId, m.taskNode)
                 end if
             end if
+
+            ' Clear all references
             m.listeners.Clear()
             m.taskNode = invalid
 
+            ' Deregister from provider
             frameworkInstance.dispatcherProvider.deregisterDispatcher(m.dispatcherId)
-
         end sub
 
     end class
@@ -104,16 +235,35 @@ namespace Rotor
 end namespace
 
 namespace Rotor
-    ' Used by render thread
+
+    '******************************************************************
+    '** dispatcherStateCallback
+    '**
+    '** Global callback function for dispatcher state changes on render thread.
+    '**
+    '** This function is called by SceneGraph's observeFieldScoped when a dispatcher's
+    '** state field changes on the task node. It routes the state change to the
+    '** appropriate dispatcher instance for listener notification.
+    '**
+    '** Process flow:
+    '**   1. Extract dispatcher ID from message field
+    '**   2. Extract new state from message data
+    '**   3. Lookup dispatcher instance from provider
+    '**   4. Notify all registered listeners with new state
+    '**
+    '** @param {roSGNodeEvent} msg - SceneGraph observer message
+    '**
+    '** @namespace Rotor
+    '******************************************************************
     sub dispatcherStateCallback(msg)
-
+        ' Extract dispatcher ID and state from message
         dispatcherId = msg.getField()
-
         state = msg.getData()
 
+        ' Lookup dispatcher instance and notify listeners
         frameworkInstance = GetGlobalAA().rotor_framework_helper.frameworkInstance
         dispatcherInstance = frameworkInstance.dispatcherProvider.get(dispatcherId)
         dispatcherInstance.notifyListeners(state)
-
     end sub
+
 end namespace
