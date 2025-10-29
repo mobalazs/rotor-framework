@@ -1,30 +1,52 @@
 namespace Rotor
 
-    '--------------------------------------------------------------------------
-    ' @class Model
-    ' @description Base model class that holds the application state for the Rotor framework.
-    '              Models are immutable containers for state data that work with dispatchers
-    '              and reducers to manage application state changes.
-    '--------------------------------------------------------------------------
+    '******************************************************************
+    '** Model (BaseModel)
+    '**
+    '** Base model class for MVI pattern state management.
+    '**
+    '** Responsibilities:
+    '**   - Holds application state as immutable container
+    '**   - Works with Dispatchers and Reducers for state changes
+    '**   - Provides cleanup mechanism
+    '**
+    '** Usage in MVI:
+    '**   Model → Holds current state
+    '**   Reducer → Creates new state based on intents
+    '**   Dispatcher → Routes intents and state updates
+    '**
+    '** @namespace Rotor
+    '******************************************************************
     class Model
 
-        '--------------------------------------------------------------------------
-        ' @constructor new
-        ' @description Initializes the model with an optional initial state
-        ' @param {Object} state - Optional initial state object. If not provided, state remains uninitialized
-        '--------------------------------------------------------------------------
+        ' =============================================================
+        ' MEMBER VARIABLES
+        ' =============================================================
+
+        state as object                 ' Application state container
+
+        ' =============================================================
+        ' CONSTRUCTOR
+        ' =============================================================
+
+        '**
+        '** Constructor - Initializes model with optional initial state
+        '**
+        '** @param {object} state - Initial state object (optional)
+        '**
         sub new(state = invalid as object)
             if state <> invalid
                 m.state = state
             end if
         end sub
 
-        state as object
+        ' =============================================================
+        ' CLEANUP
+        ' =============================================================
 
-        '--------------------------------------------------------------------------
-        ' @method destroy
-        ' @description Cleans up the model by invalidating the state reference
-        '--------------------------------------------------------------------------
+        '**
+        '** destroy - Cleans up model by invalidating state reference
+        '**
         sub destroy()
             m.state = invalid
         end sub

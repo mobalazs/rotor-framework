@@ -1,20 +1,51 @@
 namespace Rotor
 
+    '******************************************************************
+    '** BasePlugin
+    '**
+    '** Base class for all Rotor Framework plugins.
+    '**
+    '** Provides:
+    '**   - Plugin identification and lifecycle management
+    '**   - Enable/disable functionality
+    '**   - Parameter storage
+    '**
+    '** Plugin Types:
+    '**   - Lifecycle plugins: Implement hooks {} for beforeMount, beforeUpdate, etc.
+    '**   - Widget method plugins: Implement widgetMethods {} to inject methods
+    '**
+    '** @namespace Rotor
+    '******************************************************************
     class BasePlugin
 
+        ' =============================================================
+        ' MEMBER VARIABLES
+        ' =============================================================
+
+        isEnabled = true                ' Plugin enabled/disabled flag
+        key as string                   ' Plugin identifier (unique key)
+        scope as object                 ' Plugin scope (m context in plugin definitions)
+        params as object                ' Plugin initialization parameters
+
+        ' Optional plugin features (implemented by subclasses):
+        ' hooks as object               ' Widget lifecycle hooks (beforeMount, beforeUpdate, etc.)
+        ' widgetMethods as object       ' Methods to inject into widgets
+
+        ' =============================================================
+        ' CONSTRUCTOR
+        ' =============================================================
+
+        '**
+        '** Constructor - Initializes plugin with key and parameters
+        '**
+        '** @param {string} key - Plugin identifier (auto-generated if empty)
+        '** @param {object} params - Plugin initialization parameters
+        '**
         sub new(key = "" as string, params = invalid as object)
             if key = "" then key = Rotor.Utils.getUUIDHex(8)
             m.params = params
             m.key = key
         end sub
-
-        isEnabled = true
-
-        key as string ' property identifier
-        ' hooks as object ' widget lifecycle hooks
-        scope as object ' plugin scope (plugin functions is available from `m`scope in plugin definitions)
-        params as object ' plugin params
-        ' widgetMethods as object ' methods will be available on widgets (only for FEATURE_PLUGIN type)
 
     end class
 
