@@ -1,5 +1,4 @@
 # Rotor Framework
-
 [![Coverage Status](https://coveralls.io/repos/github/mobalazs/rotor-framework/badge.svg?branch=main&v=2)](https://coveralls.io/github/mobalazs/rotor-framework?branch=main)
 [![GitHub package.json version](https://img.shields.io/github/package-json/v/mobalazs/rotor-framework)](https://github.com/mobalazs/rotor-framework/packages)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -24,7 +23,15 @@
 
 ## 📦 Installation
 
-Rotor is structured as a shared library for BrighterScript projects. To install:
+### Prerequisites
+
+Rotor Framework requires BrighterScript v1. Install the latest version:
+
+```bash
+npm install --save-dev brighterscript@next @rokucommunity/bslint@next
+```
+
+### Install Rotor Framework
 
 1. Download the latest `rotor-framework.zip` from [GitHub Releases](https://github.com/mobalazs/rotor-framework/releases)
 2. Extract the ZIP into your project's `source/` directory (this will create a `rotor-framework/` folder)
@@ -68,6 +75,7 @@ You can find [🌱](./docs/ai/readme.opt.yaml) symbols in all documentation page
 ---
 
 ## 📚 Learn More
+![Version](https://img.shields.io/badge/version-v0.2.7-blue?label=Documents%20TAG)
 
 ### MVI Documentation
 
