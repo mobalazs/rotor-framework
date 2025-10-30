@@ -37,10 +37,19 @@ installation:
   method: "Shared library for BrighterScript projects"
   prerequisites:
     - "Install BrighterScript v1: npm install --save-dev brighterscript@next @rokucommunity/bslint@next"
-  steps:
-    - "Download the latest rotor-framework.zip from GitHub Releases: https://github.com/mobalazs/rotor-framework/releases"
-    - "Extract the ZIP into your project's source/ directory (this will create a rotor-framework/ folder)"
-    - "Import Rotor in your main file: import \"pkg:/source/RotorFramework.bs\""
+  ropmInstall:
+    command: "ropm install rotor-framework"
+    required: "Must install without prefix by adding to package.json:"
+    config: |
+      "ropm": {
+        "noprefix": ["rotor-framework"]
+      }
+    note: "Everything is in the Rotor namespace by default, so this is the only name reserved by the framework"
+  manualInstall:
+    steps:
+      - "Download the latest rotor-framework.zip from GitHub Releases: https://github.com/mobalazs/rotor-framework/releases"
+      - "Extract the ZIP into your project's source/ directory (this will create a rotor-framework/ folder)"
+  import: "import \"pkg:/source/RotorFramework.bs\""
 quickStart:
   example: |
     frameworkInstance = new Rotor.Framework()
@@ -110,8 +119,8 @@ integrations:
 pipeline:
   - "Explore key features (ViewBuilder, MVI, plugins, i18n)"
   - "Install prerequisites: npm install --save-dev brighterscript@next @rokucommunity/bslint@next"
-  - "Download rotor-framework.zip from GitHub Releases"
-  - "Extract ZIP into project's source/ directory (creates rotor-framework/ folder)"
+  - "Install via ROPM: ropm install rotor-framework OR download rotor-framework.zip from GitHub Releases"
+  - "Configure noprefix in package.json for ROPM install OR extract ZIP into project's source/ directory for manual install"
   - "Import framework in main file"
   - "Initialize framework instance"
   - "Render widgets using declarative configuration"
