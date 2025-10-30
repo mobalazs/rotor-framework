@@ -60,7 +60,7 @@ class I18nSinglePathViewModel extends Rotor.ViewModel
                 id: "titleLabel",
                 nodeType: "Label",
                 fields: {
-                    text: m.viewModelState.l10n.title,
+                    text: m.viewModelState?.l10n?.title,
                     width: 400,
                     height: 50
                 }
@@ -82,7 +82,7 @@ class I18nMultiPathViewModel extends Rotor.ViewModel
                     id: "subtitleLabel",
                     nodeType: "Label",
                     fields: {
-                        text: m.viewModelState.l10n.subtitle,
+                        text: m.viewModelState?.l10n?.subtitle,
                         width: 400,
                         height: 50
                     }
@@ -91,7 +91,7 @@ class I18nMultiPathViewModel extends Rotor.ViewModel
                     id: "homeLabel",
                     nodeType: "Label",
                     fields: {
-                        text: m.viewModelState.l10n.home,
+                        text: m.viewModelState?.l10n?.home,
                         translation: [0, 30],
                         width: 400,
                         height: 50
@@ -114,7 +114,7 @@ class I18nLocaleViewModel extends Rotor.ViewModel
                 id: "welcomeLabel",
                 nodeType: "Label",
                 fields: {
-                    text: m.viewModelState.l10n.welcome,
+                    text: m.viewModelState?.l10n?.welcome ?? "failed",
                     width: 400,
                     height: 50
                 }
@@ -156,7 +156,7 @@ class I18nDeepNestedViewModel extends Rotor.ViewModel
                 id: "deepValueLabel",
                 nodeType: "Label",
                 fields: {
-                    text: m.viewModelState.l10n.level2.deepValue,
+                    text: m.viewModelState.l10n?.level2?.deepValue,
                     width: 400,
                     height: 50
                 }

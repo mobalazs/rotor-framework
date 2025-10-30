@@ -149,12 +149,13 @@ namespace Rotor.ViewBuilder
             assets = {}
             for each keyPath in keysPaths
                 if m.cache.DoesExist(keyPath)
-                    additionalAsset = m.cache[keyPath]
+                    newAsset = m.cache[keyPath]
                 else
-                    additionalAsset = Rotor.Utils.getValueByKeyPath(m.l10n, keyPath, true) ' TODO: reconsider to use getCloneByKeyPath instead
-                    m.cache[keyPath] = additionalAsset
+                    newAsset = Rotor.Utils.getValueByKeyPath(m.l10n, keyPath, true)
+                    newAssetCloned = Rotor.Utils.deepCopy(newAsset)
+                    m.cache[keyPath] = newAssetCloned
                 end if
-                assets.append(additionalAsset)
+                assets.append(newAsset)
             end for
             return assets
         end function

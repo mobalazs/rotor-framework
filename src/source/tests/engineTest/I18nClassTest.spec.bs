@@ -415,6 +415,7 @@ namespace tests
 
             ' When: Get asset by deep keyPath
             result = m.i18nService.getMultipleAssets("level1.level2.level3")
+            print " /// [CUSTOM DEBUG] engineTest/I18nClassTest.spec.bs [418] :: result : "; FormatJson(result)
             ' Then: Should retrieve nested data
             m.assertNotInvalid(result)
             m.assertEqual(result?.level3?.level4?.value, "deep value")
