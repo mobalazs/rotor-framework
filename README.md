@@ -1,7 +1,8 @@
 # Rotor Framework
-[![Coverage Status](https://coveralls.io/repos/github/mobalazs/rotor-framework/badge.svg?branch=main&v=2)](https://coveralls.io/github/mobalazs/rotor-framework?branch=main)
-[![GitHub package.json version](https://img.shields.io/github/package-json/v/mobalazs/rotor-framework)](https://github.com/mobalazs/rotor-framework/packages)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+[![build status](https://img.shields.io/github/actions/workflow/status/mobalazs/rotor-framework/publish.yml?branch=main&logo=github&label=build)](https://github.com/mobalazs/rotor-framework/actions/workflows/publish.yml)[![Coverage Status](https://img.shields.io/coveralls/github/mobalazs/rotor-framework/main?logo=coveralls&logoColor=white&color=brightgreen)](https://coveralls.io/github/mobalazs/rotor-framework?branch=main)
+[![npm version](https://img.shields.io/npm/v/rotor-framework.svg?logo=npm)](https://www.npmjs.com/package/rotor-framework)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square&logo=scale&logoColor=white)](https://opensource.org/licenses/MIT)
 [![Slack](https://img.shields.io/badge/Slack-RokuDevelopers-4A154B?logo=slack)](https://rokudevelopers.slack.com)
 
 **Rotor** is a modular, ViewModel-first UI framework for Roku applications built with BrighterScript and SceneGraph. It is lightweight and designed to intuitively speed up development time while simplifying both the implementation and long-term maintenance process. It features a rich ViewBuilder system and a Roku-friendly implementation of the MVI (Model-View-Intent) design pattern. It helps developers structure large-scale apps with reusable components, state-driven logic, and optimized rendering.
@@ -16,8 +17,7 @@
 -   **Roku-friendly MVI design pattern**: Predictable state, clear separation of concerns, and cross-thread compatibility.
 -   **Component-based UI**: Isolated, reusable UI widgets and view models.
 -   **i18n support**: Locale-aware interface with flexible language resource injection.
--   **Integrated** [Animate](https://github.com/haystacknews/animate) Library 
-
+-   **Integrated** [Animate](https://github.com/haystacknews/animate) Library
 
 ---
 
@@ -33,19 +33,33 @@ npm install --save-dev brighterscript@next @rokucommunity/bslint@next
 
 ### Install Rotor Framework
 
+**Manual installation:**
+
 1. Download the latest `rotor-framework.zip` from [GitHub Releases](https://github.com/mobalazs/rotor-framework/releases)
 2. Extract the ZIP into your project's `source/` directory (this will create a `rotor-framework/` folder)
 3. Import Rotor in your main file:
 
-```vb
-import "pkg:/source/RotorFramework.bs"
+**ROPM install:**
+
+-   **Note:** You must install without prefix by adding this to `package.json`
+-   Don't worry everything is in the `Rotor` namespace by default, so this is the only name reserved by the framework.
+
+```bash
+ropm install rotor-framework
+```
+
+```json
+"ropm": {
+    "noprefix": ["rotor-framework"]
+}
 ```
 
 ---
 
-## ⚡ Quick Start
+## ⚡ Quick usage
 
 ```vb
+import "pkg:/source/RotorFramework.bs"
 
 frameworkInstance = new Rotor.Framework()
 
@@ -59,23 +73,23 @@ frameworkInstance.render([
         }
     }
 ])
-
 ```
 
 ---
 
 <a id="token-efficient-documentation"></a>
+
 ## Token-efficient documentation for AI
 
 You can find [🌱](./docs/ai/readme.opt.yaml) symbols in all documentation pages. These symbols link to AI-optimized summaries of the respective documentation.
 
 **📖 [Read more about token savings](./docs/token-efficient-docs.md)**
 
-
 ---
 
 ## 📚 Learn More
-![Version](https://img.shields.io/badge/version-v0.3.1-blue?label=Documents%20TAG)
+
+![Version](https://img.shields.io/badge/version-v0.3.3-blue?label=Documents%20TAG)
 
 ### Framework Core
 
