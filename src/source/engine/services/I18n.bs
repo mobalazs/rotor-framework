@@ -134,33 +134,29 @@ namespace Rotor.ViewBuilder
         public function getL10n(keyPath) as object
             ' Best for regular use cases
             if keyPath = invalid then return m.l10n ' Return just reference to l10n
-
-            ' Best for unit tests or story books or special use cases
-            firstKey = keyPath.Split(".")[0]
-            return m.getAssetByKeyPath(keyPath)[firstKey] ' Return cloned and merged sliced data from l10n
-
+            return m.getMultipleAssets(keyPath)
         end function
 
         ' ---------------------------------------------------------------------
-        ' getAssetByKeyPath - Gets and caches localization data by one or more key paths
+        ' getMultipleAsset - Gets and caches localization data by one or more key paths
         '
         ' @param {dynamic} keyPath - Single key path string or array of key paths
         ' @returns {object} Merged localization data from all key paths
         ' @private
         '
-        function getAssetByKeyPath(keyPath as dynamic) as object
+        function getMultipleAssets(keyPath as dynamic) as object
             keysPaths = Rotor.Utils.ensureArray(keyPath)
-            asset = {}
+            assets = {}
             for each keyPath in keysPaths
                 if m.cache.DoesExist(keyPath)
                     additionalAsset = m.cache[keyPath]
                 else
-                    additionalAsset = Rotor.Utils.getCloneByKeyPath(m.l10n, keyPath) ' TODO: reconsider to use getValueByKeyPath instead
+                    additionalAsset = Rotor.Utils.getValueByKeyPath(m.l10n, keyPath, true) ' TODO: reconsider to use getCloneByKeyPath instead
                     m.cache[keyPath] = additionalAsset
                 end if
-                Rotor.Utils.deepExtendAA(asset, additionalAsset)
+                assets.append(additionalAsset)
             end for
-            return asset
+            return assets
         end function
 
     end class

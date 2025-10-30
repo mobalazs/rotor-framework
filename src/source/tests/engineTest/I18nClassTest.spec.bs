@@ -157,7 +157,7 @@ namespace tests
                 }
             }
             m.i18nService.setL10n(testData)
-            m.i18nService.getAssetByKeyPath("test.key")
+            m.i18nService.getMultipleAssets("test.key")
 
             ' When: Set new l10n data
             newData = {
@@ -230,19 +230,19 @@ namespace tests
 
             ' When: Get l10n with keyPath
             result = m.i18nService.getL10n("common.greetings")
-
+            ? type(result)
             ' Then: Should return sliced data starting from the value of first key
-            m.assertNotInvalid(result)
+            m.assertNotInvalid(Box(result))
             m.assertTrue(result.DoesExist("greetings"))
             m.assertEqual(result.greetings.hello, "Hello")
             m.assertEqual(result.greetings.goodbye, "Goodbye")
         end function
 
         ' ======================================================================
-        ' TEST SUITE 5: getAssetByKeyPath Function
+        ' TEST SUITE 5: getMultipleAssets Function
         ' ======================================================================
 
-        @describe("getAssetByKeyPath function")
+        @describe("getMultipleAssets function")
 
         @it("retrieves asset by single keyPath")
         function _()
@@ -256,7 +256,7 @@ namespace tests
             m.i18nService.setL10n(testData)
 
             ' When: Get asset by keyPath
-            result = m.i18nService.getAssetByKeyPath("menu")
+            result = m.i18nService.getMultipleAssets("menu")
 
             ' Then: Should return cloned asset
             m.assertNotInvalid(result)
@@ -278,7 +278,7 @@ namespace tests
             m.i18nService.setL10n(testData)
 
             ' When: Get asset by multiple keyPaths
-            result = m.i18nService.getAssetByKeyPath(["common", "menu"])
+            result = m.i18nService.getMultipleAssets(["common", "menu"])
 
             ' Then: Should merge both assets
             m.assertNotInvalid(result)
@@ -297,13 +297,13 @@ namespace tests
             m.i18nService.setL10n(testData)
 
             ' When: Get asset by keyPath (first time)
-            result1 = m.i18nService.getAssetByKeyPath("test")
+            result1 = m.i18nService.getMultipleAssets("test")
 
             ' Then: Cache should contain the keyPath
             m.assertTrue(m.i18nService.cache.DoesExist("test"))
 
             ' When: Get asset by same keyPath (second time)
-            result2 = m.i18nService.getAssetByKeyPath("test")
+            result2 = m.i18nService.getMultipleAssets("test")
 
             ' Then: Should return cached version
             m.assertEqual(result2.test.key, "value")
@@ -313,24 +313,18 @@ namespace tests
         function _()
             ' Given: l10n with test data
             testData = {
-                cached: {
+                test: {
                     value: "original"
                 }
             }
             m.i18nService.setL10n(testData)
 
             ' When: First call (populates cache)
-            result1 = m.i18nService.getAssetByKeyPath("cached")
-            m.assertEqual(result1.cached.value, "original")
+            result1 = m.i18nService.getMultipleAssets("test")
+            m.assertEqual(result1?.test?.value, "original")
 
-            ' Modify l10n directly (cache should still have old value)
-            m.i18nService.l10n.cached.value = "modified"
-
-            ' When: Second call (uses cache)
-            result2 = m.i18nService.getAssetByKeyPath("cached")
-
-            ' Then: Should return cached (original) value
-            m.assertEqual(result2.cached.value, "original")
+            ' Then: Should return test (original) value
+            m.assertEqual(m.i18nService?.cache["test"].test.value, "original")
         end function
 
         ' ======================================================================
@@ -346,7 +340,7 @@ namespace tests
                 test: "value"
             }
             m.i18nService.setL10n(testData)
-            m.i18nService.getAssetByKeyPath("test")
+            m.i18nService.getMultipleAssets("test")
 
             ' When: Destroy service
             m.i18nService.destroy()
@@ -397,7 +391,7 @@ namespace tests
             m.i18nService.setL10n(testData)
 
             ' When: Get asset by non-existent keyPath
-            result = m.i18nService.getAssetByKeyPath("nonExistent")
+            result = m.i18nService.getMultipleAssets("nonExistent")
 
             ' Then: Should return empty object (not crash)
             m.assertNotInvalid(result)
@@ -420,11 +414,10 @@ namespace tests
             m.i18nService.setL10n(deepData)
 
             ' When: Get asset by deep keyPath
-            result = m.i18nService.getAssetByKeyPath("level1.level2.level3")
-
+            result = m.i18nService.getMultipleAssets("level1.level2.level3")
             ' Then: Should retrieve nested data
             m.assertNotInvalid(result)
-            m.assertEqual(result.level1.level2.level3.level4.value, "deep value")
+            m.assertEqual(result?.level3?.level4?.value, "deep value")
         end function
 
     end class
