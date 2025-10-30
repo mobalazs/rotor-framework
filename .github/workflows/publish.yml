@@ -63,7 +63,7 @@ jobs:
           rm -rf out/rotor-framework-package/tests
           rm -f out/rotor-framework-package/Main.brs
           node scripts/prepare-source-readme.js README.md out/rotor-framework-package/README.md
-          cp LICENSE.md out/rotor-framework-package/
+          cp LICENSE out/rotor-framework-package/
           cd out/rotor-framework-package
           zip -r ../rotor-framework.zip . -x "*.spec.bs" "*.DS_Store"
           cd ../..

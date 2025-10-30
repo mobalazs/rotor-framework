@@ -2,7 +2,7 @@
 
 [![build status](https://img.shields.io/github/actions/workflow/status/mobalazs/rotor-framework/publish.yml?branch=main&logo=github&label=build)](https://github.com/mobalazs/rotor-framework/actions/workflows/publish.yml)[![Coverage Status](https://img.shields.io/coveralls/github/mobalazs/rotor-framework/main?logo=coveralls&logoColor=white&color=brightgreen)](https://coveralls.io/github/mobalazs/rotor-framework?branch=main)
 [![npm version](https://img.shields.io/npm/v/rotor-framework.svg?logo=npm)](https://www.npmjs.com/package/rotor-framework)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square&logo=scale&logoColor=white)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square&logo=scale&logoColor=white)](LICENSE)
 [![Slack](https://img.shields.io/badge/Slack-RokuDevelopers-4A154B?logo=slack)](https://rokudevelopers.slack.com)
 
 **Rotor** is a modular, ViewModel-first UI framework for Roku applications built with BrighterScript and SceneGraph. It is lightweight and designed to intuitively speed up development time while simplifying both the implementation and long-term maintenance process. It features a rich ViewBuilder system and a Roku-friendly implementation of the MVI (Model-View-Intent) design pattern. It helps developers structure large-scale apps with reusable components, state-driven logic, and optimized rendering.
@@ -127,8 +127,8 @@ You can find [🌱](./docs/ai/readme.opt.yaml) symbols in all documentation page
 
 ## 📄 License
 
-Rotor is MIT licensed. See [LICENSE.md](./LICENSE.md) file for details.
+Rotor Framework™ is licensed under the [MIT License](LICENSE).
+
+© 2025 Balázs Molnár — Rotor Framework™
 
 ---
-
-© 2025 Rotor Molnar Balazs
