@@ -4,8 +4,9 @@
 ' ▐▛▀▚▖▐▌ ▐▌ █ ▐▌ ▐▌▐▛▀▚▖    ▐▛▀▀▘▐▛▀▚▖▐▛▀▜▌▐▌  ▐▌▐▛▀▀▘▐▌ ▐▌▐▌ ▐▌▐▛▀▚▖▐▛▚▖
 ' ▐▌ ▐▌▝▚▄▞▘ █ ▝▚▄▞▘▐▌ ▐▌    ▐▌   ▐▌ ▐▌▐▌ ▐▌▐▌  ▐▌▐▙▄▄▖▐▙█▟▌▝▚▄▞▘▐▌ ▐▌▐▌ ▐▌
 ' Rotor Framework™
-' Version 0.3.3
-'
+' Version 0.3.4
+' © 2025 Balázs Molnár — MIT License
+' =========================================================================
 
 ' constants
 import "engine/Constants.bs"
@@ -84,7 +85,7 @@ namespace Rotor
     class Framework
 
         name = "Rotor Framework"
-        version = "0.3.3"
+        version = "0.3.4"
 
         config = {
             tasks: invalid, ' @array    (optional)
