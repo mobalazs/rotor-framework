@@ -1,7 +1,7 @@
 {
 	"name": "rotor-framework",
-	"version": "0.3.3",
-	"description": "A Roku toolkit library providing a ViewBuilder, full UI lifecycle with focus handling and many core features, plus MVI-based state management.",
+	"version": "0.3.4",
+	"description": "Roku toolkit library providing a ViewBuilder, full UI lifecycle with focus handling and many core features, plus MVI-based state management.",
 	"author": "Balázs Molnár",
 	"license": "MIT",
 	"scripts": {
@@ -23,7 +23,7 @@
 		"src/source/RotorFramework.bs",
 		"src/source/RotorFrameworkTask.bs",
 		"README.md",
-		"LICENSE.md",
+		"LICENSE",
 		"!src/source/**/*.spec.bs"
 	],
 	"publishConfig": {
