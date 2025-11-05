@@ -39,11 +39,7 @@ jobs:
         env:
           ROKU_DEV_TARGET: ${{ secrets.ROKU_DEV_TARGET }}
           ROKU_DEV_PASS: ${{ secrets.ROKU_DEV_PASS }}
-        run: npm run collect-coverage
-
-      # 5b. Fix coverage file paths (.brs → .bs, remove generated files)
-      - name: Fix coverage file paths
-        run: node scripts/fix-coverage-paths.js
+        run: npm run coverage
 
       # 6. Upload coverage to Coveralls
       - name: Upload coverage to Coveralls
