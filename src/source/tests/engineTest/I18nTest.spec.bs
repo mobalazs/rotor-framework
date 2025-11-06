@@ -16,7 +16,7 @@ namespace tests
 
             ' Initialize framework with en_US locale
             m.fwInstance = new Rotor.Framework()
-            m.fwInstance.i18nService.setLocal("en_US")
+            m.fwInstance.i18nService.setLocale("en_US")
             m.fwInstance.i18nService.setL10n(m.translations.en_US)
 
             ' Render test template
@@ -156,7 +156,7 @@ namespace tests
         function _()
             ' Given: Framework initialized with en_US
             ' When: Switch to fr_FR and re-render
-            m.fwInstance.i18nService.setLocal("fr_FR")
+            m.fwInstance.i18nService.setLocale("fr_FR")
             m.fwInstance.i18nService.setL10n(m.translations.fr_FR)
 
             ' Re-render to apply new translations
@@ -176,7 +176,7 @@ namespace tests
         function _()
             ' Given: Framework with locale widget
             ' When: Switch locale
-            m.fwInstance.i18nService.setLocal("fr_FR")
+            m.fwInstance.i18nService.setLocale("fr_FR")
             m.fwInstance.i18nService.setL10n(m.translations.fr_FR)
 
             ' Re-render
@@ -189,6 +189,21 @@ namespace tests
             m.assertNotInvalid(widget?.viewModelState)
             ' TODO: Dynamic refresh on local | l10n change
             ' m.assertEqual(widget?.viewModelState?.locale, "fr_FR")
+        end function
+
+        @it("getLocale returns current locale")
+        function _()
+            ' Given: Framework initialized with en_US
+            ' Then: getLocale should return en_US
+            locale = m.fwInstance.i18nService.getLocale()
+            m.assertEqual(locale, "en_US")
+
+            ' When: Switch to fr_FR
+            m.fwInstance.i18nService.setLocale("fr_FR")
+
+            ' Then: getLocale should return fr_FR
+            locale = m.fwInstance.i18nService.getLocale()
+            m.assertEqual(locale, "fr_FR")
         end function
 
         ' ======================================================================
@@ -224,8 +239,245 @@ namespace tests
             ' m.assertEqual(widget?.viewModelState.l10n?.title, "Modified Title")
         end function
 
+        @it("getL10n with invalid keyPath returns full l10n")
+        function _()
+            ' Given: Framework with translations
+            ' When: Get l10n with invalid keyPath
+            l10n = m.fwInstance.i18nService.getL10n(invalid)
+
+            ' Then: Should return full l10n object
+            m.assertNotInvalid(l10n)
+            m.assertNotInvalid(l10n.app)
+            m.assertNotInvalid(l10n.menu)
+            m.assertNotInvalid(l10n.messages)
+        end function
+
+        @it("getL10n with single keyPath returns specific section")
+        function _()
+            ' Given: Framework with translations
+            ' When: Get l10n with keyPath "app"
+            l10n = m.fwInstance.i18nService.getL10n("app")
+
+            ' Then: Should return wrapped app section (lastKeyAsProp wraps it)
+            m.assertNotInvalid(l10n)
+            ' getValueByKeyPath with lastKeyAsProp=true wraps the value with key
+            m.assertEqual(l10n.Count(), 1)
+            m.assertNotInvalid(l10n.app)
+            m.assertEqual(l10n.app.title, "Test Application")
+            m.assertEqual(l10n.app.subtitle, "Integration Test")
+        end function
+
+        @it("getL10n with multiple keyPaths returns merged data")
+        function _()
+            ' Given: Framework with translations
+            ' When: Get l10n with multiple keyPaths ["app", "menu"]
+            l10n = m.fwInstance.i18nService.getL10n(["app", "menu"])
+
+            ' Then: Should return merged data from both sections
+            m.assertNotInvalid(l10n)
+            ' Both sections are wrapped and merged via append
+            m.assertNotInvalid(l10n.app)
+            m.assertNotInvalid(l10n.menu)
+            m.assertEqual(l10n.app.title, "Test Application")
+            m.assertEqual(l10n.app.subtitle, "Integration Test")
+            m.assertEqual(l10n.menu.home, "Home")
+            m.assertEqual(l10n.menu.settings, "Settings")
+            m.assertEqual(l10n.menu.about, "About")
+        end function
+
+        @it("cache is used for repeated keyPath requests")
+        function _()
+            ' Given: Framework with translations
+            ' When: Get l10n with same keyPath twice
+            l10n1 = m.fwInstance.i18nService.getL10n("app")
+
+            ' Cache should have entry for "app"
+            m.assertTrue(m.fwInstance.i18nService.cache.DoesExist("app"))
+
+            ' Get same keyPath again
+            l10n2 = m.fwInstance.i18nService.getL10n("app")
+
+            ' Then: Should return same data (from cache)
+            m.assertEqual(l10n1.app.title, l10n2.app.title)
+            m.assertEqual(l10n1.app.subtitle, l10n2.app.subtitle)
+        end function
+
+        @it("refreshCache updates cached values when language changes")
+        function _()
+            ' Given: Framework with English translations and cached "app" key
+            l10nEn = m.fwInstance.i18nService.getL10n("app")
+            m.assertEqual(l10nEn.app.title, "Test Application")
+            m.assertEqual(l10nEn.app.subtitle, "Integration Test")
+
+            ' Cache should have entry for "app"
+            m.assertTrue(m.fwInstance.i18nService.cache.DoesExist("app"))
+
+            ' When: Switch to French
+            m.fwInstance.i18nService.setLocale("fr_FR")
+            m.fwInstance.i18nService.setL10n(m.translations.fr_FR)
+
+            ' Then: Cache should be refreshed with French values
+            l10nFr = m.fwInstance.i18nService.getL10n("app")
+            m.assertEqual(l10nFr.app.title, "Application de test")
+            m.assertEqual(l10nFr.app.subtitle, "Test d'intégration")
+        end function
+
         ' ======================================================================
-        ' TEST SUITE 6: Edge Cases
+        ' TEST SUITE 6: RTL (Right-to-Left) Detection
+        ' ======================================================================
+
+        @describe("RTL detection")
+
+        @it("detects RTL for Arabic locale")
+        function _()
+            ' Given: Framework with Arabic locale
+            m.fwInstance.i18nService.setLocale("ar_SA")
+
+            ' Then: isRTL should be true
+            m.assertTrue(m.fwInstance.i18nService.getIsRtl())
+        end function
+
+        @it("detects RTL for Hebrew locale")
+        function _()
+            ' Given: Framework with Hebrew locale
+            m.fwInstance.i18nService.setLocale("he_IL")
+
+            ' Then: isRTL should be true
+            m.assertTrue(m.fwInstance.i18nService.getIsRtl())
+        end function
+
+        @it("detects RTL for Farsi locale")
+        function _()
+            ' Given: Framework with Farsi locale
+            m.fwInstance.i18nService.setLocale("fa_IR")
+
+            ' Then: isRTL should be true
+            m.assertTrue(m.fwInstance.i18nService.getIsRtl())
+        end function
+
+        @it("detects RTL for Urdu locale")
+        function _()
+            ' Given: Framework with Urdu locale
+            m.fwInstance.i18nService.setLocale("ur_PK")
+
+            ' Then: isRTL should be true
+            m.assertTrue(m.fwInstance.i18nService.getIsRtl())
+        end function
+
+        @it("does not detect RTL for English locale")
+        function _()
+            ' Given: Framework with English locale
+            m.fwInstance.i18nService.setLocale("en_US")
+
+            ' Then: isRTL should be false
+            m.assertFalse(m.fwInstance.i18nService.getIsRtl())
+        end function
+
+        @it("does not detect RTL for French locale")
+        function _()
+            ' Given: Framework with French locale
+            m.fwInstance.i18nService.setLocale("fr_FR")
+
+            ' Then: isRTL should be false
+            m.assertFalse(m.fwInstance.i18nService.getIsRtl())
+        end function
+
+        @it("handles invalid locale for RTL detection")
+        function _()
+            ' Given: Framework with invalid locale
+            m.fwInstance.i18nService.setLocale("")
+
+            ' Then: isRTL should be false
+            m.assertFalse(m.fwInstance.i18nService.getIsRtl())
+        end function
+
+        ' ======================================================================
+        ' TEST SUITE 7: extendL10n Method
+        ' ======================================================================
+
+        @describe("extendL10n method")
+
+        @it("extends existing l10n data with new keys")
+        function _()
+            ' Given: Framework with initial translations
+            widget = m.fwInstance.getWidget("fullL10nWidget")
+            m.assertNotInvalid(widget?.viewModelState.l10n?.app)
+            m.assertInvalid(widget?.viewModelState.l10n?.newSection)
+
+            ' When: Extend l10n with new section
+            newData = {
+                newSection: {
+                    key1: "New Value 1",
+                    key2: "New Value 2"
+                }
+            }
+            m.fwInstance.i18nService.extendL10n(newData)
+
+            ' Re-render to apply changes
+            template = getI18nTestTemplate()
+            m.fwInstance.render(template)
+
+            ' Then: Should have both original and new data
+            widget = m.fwInstance.getWidget("fullL10nWidget")
+            m.assertNotInvalid(widget?.viewModelState.l10n?.app)
+            m.assertNotInvalid(widget?.viewModelState.l10n?.newSection)
+        end function
+
+        @it("extends existing l10n data by merging nested objects")
+        function _()
+            ' Given: Framework with app translations
+            originalTitle = m.fwInstance.i18nService.l10n?.app?.title
+
+            ' When: Extend app section with new key
+            newData = {
+                app: {
+                    version: "1.0.0"
+                }
+            }
+            m.fwInstance.i18nService.extendL10n(newData)
+
+            ' Then: Should preserve original keys and add new ones
+            m.assertEqual(m.fwInstance.i18nService.l10n?.app?.title, originalTitle)
+            m.assertEqual(m.fwInstance.i18nService.l10n?.app?.version, "1.0.0")
+        end function
+
+        ' ======================================================================
+        ' TEST SUITE 8: Destroy Method
+        ' ======================================================================
+
+        @describe("destroy method")
+
+        @it("clears cache on destroy")
+        function _()
+            ' Given: Framework with cached data
+            widget = m.fwInstance.getWidget("appTitleWidget")
+            m.assertNotInvalid(widget)
+
+            ' Cache should have entries
+            cacheSize = m.fwInstance.i18nService.cache.Count()
+
+            ' When: Destroy i18n service
+            m.fwInstance.i18nService.destroy()
+
+            ' Then: Cache should be empty
+            m.assertEqual(m.fwInstance.i18nService.cache.Count(), 0)
+        end function
+
+        @it("clears l10n data on destroy")
+        function _()
+            ' Given: Framework with l10n data
+            m.assertNotInvalid(m.fwInstance.i18nService.l10n)
+            m.assertNotEqual(m.fwInstance.i18nService.l10n.Count(), 0)
+
+            ' When: Destroy i18n service
+            m.fwInstance.i18nService.destroy()
+
+            ' Then: l10n should be empty
+            m.assertEqual(m.fwInstance.i18nService.l10n.Count(), 0)
+        end function
+
+        ' ======================================================================
+        ' TEST SUITE 9: Edge Cases
         ' ======================================================================
 
         @describe("edge cases")

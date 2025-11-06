@@ -30,11 +30,12 @@ namespace Rotor.ViewBuilder
         ' @param {Rotor.Framework} frameworkInstance - Framework instance reference
         '
         sub init(frameworkInstance as Rotor.Framework)
-            m.locale = "en_US"
-            m.isRTL = m.detectRTL(m.locale)
-            ' m.locale = frameworkInstance.getInfo().device.currentLocale
-            ' m.frameworkInstance = frameworkInstance
+            ' Set current locale from framework device info
+            currentLocale = frameworkInstance.getInfo().device.currentLocale
+            ' Store rootWidget reference
             m.rootWidget = frameworkInstance.getRootWidget()
+            ' Store current locale
+            m.setLocale(currentLocale)
         end sub
 
         ' ---------------------------------------------------------------------
@@ -109,7 +110,7 @@ namespace Rotor.ViewBuilder
         ' destroy - Cleans up cache and l10n data
         '
         sub destroy()
-            ' m.frameworkInstance = invalid
+            m.rootWidget = invalid
             m.cache.Clear()
             m.l10n.Clear()
         end sub
@@ -120,7 +121,6 @@ namespace Rotor.ViewBuilder
         ' @private
         '
         sub refreshCache()
-            m.cache.Clear()
             for each cacheKey in m.cache
                 m.cache[cacheKey] = Rotor.Utils.getCloneByKeyPath(m.l10n, cacheKey)
             end for
