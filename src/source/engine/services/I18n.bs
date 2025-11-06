@@ -34,7 +34,7 @@ namespace Rotor.ViewBuilder
             m.isRTL = m.detectRTL(m.locale)
             ' m.locale = frameworkInstance.getInfo().device.currentLocale
             ' m.frameworkInstance = frameworkInstance
-            rootWidget = m.frameworkInstance.getRootWidget()
+            m.rootWidget = frameworkInstance.getRootWidget()
         end sub
 
         ' ---------------------------------------------------------------------
