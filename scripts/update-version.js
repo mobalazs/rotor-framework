@@ -2,11 +2,16 @@ const fs = require('fs');
 const path = require('path');
 
 // Get version from command line argument or package.json
-const version = process.argv[2] || require('../package.json').version;
+let version = process.argv[2] || require('../package.json').version;
+
+// Strip 'v' prefix if present (e.g., "v0.2.3" -> "0.2.3")
+if (version.startsWith('v')) {
+    version = version.slice(1);
+}
 
 // Validate version format (e.g., "0.2.3")
 if (!/^\d+\.\d+\.\d+$/.test(version)) {
-    console.error('Invalid version format. Expected: X.Y.Z (e.g., 0.2.3)');
+    console.error('Invalid version format. Expected: X.Y.Z or vX.Y.Z (e.g., 0.2.3 or v0.2.3)');
     process.exit(1);
 }
 
