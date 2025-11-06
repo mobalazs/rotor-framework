@@ -24,9 +24,7 @@ npm run lint               # Run BSLint on source code
 ### Testing
 ```bash
 npm run build-tests        # Build with Rooibos test framework enabled
-npm run coverage           # Collect and process code coverage
-npm run collect-coverage   # Extract coverage data
-npm run fix-coverage       # Fix coverage file paths
+npm run coverage           # Collect coverage data and fix paths
 ```
 
 **Note:** Tests use the Rooibos test framework. Test configuration is in `bsconfig-tests.json` with tags: `!integration`, `!deprecated`, `!fixme`.
