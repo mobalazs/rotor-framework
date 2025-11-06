@@ -1,15 +1,12 @@
-name: Build, Lint, Coverage & Release
+name: Release
 
 on:
   push:
-    branches: [ main ]          # ← badge frissítés
     tags:
-      - 'v*.*.*'                # ← release
-  pull_request:                 # ← PR patch coverage
-    branches: [ main ]
+      - 'v*.*.*' # release on version tags
 
 jobs:
-  build-and-release:
+  release:
     runs-on: self-hosted
     permissions:
       contents: write
@@ -19,39 +16,46 @@ jobs:
       # 1. Checkout code
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      # 2. Setup Node.js
+      # 2. Setup Git user
+      - name: Setup Git user
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      # 3. Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
 
-      # 3. Install dependencies
+      # 4. Install dependencies
       - name: Install dependencies
         run: npm ci
 
-      # 4. Lint code
-      - name: Lint code
-        run: npm run lint
+      # 5. Extract version from tag and update version files
+      - name: Update version from tag
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          VERSION=${TAG_NAME#v}
+          echo "Tag: $TAG_NAME"
+          echo "Version: $VERSION"
+          node scripts/update-version.js $VERSION
 
-      # 5. Run tests and collect coverage
-      - name: Run tests and collect coverage
-        env:
-          ROKU_DEV_TARGET: ${{ secrets.ROKU_DEV_TARGET }}
-          ROKU_DEV_PASS: ${{ secrets.ROKU_DEV_PASS }}
-        run: npm run coverage
-
-      # 6. Upload coverage to Coveralls
-      - name: Upload coverage to Coveralls
-        uses: coverallsapp/github-action@v2
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          file: coverage.lcov
-          base-path: src
+      # 6. Commit and push version changes
+      - name: Commit and push version changes
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          VERSION=${TAG_NAME#v}
+          git add package.json src/manifest src/source/RotorFramework.bs src/source/RotorFrameworkTask.bs README.md
+          git diff --staged --quiet || git commit -m "chore: update version to $VERSION [skip ci]"
+          git push origin HEAD:main
 
       # 7. Create source package (ZIP with raw .bs files)
       - name: Create source package
-        if: startsWith(github.ref, 'refs/tags/')
         run: |
           rm -f out/rotor-framework.zip
           mkdir -p out/rotor-framework-package
@@ -67,7 +71,6 @@ jobs:
 
       # 8. Create GitHub Release and upload package
       - name: Create Release
-        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           files: out/rotor-framework.zip
@@ -76,16 +79,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # 9. Build source package for npm
       - name: Build source package for npm
-        if: startsWith(github.ref, 'refs/tags/')
         run: |
           npm ci
           npm run build
           npm pack
           ls -lh *.tgz
 
+      # 10. Publish to npm
       - name: Publish to npm
-        if: startsWith(github.ref, 'refs/tags/')
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
