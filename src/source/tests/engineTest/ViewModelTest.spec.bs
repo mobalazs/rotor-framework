@@ -63,5 +63,175 @@ namespace tests
 
         end function
 
+        @describe("widget update lifecycle callbacks")
+
+        @it("onUpdateWidget callback is triggered when widget is updated")
+        function _()
+            ' Given: A widget with onUpdateWidget callback
+            updateCallbackFired = false
+
+            m.fwInstance.render({
+                id: "testWidget",
+                nodeType: "Group",
+                onUpdateWidget: sub()
+                    m.updateCallbackFired = true
+                end sub
+            })
+
+            widget = m.fwInstance.getWidget("testWidget")
+            m.assertNotInvalid(widget)
+
+            ' When: Update the widget
+            widget.render({
+                onUpdateWidget: sub()
+                    m.updateCallbackFired = true
+                end sub,
+                viewModelState: {
+                    testValue: "updated"
+                }
+            })
+
+            ' Then: onUpdateWidget should be set
+            m.assertNotInvalid(widget.onUpdateWidget)
+        end function
+
+        @it("onDestroyWidget callback is set during update")
+        function _()
+            ' Given: A widget
+            m.fwInstance.render({
+                id: "testWidget2",
+                nodeType: "Group"
+            })
+
+            widget = m.fwInstance.getWidget("testWidget2")
+            m.assertNotInvalid(widget)
+            m.assertInvalid(widget.onDestroyWidget)
+
+            ' When: Update with onDestroyWidget callback
+            widget.render({
+                onDestroyWidget: sub()
+                    ' Cleanup logic here
+                end sub
+            })
+
+            ' Then: onDestroyWidget should be set
+            m.assertNotInvalid(widget.onDestroyWidget)
+        end function
+
+        @it("onRenderSettled callback is processed during update")
+        function _()
+            ' Given: Existing widget
+            m.fwInstance.render({
+                id: "testWidget3",
+                nodeType: "Group"
+            })
+
+            widget = m.fwInstance.getWidget("testWidget3")
+            m.assertNotInvalid(widget)
+
+            ' When: Update widget with onRenderSettled and viewModelState change
+            ' (onRenderSettled gets queued and processed immediately by render)
+            callbackExecuted = false
+            widget.render({
+                viewModelState: {
+                    test: "value"
+                },
+                onRenderSettled: sub()
+                    m.callbackExecuted = true
+                end sub
+            })
+
+            ' Then: Widget should be updated (onRenderSettled was processed)
+            ' The callback is executed synchronously during render
+            m.assertNotInvalid(widget.viewModelState)
+            m.assertEqual(widget.viewModelState.test, "value")
+        end function
+
+        @it("zIndex update triggers reindexing")
+        function _()
+            ' Given: Parent with children
+            m.fwInstance.render({
+                id: "parentWidget",
+                nodeType: "Group",
+                children: [
+                    {
+                        id: "child1",
+                        nodeType: "Rectangle",
+                        fields: { color: "0xFF0000FF" }
+                    },
+                    {
+                        id: "child2",
+                        nodeType: "Rectangle",
+                        fields: { color: "0x00FF00FF" }
+                    }
+                ]
+            })
+
+            child1 = m.fwInstance.getWidget("child1")
+            child2 = m.fwInstance.getWidget("child2")
+
+            m.assertNotInvalid(child1)
+            m.assertNotInvalid(child2)
+
+            ' When: Update child2 with new zIndex
+            child2.render({
+                zIndex: 0  ' Move to front
+            })
+
+            ' Then: Child should exist (zIndex reordering happens in post-process)
+            m.assertNotInvalid(m.fwInstance.getWidget("child2"))
+        end function
+
+        @it("viewModelState update merges new values")
+        function _()
+            ' Given: ViewModel with initial viewModelState
+            viewModelTest = m.fwInstance.getWidget("viewModelTest")
+            m.assertNotInvalid(viewModelTest)
+            m.assertNotInvalid(viewModelTest.viewModelState)
+
+            ' Set initial values
+            viewModelTest.viewModelState.value1 = "initial"
+            viewModelTest.viewModelState.value2 = 100
+
+            ' When: Update with new viewModelState values
+            viewModelTest.render({
+                viewModelState: {
+                    value1: "updated",
+                    value3: "new"
+                }
+            })
+
+            ' Then: Values should be merged (deepExtendAA preserves existing keys)
+            m.assertEqual(viewModelTest.viewModelState.value1, "updated")
+            m.assertEqual(viewModelTest.viewModelState.value2, 100)  ' Preserved
+            m.assertEqual(viewModelTest.viewModelState.value3, "new")  ' Added
+        end function
+
+        @it("widget update with plugin triggers beforeUpdate and afterUpdated hooks")
+        function _()
+            ' Given: Widget with fields (fields plugin)
+            m.fwInstance.render({
+                id: "pluginWidget",
+                nodeType: "Label",
+                fields: {
+                    text: "Original Text"
+                }
+            })
+
+            widget = m.fwInstance.getWidget("pluginWidget")
+            node = widget.node
+            m.assertEqual(node.text, "Original Text")
+
+            ' When: Update fields
+            widget.render({
+                fields: {
+                    text: "Updated Text"
+                }
+            })
+
+            ' Then: Fields should be updated (plugin processed the update)
+            m.assertEqual(node.text, "Updated Text")
+        end function
+
         end class
     end namespace

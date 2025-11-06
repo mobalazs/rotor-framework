@@ -382,7 +382,7 @@ namespace Rotor
             #if debug
                 print `[DEVICEINFO] Graphics Platform: ${m.info.device.graphicsPlatform}`
                 print `[DEVICEINFO] modelDisplayName: ${m.info.device.modelDisplayName}`
-                print `[DEVICEINFO] OSVersion: ${m.info.device.OSVersion}`
+                print `[DEVICEINFO] OSVersion: ${m.info.device.OSVersion.major}.${m.info.device.OSVersion.minor}.${m.info.device.OSVersion.revision}.${m.info.device.OSVersion.build}`
             #end if
         end sub
 

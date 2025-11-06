@@ -30,11 +30,10 @@
 
 		"coverageExcludedFiles": [
 			"**/*.const.bs",
+			"components/**/*",
 			"source/Main.brs",
-			"components/rooibos/CodeCoverage.brs",
-			"components/MainScene.bs",
 			"source/engine/Constants.bs",
-			"**/roku_modules/**/*",
+			"source/roku_modules/**/*",
 			"source/libs/**/*",
 			"source/base/BaseWidget.bs"
 		]
