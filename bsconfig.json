@@ -10,6 +10,7 @@
 	"createPackage": false,
 	"emitDefinitions": true,
 	"sourceMap": true,
+	"autoImportComponentScript": true,
 
 	"plugins": [
 		"@rokucommunity/bslint",
@@ -20,10 +21,9 @@
 		"source/**/*",
 		"components/**/*",
 		"manifest",
-		"assets/**/*"
+		"assets/**/*",
+		"!source/libs/**/*.spec.bs"
 	],
-
-	"autoImportComponentScript": true,
 
 	"diagnosticFilters": [
 		{
