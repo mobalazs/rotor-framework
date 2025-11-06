@@ -90,7 +90,7 @@ You can find [🌱](./docs/ai/readme.opt.yaml) symbols in all documentation page
 
 ## 📚 Learn More
 
-![Version](https://img.shields.io/badge/version-v0.3.4-blue?label=Documents%20TAG)
+![Version](https://img.shields.io/badge/version-v0.3.5-blue?label=Documents%20TAG)
 
 ### Framework Core
 
