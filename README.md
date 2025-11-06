@@ -1,6 +1,6 @@
 # Rotor Framework
 
-[![build status](https://img.shields.io/github/actions/workflow/status/mobalazs/rotor-framework/publish.yml?branch=main&logo=github&label=build)](https://github.com/mobalazs/rotor-framework/actions/workflows/publish.yml)
+[![build status](https://img.shields.io/github/actions/workflow/status/mobalazs/rotor-framework/main-workflow.yml?branch=main&logo=github&label=build)](https://github.com/mobalazs/rotor-framework/actions/workflows/main-workflow.yml)
 [![Coverage Status](https://img.shields.io/coveralls/github/mobalazs/rotor-framework/main?logo=coveralls&logoColor=white&color=brightgreen)](https://coveralls.io/github/mobalazs/rotor-framework?branch=main)
 [![npm version](https://img.shields.io/npm/v/rotor-framework.svg?logo=npm)](https://www.npmjs.com/package/rotor-framework)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square&logo=scale&logoColor=white)](LICENSE)
