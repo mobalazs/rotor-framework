@@ -18,6 +18,7 @@ namespace Rotor.ViewBuilder
         cache = {}
         locale as string
         isRTL = false
+        rootWidget as Rotor.Widget
         frameworkInstance as Rotor.Framework
 
         ' RTL language codes
@@ -33,16 +34,20 @@ namespace Rotor.ViewBuilder
             m.isRTL = m.detectRTL(m.locale)
             ' m.locale = frameworkInstance.getInfo().device.currentLocale
             ' m.frameworkInstance = frameworkInstance
+            rootWidget = m.frameworkInstance.getRootWidget()
         end sub
 
         ' ---------------------------------------------------------------------
-        ' setLocal - Sets the current locale and updates RTL flag
+        ' setLocale - Sets the current locale and updates RTL flag
         '
         ' @param {string} locale - Locale string (e.g., "en_US", "ar_SA")
         '
-        sub setLocal(locale as string)
+        sub setLocale(locale as string)
             m.locale = locale
             m.isRTL = m.detectRTL(locale)
+            ' update root widget's locale and isRTL
+            m.rootWidget.viewModelState.locale = m.locale
+            m.rootWidget.viewModelState.isRTL = m.isRTL
         end sub
 
         ' ---------------------------------------------------------------------
@@ -82,6 +87,10 @@ namespace Rotor.ViewBuilder
         '
         sub setL10n(l10n as object)
             m.l10n = l10n
+
+            ' Update root widget's l10n reference
+            m.rootWidget.viewModelState.l10n = m.l10n
+
             m.refreshCache()
         end sub
 
@@ -92,6 +101,7 @@ namespace Rotor.ViewBuilder
         '
         sub extendL10n(l10n as object)
             Rotor.Utils.deepExtendAA(m.l10n, l10n)
+            m.rootWidget.viewModelState.l10n = m.l10n
             m.refreshCache()
         end sub
 
