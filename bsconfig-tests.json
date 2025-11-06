@@ -9,8 +9,7 @@
 
 	"plugins": [
 		"@rokucommunity/bslint",
-		"rooibos-roku",
-		"./scripts/plugins/manifest-modifier.js"
+		"rooibos-roku"
 	],
 
 	"rooibos": {
