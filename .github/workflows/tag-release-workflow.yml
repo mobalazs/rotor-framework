@@ -36,25 +36,16 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # 5. Extract version from tag and update version files
-      - name: Update version from tag
+      # 5. Extract version from tag for display
+      - name: Extract version from tag
         run: |
           TAG_NAME=${GITHUB_REF#refs/tags/}
           VERSION=${TAG_NAME#v}
           echo "Tag: $TAG_NAME"
           echo "Version: $VERSION"
-          node scripts/update-version.js $VERSION
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
 
-      # 6. Commit and push version changes
-      - name: Commit and push version changes
-        run: |
-          TAG_NAME=${GITHUB_REF#refs/tags/}
-          VERSION=${TAG_NAME#v}
-          git add package.json src/manifest src/source/RotorFramework.bs src/source/RotorFrameworkTask.bs README.md
-          git diff --staged --quiet || git commit -m "chore: update version to $VERSION [skip ci]"
-          git push origin HEAD:main
-
-      # 7. Create source package (ZIP with raw .bs files)
+      # 6. Create source package (ZIP with raw .bs files)
       - name: Create source package
         run: |
           rm -f out/rotor-framework.zip
@@ -69,7 +60,7 @@ jobs:
           cd ../..
           rm -rf out/rotor-framework-package
 
-      # 8. Create GitHub Release and upload package
+      # 7. Create GitHub Release and upload package
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
@@ -79,7 +70,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # 9. Build source package for npm
+      # 8. Build source package for npm
       - name: Build source package for npm
         run: |
           npm ci
@@ -87,7 +78,7 @@ jobs:
           npm pack
           ls -lh *.tgz
 
-      # 10. Publish to npm
+      # 9. Publish to npm
       - name: Publish to npm
         run: npm publish --access public
         env:

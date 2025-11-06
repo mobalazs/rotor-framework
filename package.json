@@ -9,7 +9,10 @@
 		"build-tests": "bsc --project bsconfig-tests.json --createPackage=false",
 		"coverage": "node scripts/collect-coverage.js",
 		"lint": "npx bslint --project bsconfig.json  --lintConfig bslint.json",
-		"update-version": "node scripts/update-version.js"
+		"update-version": "node scripts/update-version.js",
+		"release:patch": "node scripts/release.js patch",
+		"release:minor": "node scripts/release.js minor",
+		"release:major": "node scripts/release.js major"
 	},
 	"files": [
 		"src/source/base/**/*",
