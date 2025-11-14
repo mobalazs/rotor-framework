@@ -34,6 +34,7 @@ if (!rokuHost || !rokuPassword) {
 const projectRoot = path.join(__dirname, '..');
 const outputFile = path.join(projectRoot, 'coverage.lcov');
 const debugLogFile = path.join(projectRoot, 'debug.log');
+const srcManifestPath = path.join(projectRoot, 'src', 'manifest');
 
 // Flag to track if we're inside the coverage section
 let isCapturing = false;
@@ -47,7 +48,22 @@ const debugLog = [];
 console.log('Starting build and deploy to Roku device...');
 console.log(`Target: ${rokuHost}`);
 
-// Spawn the bsc process with deploy options
+// Step 1: Backup and modify src/manifest
+let originalManifest = null;
+if (fs.existsSync(srcManifestPath)) {
+  originalManifest = fs.readFileSync(srcManifestPath, 'utf8');
+  const modifiedManifest = originalManifest.replace(
+    /^bs_const=.*$/m,
+    'bs_const=debug=true;unittest=true'
+  );
+  fs.writeFileSync(srcManifestPath, modifiedManifest, 'utf8');
+  console.log('✓ Modified src/manifest: bs_const=debug=true;unittest=true');
+} else {
+  console.error('Error: src/manifest not found!');
+  process.exit(1);
+}
+
+// Step 2: Spawn the bsc process with deploy options
 const buildProcess = spawn('npx', [
   'bsc',
   '--project', 'bsconfig-tests.json',
@@ -73,6 +89,12 @@ buildProcess.stderr.on('data', (data) => {
 
 // Handle process exit
 buildProcess.on('close', (code) => {
+  // Restore original manifest
+  if (originalManifest && fs.existsSync(srcManifestPath)) {
+    fs.writeFileSync(srcManifestPath, originalManifest, 'utf8');
+    console.log('✓ Restored original src/manifest');
+  }
+
   if (code !== 0) {
     console.error(`\nBuild/Deploy failed with code: ${code}`);
     process.exit(code);
@@ -148,18 +170,29 @@ buildProcess.on('close', (code) => {
 // Handle process errors
 buildProcess.on('error', (error) => {
   console.error('Failed to start process:', error);
+  restoreManifest();
   process.exit(1);
 });
+
+// Helper function to restore manifest
+function restoreManifest() {
+  if (originalManifest && fs.existsSync(srcManifestPath)) {
+    fs.writeFileSync(srcManifestPath, originalManifest, 'utf8');
+    console.log('✓ Restored original src/manifest');
+  }
+}
 
 // Handle script termination
 process.on('SIGINT', () => {
   console.log('\nTerminating...');
+  restoreManifest();
   buildProcess.kill('SIGINT');
   process.exit(0);
 });
 
 process.on('SIGTERM', () => {
   console.log('\nTerminating...');
+  restoreManifest();
   buildProcess.kill('SIGTERM');
   process.exit(0);
 });
