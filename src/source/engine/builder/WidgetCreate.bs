@@ -133,6 +133,24 @@ namespace Rotor.ViewBuilder
             return m.getFrameworkInstance().dispatcherProvider.getFacade(dispatcherId, m)
         end function
 
+        ' Dispatch shortcut - Dispatches an event via specific dispatcher'
+        widget.dispatchTo = sub(dispatcherId as string, dispatchObject as object)
+            dispatcherFaced = m.getDispatcher(dispatcherId)
+            dispatcherFaced.dispatch(dispatchObject)
+        end sub
+
+        ' Listen shortcut - Listen to specific dispatcher'
+        widget.addListenerTo = sub(dispatcherId as string, addListenerObject as object)
+            dispatcherFaced = m.getDispatcher(dispatcherId)
+            dispatcherFaced.addListener(addListenerObject)
+        end sub
+
+        ' Listen shortcut - Listen to specific dispatcher'
+        widget.getStateFrom = function(dispatcherId as string)
+            dispatcherFaced = m.getDispatcher(dispatcherId)
+            return dispatcherFaced.getState()
+        end function
+
         ' animator - Gets animator factory by ID *'
         widget.animator = function(animatorId) as object
             return m.getFrameworkInstance().animatorProvider.getFactory(animatorId, m)

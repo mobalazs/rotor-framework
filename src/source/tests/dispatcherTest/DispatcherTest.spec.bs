@@ -17,7 +17,6 @@ namespace tests
             m.fwInstance = new Rotor.Framework()
             ' Create fooDispatcher instance (owned by the render thread)
             test.createFooDispatcher()
-            m.fooDispatcher = m.fwInstance.getDispatcher("fooDispatcher")
             ' Render
             template = getDispatcherTestTemplate()
             m.fwInstance.render(template)
@@ -33,6 +32,7 @@ namespace tests
 
         @it("propagates render-thread dispatch to ancestor view")
         function _()
+            m.fooDispatcher = m.fwInstance.getDispatcher("fooDispatcher")
             rootWidget = m.fwInstance.getRootWidget()
             ancestorWidget = m.fwInstance.getWidget("ancestorViewModel")
             descendantWidget = m.fwInstance.getWidget("descendantViewModel")
@@ -48,7 +48,7 @@ namespace tests
             hitCounter = m.fooDispatcher.getState().hitCounter
             m.assertEqual(hitCounter, 1)
 
-            ' VAlidate dispatch directly + validate middleware
+            ' Validate dispatch directly + validate middleware
             m.fooDispatcher.dispatch({
                 type: IntentTypes.BLOCK_BY_MIDDLEWARE,
                 payload: {
@@ -59,6 +59,43 @@ namespace tests
             ' state.hitCounter should not change
             hitCounter = m.fooDispatcher.getState().hitCounter
             m.assertEqual(hitCounter, 1, "state.hitCounter should not change when IntentTypes.BLOCK_BY_MIDDLEWARE")
+
+        end function
+
+        @describe("widget dispatcher shortcuts")
+
+        @it("addListener and dispatch shortcuts to dispatcher")
+        function _()
+            ' Create a widget
+            ancestorWidget = m.fwInstance.getWidget("ancestorViewModel")
+
+            ancestorWidget.listenerCallbackFired = false
+            ancestorWidget.listenerCallbackWidthStateFired = false
+
+            ' shortcut addListener using widget
+            ancestorWidget.addListenerTo("fooDispatcher", {
+                callback: sub()
+                    m.listenerCallbackFired = true
+                end sub,
+                callbackWithState: sub(state)
+                    m.listenerCallbackWidthStateFired = true
+                end sub,
+                once: true
+            })
+
+            ' shortcut dispatch using widget
+            ancestorWidget.dispatchTo("fooDispatcher", {
+                type: IntentTypes.UPDATE_FOO,
+                payload: {
+                    foo: "baz2"
+                }
+            })
+
+            fooState = ancestorWidget.getStateFrom("fooDispatcher")
+            m.assertEqual(fooState.foo, "baz2")
+
+            m.assertTrue(ancestorWidget.listenerCallbackFired)
+            m.assertTrue(ancestorWidget.listenerCallbackWidthStateFired)
 
         end function
 
