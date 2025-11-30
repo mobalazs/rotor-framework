@@ -1,0 +1,31 @@
+This project includes the following third-party assets and libraries:
+
+---------------------------------------------------------------------
+roku-animate (original work by HaystackTV Inc.)
+https://github.com/haystacknews/roku-animate
+
+Licensed under the MIT License.
+Copyright (c) HaystackTV Inc.
+
+This project includes a modified version of this library.
+Modifications made by Balázs Molnár (mobalazs).
+Source of modifications:
+https://github.com/mobalazs/roku-animate-patched/tree/patches
+
+The original MIT license terms apply to both the original and modified versions.
+
+---------------------------------------------------------------------
+rooibos
+https://github.com/rokucommunity/rooibos
+
+Rooibos is a simple, flexible, fun BrighterScript test framework for Roku apps.
+This project uses Rooibos for unit testing.
+
+---------------------------------------------------------------------
+brighterscript
+https://github.com/rokucommunity/brighterscript
+
+BrighterScript is a superset of Roku's BrightScript language.
+This project is written in BrighterScript.
+
+---------------------------------------------------------------------

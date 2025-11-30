@@ -184,9 +184,9 @@ namespace Rotor
                             data = msg.getData()
                             extraInfo = msg.GetInfo() ' Info AA passed during observeFieldScoped
 
-                            if extraInfo?.asyncReducerCallbackId <> invalid and m.dispatcherProvider.get(extraInfo?.asyncReducerCallbackId) <> invalid
+                            if extraInfo?.dispatcherId <> invalid and m.dispatcherProvider.get(extraInfo?.dispatcherId) <> invalid
                                 ' Catch by dispatcherId
-                                m.dispatcherProvider.get(extraInfo?.asyncReducerCallbackId).asyncReducerCallback(msg)
+                                m.dispatcherProvider.get(extraInfo?.dispatcherId).asyncReducerCallback(msg)
                             else
                                 dispatcherId = fieldId
                                 dispatcherInstance = m.dispatcherProvider.get(dispatcherId)
