@@ -4,7 +4,7 @@
 ' ▐▛▀▚▖▐▌ ▐▌ █ ▐▌ ▐▌▐▛▀▚▖    ▐▛▀▀▘▐▛▀▚▖▐▛▀▜▌▐▌  ▐▌▐▛▀▀▘▐▌ ▐▌▐▌ ▐▌▐▛▀▚▖▐▛▚▖
 ' ▐▌ ▐▌▝▚▄▞▘ █ ▝▚▄▞▘▐▌ ▐▌    ▐▌   ▐▌ ▐▌▐▌ ▐▌▐▌  ▐▌▐▙▄▄▖▐▙█▟▌▝▚▄▞▘▐▌ ▐▌▐▌ ▐▌
 ' Rotor Framework™
-' Version 0.3.7
+' Version 0.4.0
 ' © 2025 Balázs Molnár — MIT License
 ' =========================================================================
 
@@ -85,7 +85,7 @@ namespace Rotor
     class Framework
 
         name = "Rotor Framework"
-        version = "0.3.7"
+        version = "0.4.0"
 
         config = {
             tasks: invalid, ' @array    (optional)
