@@ -140,12 +140,6 @@ namespace Rotor.ViewBuilder
         end sub
 
         ' Listen shortcut - Listen to specific dispatcher'
-        widget.addListenerTo = sub(dispatcherId as string, addListenerObject as object)
-            dispatcherFaced = m.getDispatcher(dispatcherId)
-            dispatcherFaced.addListener(addListenerObject)
-        end sub
-
-        ' Listen shortcut - Listen to specific dispatcher'
         widget.getStateFrom = function(dispatcherId as string)
             dispatcherFaced = m.getDispatcher(dispatcherId)
             return dispatcherFaced.getState()
