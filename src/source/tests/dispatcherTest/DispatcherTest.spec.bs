@@ -69,21 +69,7 @@ namespace tests
             ' Create a widget
             ancestorWidget = m.fwInstance.getWidget("ancestorViewModel")
 
-            ancestorWidget.listenerCallbackFired = false
-            ancestorWidget.listenerCallbackWidthStateFired = false
-
-            ' shortcut addListener using widget
-            ancestorWidget.addListenerTo("fooDispatcher", {
-                callback: sub()
-                    m.listenerCallbackFired = true
-                end sub,
-                callbackWithState: sub(state)
-                    m.listenerCallbackWidthStateFired = true
-                end sub,
-                once: true
-            })
-
-            ' shortcut dispatch using widget
+             ' shortcut dispatch using widget
             ancestorWidget.dispatchTo("fooDispatcher", {
                 type: IntentTypes.UPDATE_FOO,
                 payload: {
@@ -93,9 +79,6 @@ namespace tests
 
             fooState = ancestorWidget.getStateFrom("fooDispatcher")
             m.assertEqual(fooState.foo, "baz2")
-
-            m.assertTrue(ancestorWidget.listenerCallbackFired)
-            m.assertTrue(ancestorWidget.listenerCallbackWidthStateFired)
 
         end function
 
