@@ -22,6 +22,12 @@
 
 ---
 
+## 🎯 Quick Start with Starter Template
+
+Want to get started quickly? Check out **[rotor-starter](https://github.com/mobalazs/rotor-starter)** - a ready-to-use project template with Rotor Framework pre-configured, sample components, and best practices built in.
+
+---
+
 ## 📦 Installation
 
 ### Prerequisites
