@@ -972,32 +972,34 @@ namespace Rotor
 
             refSegmentTop = focused.metrics.segments[Rotor.Const.Segment.TOP]
             refSegmentRight = focused.metrics.segments[Rotor.Const.Segment.RIGHT]
+            refSegmentLeft = focused.metrics.segments[Rotor.Const.Segment.LEFT]
+            refSegmentBottom = focused.metrics.segments[Rotor.Const.Segment.BOTTOM]
             referencePoint = { x: (refSegmentTop.x1 + refSegmentRight.x2) / 2, y: (refSegmentTop.y1 + refSegmentRight.y2) / 2 }
 
             validators = {
 
-                "left": function(referencePoint as object, segments as object) as object
+                "left": function(referencePoint as object, segments as object, refSegmentLeft as object, refSegmentRight as object) as object
                     right = segments[Rotor.Const.Segment.RIGHT]
-                    ' stop
-                    return right.x1 <= referencePoint.x ? { isValid: true, segment: right } : { isValid: false }
+                    ' Candidate's right edge must be strictly left of focused element's left edge
+                    return right.x2 <= refSegmentLeft.x1 ? { isValid: true, segment: right } : { isValid: false }
                 end function,
 
-                "up": function(referencePoint as object, segments as object) as object
+                "up": function(referencePoint as object, segments as object, refSegmentTop as object, refSegmentBottom as object) as object
                     bottom = segments[Rotor.Const.Segment.BOTTOM]
-                    ' stop
-                    return bottom.y1 <= referencePoint.y ? { isValid: true, segment: bottom } : { isValid: false }
+                    ' Candidate's bottom edge must be strictly above focused element's top edge
+                    return bottom.y2 <= refSegmentTop.y1 ? { isValid: true, segment: bottom } : { isValid: false }
                 end function,
 
-                "right": function(referencePoint as object, segments as object) as object
+                "right": function(referencePoint as object, segments as object, refSegmentLeft as object, refSegmentRight as object) as object
                     left = segments[Rotor.Const.Segment.LEFT]
-                    ' stop
-                    return left.x1 >= referencePoint.x ? { isValid: true, segment: left } : { isValid: false }
+                    ' Candidate's left edge must be strictly right of focused element's right edge
+                    return left.x1 >= refSegmentRight.x2 ? { isValid: true, segment: left } : { isValid: false }
                 end function,
 
-                "down": function(referencePoint as object, segments as object) as object
+                "down": function(referencePoint as object, segments as object, refSegmentTop as object, refSegmentBottom as object) as object
                     top = segments[Rotor.Const.Segment.TOP]
-                    ' stop
-                    return top.y1 >= referencePoint.y ? { isValid: true, segment: top } : { isValid: false }
+                    ' Candidate's top edge must be strictly below focused element's bottom edge
+                    return top.y1 >= refSegmentBottom.y2 ? { isValid: true, segment: top } : { isValid: false }
                 end function
             }
             segments = {}
@@ -1006,7 +1008,12 @@ namespace Rotor
                 if HID <> focused.HID
                     focusItem = m.focusItemStack.get(HID)
                     focusItem.refreshBounding()
-                    result = validator(referencePoint, focusItem.metrics.segments)
+                    ' Pass appropriate reference segments based on direction
+                    if direction = "left" or direction = "right"
+                        result = validator(referencePoint, focusItem.metrics.segments, refSegmentLeft, refSegmentRight)
+                    else ' up or down
+                        result = validator(referencePoint, focusItem.metrics.segments, refSegmentTop, refSegmentBottom)
+                    end if
                     if result.isValid
                         segments[HID] = result.segment
                     end if
