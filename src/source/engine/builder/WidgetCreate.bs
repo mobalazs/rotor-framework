@@ -96,6 +96,18 @@ namespace Rotor.ViewBuilder
             return m.getFrameworkInstance().builder.widgetTree.getSubtreeClone(searchPattern, keyPathList, m.parentHID)
         end function
 
+       ' Get isRTL flag
+        widget.isRtl = function() as boolean
+            i18nService = m.getFrameworkInstance().i18nService
+            return i18nService.getIsRtl()
+        end function
+
+        ' Get locale string
+        widget.getLocale = function() as string
+            i18nService = m.getFrameworkInstance().i18nService
+            return i18nService.getLocale()
+        end function
+
         ' render - Renders widget updates (self, descendants, or children) *'
         widget.render = sub(payloads as dynamic, params = {} as object)
             for each payload in Rotor.Utils.ensureArray(payloads)
@@ -170,16 +182,6 @@ namespace Rotor.ViewBuilder
             i18nService = widget.getFrameworkInstance().i18nService
             keysPaths = Rotor.Utils.isString(config.i18n?.path) ? config.i18n.path : Rotor.Utils.isArray(config.i18n?.paths) ? config.i18n.paths : invalid
             widget.viewModelState.l10n = i18nService.getL10n(keysPaths)
-
-            ' Include isRTL flag if requested
-            if config?.i18n?.includeIsRtl = true
-                widget.viewModelState.isRTL = i18nService.getIsRtl()
-            end if
-
-            ' Include locale string if requested
-            if config?.i18n?.includeLocale = true
-                widget.viewModelState.locale = i18nService.getLocale()
-            end if
 
             ' Call lifecycle hook before template compilation
             widget.onCreateView()

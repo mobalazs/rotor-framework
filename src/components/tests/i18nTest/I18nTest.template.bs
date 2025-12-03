@@ -190,14 +190,12 @@ function getI18nTestTemplate() as object
                     paths: ["app", "menu"]
                 }
             },
-            ' Widget with locale and RTL flags
+            ' Widget with locale access (uses getter methods)
             {
                 id: "localeWidget",
                 viewModel: I18nLocaleViewModel,
                 i18n: {
-                    path: "messages",
-                    includeLocale: true,
-                    includeIsRtl: true
+                    path: "messages"
                 }
             },
             ' Widget without i18n (should get full l10n)

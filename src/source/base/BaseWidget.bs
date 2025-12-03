@@ -72,9 +72,13 @@ namespace Rotor
 
         ' Framework Integration
         getFrameworkInstance as Function ' Get framework instance
-        getDispatcher as Function       ' Get dispatcher facade by ID
-        createDispatcher as Function    ' Create dispatcher
-        animator as Function            ' Get animator factory
+        getDispatcher as Function        ' Get dispatcher facade by ID
+        createDispatcher as Function     ' Create dispatcher
+        animator as Function             ' Get animator factory
+
+        ' i18n Integration
+        getLocale as String              ' Get locale e.g: "en_US"
+        isRTL as Boolean                 ' Indicates whether the current locale uses right-to-left text
 
         ' =============================================================
         ' PLUGIN METHODS

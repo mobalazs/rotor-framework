@@ -78,53 +78,49 @@ namespace tests
         end function
 
         ' ======================================================================
-        ' TEST SUITE 2: Locale and RTL Flags
+        ' TEST SUITE 2: Locale and RTL Getter Methods
         ' ======================================================================
 
-        @describe("locale and RTL flags")
+        @describe("locale and RTL getter methods")
 
-        @it("includes locale when includeLocale is true")
+        @it("getLocale returns current locale")
         function _()
-            ' Given: Widget with i18n.includeLocale = true
+            ' Given: Any widget with framework access
             widget = m.fwInstance.getWidget("localeWidget")
 
-            ' Then: viewModelState should have locale field
+            ' Then: getLocale should return current locale
             m.assertNotInvalid(widget)
-            m.assertNotInvalid(widget?.viewModelState)
-            m.assertEqual(widget?.viewModelState?.locale, "en_US")
+            m.assertEqual(widget.getLocale(), "en_US")
         end function
 
-        @it("includes isRTL flag when includeIsRtl is true")
+        @it("isRtl returns false for LTR locale")
         function _()
-            ' Given: Widget with i18n.includeIsRtl = true
+            ' Given: Widget with LTR locale (en_US)
             widget = m.fwInstance.getWidget("localeWidget")
 
-            ' Then: viewModelState should have isRTL field
+            ' Then: isRtl should return false
             m.assertNotInvalid(widget)
-            m.assertNotInvalid(widget?.viewModelState)
-            m.assertFalse(widget?.viewModelState?.isRTL)
+            m.assertFalse(widget.isRtl())
         end function
 
-        @it("does not include locale when includeLocale is not set")
+        @it("getLocale works for any widget regardless of i18n config")
         function _()
-            ' Given: Widget without includeLocale
+            ' Given: Widget without i18n config
             widget = m.fwInstance.getWidget("appTitleWidget")
 
-            ' Then: viewModelState should not have locale field
+            ' Then: getLocale should still work
             m.assertNotInvalid(widget)
-            m.assertNotInvalid(widget?.viewModelState)
-            m.assertInvalid(widget?.viewModelState?.locale)
+            m.assertEqual(widget.getLocale(), "en_US")
         end function
 
-        @it("does not include isRTL when includeIsRtl is not set")
+        @it("isRtl works for any widget regardless of i18n config")
         function _()
-            ' Given: Widget without includeIsRtl
+            ' Given: Widget without i18n config
             widget = m.fwInstance.getWidget("appTitleWidget")
 
-            ' Then: viewModelState should not have isRTL field
+            ' Then: isRtl should still work
             m.assertNotInvalid(widget)
-            m.assertNotInvalid(widget?.viewModelState)
-            m.assertInvalid(widget?.viewModelState?.isRTL)
+            m.assertFalse(widget.isRtl())
         end function
 
         ' ======================================================================
@@ -172,26 +168,21 @@ namespace tests
             ' m.assertEqual(widget?.viewModelState?.l10n?.app?.title, "Application de test")
         end function
 
-        @it("locale flag reflects current locale after switch")
+        @it("getLocale reflects current locale after switch")
         function _()
             ' Given: Framework with locale widget
+            widget = m.fwInstance.getWidget("localeWidget")
+            m.assertNotInvalid(widget)
+
             ' When: Switch locale
             m.fwInstance.i18nService.setLocale("fr_FR")
             m.fwInstance.i18nService.setL10n(m.translations.fr_FR)
 
-            ' Re-render
-            template = getI18nTestTemplate()
-            m.fwInstance.render(template)
-
-            ' Then: Locale should be fr_FR
-            widget = m.fwInstance.getWidget("localeWidget")
-            m.assertNotInvalid(widget)
-            m.assertNotInvalid(widget?.viewModelState)
-            ' TODO: Dynamic refresh on local | l10n change
-            ' m.assertEqual(widget?.viewModelState?.locale, "fr_FR")
+            ' Then: getLocale should return fr_FR immediately (dynamic getter)
+            m.assertEqual(widget.getLocale(), "fr_FR")
         end function
 
-        @it("getLocale returns current locale")
+        @it("i18nService getLocale returns current locale")
         function _()
             ' Given: Framework initialized with en_US
             ' Then: getLocale should return en_US
@@ -204,6 +195,19 @@ namespace tests
             ' Then: getLocale should return fr_FR
             locale = m.fwInstance.i18nService.getLocale()
             m.assertEqual(locale, "fr_FR")
+        end function
+
+        @it("isRtl returns true for Arabic locale")
+        function _()
+            ' Given: Framework with Arabic locale
+            m.fwInstance.i18nService.setLocale("ar_SA")
+
+            ' When: Get any widget
+            widget = m.fwInstance.getWidget("appTitleWidget")
+
+            ' Then: isRtl should return true
+            m.assertNotInvalid(widget)
+            m.assertTrue(widget.isRtl())
         end function
 
         ' ======================================================================

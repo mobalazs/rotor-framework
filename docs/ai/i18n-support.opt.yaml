@@ -57,8 +57,9 @@ api:
   ViewModelConfig:
     path: "Single translation section path (e.g., i18n: { path: 'navigation' }). Scopes @l10n to that section."
     paths: "Multiple translation section paths merged at root (e.g., i18n: { paths: ['navigation', 'buttons'] })."
-    includeIsRtl: "Include RTL flag in viewModelState (i18n: { includeIsRtl: true })."
-    includeLocale: "Include locale string in viewModelState (i18n: { includeLocale: true })."
+  widgetMethods:
+    isRtl: "widget.isRtl() - Returns boolean RTL status for current locale. Available on all widgets."
+    getLocale: "widget.getLocale() - Returns current locale string (e.g., 'en_US'). Available on all widgets."
 viewModelIntegration:
   basicConfiguration: |
     class NavigationMenu extends Rotor.ViewModel
@@ -89,14 +90,13 @@ viewModelIntegration:
     {
       nodeType: "Group",
       i18n: {
-        path: "navigation",
-        includeLocale: true,
-        includeIsRtl: true
+        path: "navigation"
       }
     }
     override sub onCreateView()
-      currentLocale = m.viewModelState.locale  ' "en_US"
-      isRTL = m.viewModelState.isRTL          ' false for LTR, true for RTL
+      ' Access locale and RTL via widget methods (dynamic getters)
+      currentLocale = m.getLocale()  ' "en_US"
+      isRTL = m.isRtl()              ' false for LTR, true for RTL
     end sub
 variableInterpolation:
   scopingRules: |
@@ -207,16 +207,24 @@ rtlSupport:
     i18nService.setLocale("ar_SA")
     isRTL = i18nService.getIsRtl()  ' Returns true
 
-    {
-      i18n: { path: "app", includeIsRtl: true }
-    }
+    ' Access RTL status in ViewModel via widget method
     override sub onCreateView()
-      if m.viewModelState.isRTL
+      if m.isRtl()
         ' Apply RTL-specific layout adjustments
       else
         ' Apply LTR layout
       end if
     end sub
+
+    ' Or in template field functions
+    {
+      nodeType: "Label",
+      fields: {
+        horizAlign: function() as string
+          return m.isRtl() ? "right" : "left"
+        end function
+      }
+    }
   note: "RTL detection implemented. Full RTL layout mirroring requires application-level implementation."
 bestPractices:
   - "Organize translations hierarchically (ui.forms.login vs flat loginUsername)."
@@ -225,13 +233,15 @@ bestPractices:
   - "Use ViewModel i18n.path to limit loaded sections for performance."
   - "Prefer template string interpolation for dynamic keys."
   - "Use dynamic keys for reusable components (@l10n.status.${m.props.statusType})."
-  - "For RTL locales, request includeIsRtl and adjust layouts manually."
+  - "For RTL locales, use widget.isRtl() method to check RTL status dynamically."
+  - "Use widget.getLocale() and widget.isRtl() methods for dynamic locale access (not stored in viewModelState)."
 rules:
   - "Define translations per locale; keep keys consistent across locales."
   - "Initialize i18nService with current locale before rendering ViewModels."
   - "Use ViewModel i18n.path to limit loaded sections for performance."
   - "Prefer template string interpolation for dynamic keys: `@l10n.${m.props.key}`"
-  - "For RTL locales, request includeIsRtl and adjust layouts manually."
+  - "For RTL locales, use widget.isRtl() method to check RTL status dynamically."
+  - "Use widget.getLocale() and widget.isRtl() methods (not includeLocale/includeIsRtl config options)."
   - "Set locale during app init; runtime switching not fully implemented."
 limitations:
   runtimeLocaleSwitching: "Changing locale at runtime not fully implemented. Set locale during app init."

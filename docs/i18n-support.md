@@ -152,27 +152,28 @@ Load multiple translation sections (merged into single l10n object):
 
 **Note**: With `paths` (plural), all sections are merged at the root level of `@l10n`. Ensure keys don't conflict across sections.
 
-Access locale information:
+### Accessing Locale and RTL Information
 
-```brightscript
-{
-    nodeType: "Group",
-    i18n: {
-        path: "navigation",
-        includeLocale: true,
-        includeIsRtl: true
-    }
-}
-```
-
-Access in ViewModel:
+All widgets have built-in methods to access locale and RTL information dynamically:
 
 ```brightscript
 override sub onCreateView()
-    currentLocale = m.viewModelState.locale  ' "en_US"
-    isRTL = m.viewModelState.isRTL          ' false for LTR languages, true for RTL
+    ' Get current locale string (e.g., "en_US", "ar_SA")
+    currentLocale = m.getLocale()
+
+    ' Check if current locale is RTL
+    isRTL = m.isRtl()  ' false for LTR languages, true for RTL
+
+    ' Use in conditional logic
+    if m.isRtl()
+        ' Apply RTL-specific layout
+    else
+        ' Apply LTR layout
+    end if
 end sub
 ```
+
+These methods are available on all widgets and ViewModels, regardless of whether an `i18n` configuration is specified. They dynamically query the i18nService for the current locale state.
 
 ## Variable Interpolation
 
@@ -395,6 +396,66 @@ additionalTranslations = {
 i18nService.extendL10n(additionalTranslations)
 ```
 
+## Widget Methods
+
+All widgets and ViewModels have built-in methods for accessing locale information:
+
+### getLocale()
+
+Returns the current locale string from the i18nService.
+
+```brightscript
+' In any widget or ViewModel
+currentLocale = m.getLocale()  ' Returns "en_US", "fr_FR", "ar_SA", etc.
+
+' Use in conditional logic
+override sub onCreateView()
+    if m.getLocale() = "ja_JP"
+        ' Apply Japanese-specific formatting
+    end if
+end sub
+
+' Use in template field functions
+{
+    nodeType: "Label",
+    fields: {
+        text: function() as string
+            return `Current locale: ${m.getLocale()}`
+        end function
+    }
+}
+```
+
+### isRtl()
+
+Returns a boolean indicating whether the current locale uses right-to-left text direction.
+
+```brightscript
+' In any widget or ViewModel
+isRightToLeft = m.isRtl()  ' Returns true for ar, he, fa, ur locales
+
+' Use for layout adjustments
+override sub onCreateView()
+    if m.isRtl()
+        m.alignContent("right")
+    else
+        m.alignContent("left")
+    end if
+end sub
+
+' Use in template field functions
+{
+    nodeType: "Label",
+    fields: {
+        horizAlign: function() as string
+            return m.isRtl() ? "right" : "left"
+        end function
+    }
+}
+```
+
+**Important**: These methods dynamically query the i18nService, so they always reflect the current locale state. They are available on all widgets regardless of whether an `i18n` configuration is specified.
+
 ## Common Patterns
 
 ### Menu System
@@ -487,6 +548,10 @@ end class
             else
                 return m.viewModelState.l10n.messages.welcome
             end if
+        end function,
+        ' Dynamic RTL-aware alignment
+        horizAlign: function() as string
+            return m.isRtl() ? "right" : "left"
         end function
     }
 }
@@ -544,39 +609,78 @@ The framework automatically detects RTL languages based on the locale. RTL langu
 - Persian/Farsi (fa)
 - Urdu (ur)
 
+### Detecting RTL at the Service Level
+
 ```brightscript
 ' Set Arabic locale
-i18nService.setLocal("ar_SA")
+i18nService.setLocale("ar_SA")
 
 ' RTL is automatically detected
 isRTL = i18nService.getIsRtl()  ' Returns true
 
 ' Set English locale
-i18nService.setLocal("en_US")
+i18nService.setLocale("en_US")
 isRTL = i18nService.getIsRtl()  ' Returns false
 ```
 
-Access RTL flag in ViewModels:
+### Accessing RTL Status in ViewModels
+
+All widgets and ViewModels have a built-in `isRtl()` method that dynamically checks the current locale's RTL status:
 
 ```brightscript
-{
-    nodeType: "Group",
-    i18n: {
-        path: "app",
-        includeIsRtl: true
-    }
-}
+class MyViewModel extends Rotor.ViewModel
+    override sub onCreateView()
+        ' Check RTL status dynamically
+        if m.isRtl()
+            ' Apply RTL-specific layout adjustments
+        else
+            ' Apply LTR layout
+        end if
+    end sub
 
-override sub onCreateView()
-    if m.viewModelState.isRTL
-        ' Apply RTL-specific layout adjustments
-    else
-        ' Apply LTR layout
-    end if
-end sub
+    override function template() as object
+        return {
+            nodeType: "Group",
+            children: [
+                {
+                    nodeType: "Label",
+                    fields: {
+                        ' Dynamic RTL-aware alignment
+                        horizAlign: function() as string
+                            return m.isRtl() ? "right" : "left"
+                        end function,
+                        text: "@l10n.welcome"
+                    }
+                }
+            ]
+        }
+    end function
+end class
 ```
 
-**Note**: While RTL detection is implemented, full RTL layout mirroring (UI element positioning) requires additional implementation at the application level.
+### RTL-Aware Layout Example
+
+```brightscript
+override function template() as object
+    ' Calculate layout based on RTL
+    startX = m.isRtl() ? 1920 : 0  ' Start from right for RTL
+    direction = m.isRtl() ? -1 : 1  ' Negative offset for RTL
+
+    return {
+        nodeType: "Group",
+        children: [
+            {
+                nodeType: "Rectangle",
+                fields: {
+                    translation: [startX + (100 * direction), 100]
+                }
+            }
+        ]
+    }
+end function
+```
+
+**Note**: While RTL detection is implemented, full RTL layout mirroring (UI element positioning) requires additional implementation at the application level using the `isRtl()` method.
 
 ## Limitations
 
