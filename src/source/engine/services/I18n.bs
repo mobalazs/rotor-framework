@@ -82,7 +82,9 @@ namespace Rotor.ViewBuilder
         ' @param {object} l10n - Localization data object
         '
         sub setL10n(l10n as object)
-            m.l10n = l10n
+            ' Keep the object reference, but replace all keys
+            m.l10n.Clear()
+            m.l10n.append(l10n)
             m.refreshCache()
         end sub
 
