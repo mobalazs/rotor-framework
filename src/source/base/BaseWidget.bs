@@ -44,9 +44,9 @@ namespace Rotor
         ' LIFECYCLE CALLBACKS
         ' =============================================================
 
-        onMountWidget as Function       ' Called after widget is mounted
-        onUpdateWidget as Function      ' Called before widget updates
-        onDestroyWidget as Function     ' Called before widget is destroyed
+        onMountWidget as function       ' Called after widget is mounted
+        onUpdateWidget as function      ' Called before widget updates
+        onDestroyWidget as function     ' Called before widget is destroyed
 
         ' =============================================================
         ' DECORATED METHODS
@@ -54,31 +54,31 @@ namespace Rotor
         ' These methods are injected by WidgetCreate.bs
 
         ' Tree Navigation
-        getWidget as Function           ' Find widget by ID or path (any depth)
-        findWidgets as Function         ' Find widgets by glob pattern
-        getChildrenWidgets as Function  ' Get direct children (optionally filtered)
-        getSiblingWidget as Function    ' Get sibling widget by ID
-        getSubtreeClone as Function     ' Clone widget subtree
+        getWidget as function           ' Find widget by ID or path (any depth)
+        findWidgets as function         ' Find widgets by glob pattern
+        getChildrenWidgets as function  ' Get direct children (optionally filtered)
+        getSiblingWidget as function    ' Get sibling widget by ID
+        getSubtreeClone as function     ' Clone widget subtree
 
         ' ViewModel Access
-        getParentViewModel as Function  ' Get parent ViewModel
-        getViewModel as Function        ' Get owning ViewModel
-        getRootWidget as Function       ' Get root widget (HID "0")
+        getParentViewModel as function  ' Get parent ViewModel
+        getViewModel as function        ' Get owning ViewModel
+        getRootWidget as function       ' Get root widget (HID "0")
 
         ' Rendering
-        render as Function              ' Render widget updates
-        refresh as Function             ' Refresh specific properties by key paths
-        erase as Function               ' Remove widget(s) from tree
+        render as function              ' Render widget updates
+        refresh as function             ' Refresh specific properties by key paths
+        erase as function               ' Remove widget(s) from tree
 
         ' Framework Integration
-        getFrameworkInstance as Function ' Get framework instance
-        getDispatcher as Function        ' Get dispatcher facade by ID
-        createDispatcher as Function     ' Create dispatcher
-        animator as Function             ' Get animator factory
+        getFrameworkInstance as function ' Get framework instance
+        getDispatcher as function        ' Get dispatcher facade by ID
+        createDispatcher as function     ' Create dispatcher
+        animator as function             ' Get animator factory
 
         ' i18n Integration
-        getLocale as String              ' Get locale e.g: "en_US"
-        isRTL as Boolean                 ' Indicates whether the current locale uses right-to-left text
+        getLocale as function              ' Get locale e.g: "en_US"
+        isRTL as boolean                 ' Indicates whether the current locale uses right-to-left text
 
         ' =============================================================
         ' PLUGIN METHODS
