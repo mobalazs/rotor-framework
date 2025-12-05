@@ -77,8 +77,8 @@ namespace Rotor
         animator as function             ' Get animator factory
 
         ' i18n Integration
-        getLocale as function              ' Get locale e.g: "en_US"
-        isRTL as boolean                 ' Indicates whether the current locale uses right-to-left text
+        getLocale as function            ' Get locale e.g: "en_US"
+        isRTL as function                ' Indicates whether the current locale uses right-to-left text
 
         ' =============================================================
         ' PLUGIN METHODS
