@@ -64,12 +64,16 @@ namespace tests
 
         @describe("widget dispatcher shortcuts")
 
-        @it("addListener and dispatch shortcuts to dispatcher")
+        @it("dispatchTo dispatches intent to dispatcher by ID")
         function _()
             ' Create a widget
             ancestorWidget = m.fwInstance.getWidget("ancestorViewModel")
 
-             ' shortcut dispatch using widget
+            ' Get initial state
+            initialState = ancestorWidget.getStateFrom("fooDispatcher")
+            m.assertEqual(initialState.foo, "bar")
+
+            ' Shortcut dispatch using widget
             ancestorWidget.dispatchTo("fooDispatcher", {
                 type: IntentTypes.UPDATE_FOO,
                 payload: {
@@ -77,9 +81,57 @@ namespace tests
                 }
             })
 
-            fooState = ancestorWidget.getStateFrom("fooDispatcher")
-            m.assertEqual(fooState.foo, "baz2")
+            ' Verify state changed
+            newState = ancestorWidget.getStateFrom("fooDispatcher")
+            m.assertEqual(newState.foo, "baz2")
+        end function
 
+        @it("getStateFrom returns current state from dispatcher by ID")
+        function _()
+            ancestorWidget = m.fwInstance.getWidget("ancestorViewModel")
+
+            ' Get state using convenience method
+            fooState = ancestorWidget.getStateFrom("fooDispatcher")
+
+            m.assertNotEqual(fooState, invalid)
+            m.assertEqual(fooState.foo, "bar")
+            m.assertEqual(fooState.hitCounter, 0)
+        end function
+
+        @it("getStateFrom returns state without callback parameter")
+        function _()
+            ancestorWidget = m.fwInstance.getWidget("ancestorViewModel")
+
+            ' Get state without callback (using invalid as second param)
+            fooState = ancestorWidget.getStateFrom("fooDispatcher", invalid)
+
+            m.assertNotEqual(fooState, invalid)
+            m.assertEqual(fooState.foo, "bar")
+            m.assertEqual(fooState.hitCounter, 0)
+        end function
+
+        @it("dispatchTo and getStateFrom work together for state updates")
+        function _()
+            ancestorWidget = m.fwInstance.getWidget("ancestorViewModel")
+
+            ' Multiple dispatches
+            ancestorWidget.dispatchTo("fooDispatcher", {
+                type: IntentTypes.UPDATE_FOO,
+                payload: { foo: "value1" }
+            })
+
+            state1 = ancestorWidget.getStateFrom("fooDispatcher")
+            m.assertEqual(state1.foo, "value1")
+            m.assertEqual(state1.hitCounter, 1)
+
+            ancestorWidget.dispatchTo("fooDispatcher", {
+                type: IntentTypes.UPDATE_FOO,
+                payload: { foo: "value2" }
+            })
+
+            state2 = ancestorWidget.getStateFrom("fooDispatcher")
+            m.assertEqual(state2.foo, "value2")
+            m.assertEqual(state2.hitCounter, 2)
         end function
 
     end class

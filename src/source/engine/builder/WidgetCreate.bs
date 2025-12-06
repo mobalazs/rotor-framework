@@ -152,9 +152,9 @@ namespace Rotor.ViewBuilder
         end sub
 
         ' Listen shortcut - Listen to specific dispatcher'
-        widget.getStateFrom = function(dispatcherId as string)
+        widget.getStateFrom = function(dispatcherId as string, mapStateToProps = invalid as dynamic)
             dispatcherFaced = m.getDispatcher(dispatcherId)
-            return dispatcherFaced.getState()
+            return dispatcherFaced.getState(mapStateToProps)
         end function
 
         ' animator - Gets animator factory by ID *'
