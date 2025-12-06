@@ -184,7 +184,10 @@ namespace Rotor
             frameworkInstance = GetGlobalAA().rotor_framework_helper.frameworkInstance
             transferId = transfer.GetIdentity().ToStr()
 
-            frameworkInstance.registerAsyncTransfer(transferId, m.ownerDispatcherId, context)
+            ' Only call if the method exists (task thread only)
+            if Rotor.Utils.isFunction(frameworkInstance?.registerAsyncTransfer)
+                frameworkInstance.registerAsyncTransfer(transferId, m.ownerDispatcherId, context)
+            end if
         end sub
 
         ' =============================================================

@@ -63,6 +63,62 @@ namespace tests
             m.assertEqual(middlewares.count(), 0)
         end function
 
+        @describe("BaseReducer getState helper method")
+
+        @it("returns current state from owner dispatcher")
+        function _()
+            ' Create a simple model and reducer
+            model = new Rotor.Model()
+            model.state = { count: 42, name: "test" }
+            testReducer = new Rotor.Reducer()
+
+            ' Create dispatcher
+            dispatcher = Rotor.createDispatcher("testGetState", model, testReducer)
+
+            ' Call getState() from reducer context
+            currentState = testReducer.getState()
+
+            m.assertNotEqual(currentState, invalid)
+            m.assertEqual(currentState.count, 42)
+            m.assertEqual(currentState.name, "test")
+        end function
+
+        @describe("BaseReducer registerAsyncTransfer method")
+
+        @it("registers async transfer without crashing")
+        function _()
+            ' Create model and reducer
+            model = new Rotor.Model()
+            model.state = { data: invalid }
+            testReducer = new Rotor.Reducer()
+
+            ' Create dispatcher
+            dispatcher = Rotor.createDispatcher("testAsyncTransfer", model, testReducer)
+
+            ' Create a mock transfer object
+            mockTransfer = {
+                GetIdentity: function() as object
+                    return {
+                        ToStr: function() as string
+                            return "mock-transfer-123"
+                        end function
+                    }
+                end function
+            }
+
+            ' Register async transfer with context
+            ' Note: This is a render-thread test, so we can't verify the task-thread
+            ' asyncTransferRegistry directly. We just verify the call doesn't crash.
+            testReducer.registerAsyncTransfer(mockTransfer, { requestType: "testData" })
+
+            ' Verify the framework instance exists
+            frameworkInstance = GetGlobalAA().rotor_framework_helper.frameworkInstance
+            m.assertNotEqual(frameworkInstance, invalid)
+
+            ' Success if we got here without crashing
+            m.assertTrue(true, "registerAsyncTransfer executed without error")
+        end function
+
         @describe("BaseReducer destroy method")
 
         @it("cleans up references")
