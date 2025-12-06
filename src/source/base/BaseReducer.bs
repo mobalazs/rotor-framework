@@ -23,12 +23,12 @@ namespace Rotor
         ' MEMBER VARIABLES
         ' =============================================================
 
-        model as object                 ' Reference to Model holding state
         middlewares = [] as function[]  ' Middleware function array
         port as object                  ' Framework port for async operations
 
         ' Dispatcher integration
         getDispatcher as function       ' Get dispatcher facade by ID
+        getState as function            ' Get dispatcher's model state
         dispatch as function            ' Dispatch intent to owner dispatcher
         ownerDispatcher as object       ' Owning dispatcher instance
         ownerDispatcherId as string     ' Owning dispatcher ID
@@ -52,10 +52,15 @@ namespace Rotor
                 return GetGlobalAA().rotor_framework_helper.frameworkInstance.dispatcherProvider.getFacade(dispatcherId, m)
             end function
 
-            ' Inject dispatch method for self-dispatching
+            ' Inject dispatch method for dispatching intents
             m.dispatch = sub(intent as object)
                 m.ownerDispatcher.dispatch(intent)
             end sub
+
+            ' Inject getState method for accessing current state
+            m.getState = function() as Rotor.Model
+                return m.ownerDispatcher.getState()
+            end function
         end sub
 
         ' =============================================================
@@ -153,6 +158,34 @@ namespace Rotor
 
             return newState
         end function
+
+        ' =============================================================
+        ' ASYNC TRANSFER SUPPORT
+        ' =============================================================
+
+        ' ---------------------------------------------------------------------
+        ' registerAsyncTransfer - Registers a roUrlTransfer with the framework
+        '
+        ' Helper method to simplify async HTTP request tracking. Call this after
+        ' creating a roUrlTransfer but BEFORE calling AsyncGetToString() or other
+        ' async methods.
+        '
+        ' @param {object} transfer - The roUrlTransfer object
+        ' @param {object} context - Optional data to receive in asyncReducerCallback
+        '
+        ' Example:
+        '   transfer = CreateObject("roUrlTransfer")
+        '   transfer.SetUrl("https://api.example.com/data")
+        '   transfer.SetMessagePort(m.port)
+        '   m.registerAsyncTransfer(transfer, { userId: 123 })
+        '   transfer.AsyncGetToString()
+        '
+        sub registerAsyncTransfer(transfer as object, context = invalid as dynamic)
+            frameworkInstance = GetGlobalAA().rotor_framework_helper.frameworkInstance
+            transferId = transfer.GetIdentity().ToStr()
+
+            frameworkInstance.registerAsyncTransfer(transferId, m.ownerDispatcherId, context)
+        end sub
 
         ' =============================================================
         ' ASYNC CALLBACK
