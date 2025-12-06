@@ -40,9 +40,20 @@ class CounterReducer extends Reducer
                 return intent ' NEXT
             end function,
 
+            ' Async HTTP middleware using roUrlTransfer
             function(intent, state) as Intent
                 if intent.type = "LOAD_COUNT"
-                    ' Async operation
+                    ' Create async transfer
+                    transfer = CreateObject("roUrlTransfer")
+                    transfer.SetUrl("https://api.example.com/count")
+                    transfer.SetMessagePort(m.port)
+
+                    ' Register transfer with framework
+                    m.registerAsyncTransfer(transfer, { requestType: "count" })
+
+                    ' Start async request
+                    transfer.AsyncGetToString()
+
                     return invalid  ' Stop reducer execution
                 end if
 
@@ -63,6 +74,16 @@ class CounterReducer extends Reducer
 
         return state
     end function
+
+    ' Handle async transfer responses
+    override sub asyncReducerCallback(msg)
+        if msg.type = "roUrlEvent"
+            if msg.event.GetResponseCode() = 200
+                data = ParseJson(msg.event.GetString())
+                m.dispatch({ type: "COUNT_LOADED", payload: { value: data.count } })
+            end if
+        end if
+    end sub
 end class
 ```
 
@@ -111,6 +132,13 @@ m.dispatcher.getState(sub(props, state)
 end sub)
 ```
 
+**Note**: In reducers, you can use the `m.getState()` helper method to access the current state directly without a callback:
+
+```brightscript
+' In a reducer
+currentState = m.getState()
+```
+
 #### addListener
 
 Subscribes to state changes. Listener fires whenever state updates:
@@ -142,6 +170,53 @@ m.dispatcher.addListener({
     once: false
 })
 ```
+
+#### registerAsyncTransfer
+
+Registers a `roUrlTransfer` object with the framework for automatic routing of async HTTP responses. Call this method in middleware before initiating async operations:
+
+```brightscript
+' In reducer middleware
+function(intent, state) as Intent
+    if intent.type = "FETCH_DATA"
+        ' Create transfer
+        transfer = CreateObject("roUrlTransfer")
+        transfer.SetUrl("https://api.example.com/data")
+        transfer.SetMessagePort(m.port)
+
+        ' Register with framework (with optional context)
+        m.registerAsyncTransfer(transfer, { userId: 123, requestType: "userData" })
+
+        ' Start async request
+        transfer.AsyncGetToString()
+
+        return invalid  ' Halt reducer execution
+    end if
+    return intent
+end function
+```
+
+The framework automatically routes the `roUrlEvent` response to your reducer's `asyncReducerCallback()` method:
+
+```brightscript
+override sub asyncReducerCallback(msg)
+    if msg.type = "roUrlEvent"
+        event = msg.event
+        context = msg.context  ' { userId: 123, requestType: "userData" }
+
+        if event.GetResponseCode() = 200
+            data = ParseJson(event.GetString())
+            m.dispatch({ type: "DATA_LOADED", payload: { data: data, userId: context.userId } })
+        end if
+    end if
+end sub
+```
+
+**Benefits:**
+- No need to create separate Task nodes for HTTP requests
+- Framework automatically routes responses to the correct dispatcher
+- Context data passed through for request identification
+- Automatic cleanup of transfer registry
 
 ## Complete Example
 
@@ -205,10 +280,19 @@ namespace ViewModels
         end sub
 
         sub onIncrementPress()
-            ' Dispatch intent
+            ' Dispatch intent (traditional way)
             m.dispatcher.dispatch({
                 type: "INCREMENT"
             })
+
+            ' Or use convenience method
+            m.dispatchTo("counter", { type: "INCREMENT" })
+        end sub
+
+        sub checkCurrentState()
+            ' Get state using convenience method
+            currentState = m.getStateFrom("counter")
+            print "Current count: " + currentState.count.toStr()
         end sub
     end class
 end namespace
@@ -285,6 +369,10 @@ Each dispatcher maintains one model as the single source of truth for its domain
 
 - Keep models focused on specific domains (e.g., user, content, settings)
 - Use clear, descriptive intent types
+- **Use `m.registerAsyncTransfer()` for `roUrlTransfer` objects** to enable automatic routing
+- **Pass context data to `registerAsyncTransfer()`** to identify requests in `asyncReducerCallback()`
+- **Use `m.getState()` in reducers** to access current state directly without callback
+- **Use `m.dispatchTo()` and `m.getStateFrom()`** in widgets for concise dispatcher access
 - Filter listener updates with `allowUpdate` when needed
 - Remove listeners with `once: true` for one-time operations
 - Handle all state mutations in the reducer, never in middleware

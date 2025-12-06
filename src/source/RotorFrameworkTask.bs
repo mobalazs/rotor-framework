@@ -86,6 +86,7 @@ namespace Rotor
         taskNode as object
         dispatcherProvider as object
         port as object
+        asyncTransferRegistry = {} ' transferId -> { dispatcherId, context }
 
         ' ---------------------------------------------------------------------
         ' new - Initializes the FrameworkTask instance
@@ -127,6 +128,24 @@ namespace Rotor
         public function getDispatcher(dispatcherId as string) as object
             return m.dispatcherProvider.getFacade(dispatcherId, GetGlobalAA())
         end function
+
+        ' ---------------------------------------------------------------------
+        ' registerAsyncTransfer - Registers an async transfer with dispatcher context
+        '
+        ' This method associates a roUrlTransfer identity with a dispatcher ID and
+        ' optional context data. When the transfer completes and sends a roUrlEvent,
+        ' the framework will route it to the correct dispatcher's asyncReducerCallback.
+        '
+        ' @param {string} transferId - The transfer.GetIdentity().ToStr() value
+        ' @param {string} dispatcherId - Dispatcher ID that initiated the transfer
+        ' @param {object} context - Optional user data to pass back in callback
+        '
+        public sub registerAsyncTransfer(transferId as string, dispatcherId as string, context = invalid as dynamic)
+            m.asyncTransferRegistry[transferId] = {
+                dispatcherId: dispatcherId,
+                context: context
+            }
+        end sub
 
         ' ---------------------------------------------------------------------
         ' sync - Starts the message loop for cross-thread communication
@@ -194,6 +213,27 @@ namespace Rotor
                             end if
 
                         end if
+                    else if msgType = "roUrlEvent"
+                        ' Handle async transfer responses
+                        transferId = msg.GetSourceIdentity().ToStr()
+
+                        if m.asyncTransferRegistry.DoesExist(transferId)
+                            transferData = m.asyncTransferRegistry[transferId]
+                            dispatcherId = transferData.dispatcherId
+
+                            dispatcherInstance = m.dispatcherProvider.get(dispatcherId)
+                            if dispatcherInstance <> invalid
+                                ' Route to dispatcher with wrapped message
+                                dispatcherInstance.asyncReducerCallback({
+                                    type: "roUrlEvent",
+                                    event: msg,
+                                    context: transferData.context
+                                })
+                            end if
+
+                            ' Cleanup registry entry
+                            m.asyncTransferRegistry.delete(transferId)
+                        end if
                     end if
                 end if
             end while
@@ -259,6 +299,7 @@ namespace Rotor
         ' Destroys dispatcher provider and clears global framework helper.
         '
         public sub destroy()
+            m.asyncTransferRegistry.clear()
             m.dispatcherProvider.destroy()
 
             globalScope = GetGlobalAA()

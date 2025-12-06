@@ -127,6 +127,16 @@ class ButtonViewModel extends Rotor.ViewModel
     override sub onCreateView()
         ' Initialize ViewModel
         print "ButtonViewModel created"
+
+        ' Access dispatcher state using convenience methods
+        dispatcher = m.getDispatcher("appState")
+        currentState = dispatcher.getState()
+
+        ' Or use m.getStateFrom() convenience method
+        currentState = m.getStateFrom("appState")
+
+        ' Dispatch using convenience method
+        m.dispatchTo("appState", { type: "BUTTON_CREATED" })
     end sub
 
 end class
