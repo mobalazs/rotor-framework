@@ -131,11 +131,16 @@ injectedMethods:
       parameters: ["id (string)"]
       return: "object"
       description: "Get dispatcher by ID"
-    createDispatcher:
-      syntax: "createDispatcher(id, model, reducer)"
-      parameters: ["id", "model", "reducer"]
+    dispatchTo:
+      syntax: "dispatchTo(id, intent)"
+      parameters: ["id (string)", "intent (object)"]
+      return: "void"
+      description: "Dispatch intent to dispatcher by ID. Convenience method equivalent to getDispatcher(id).dispatch(intent)"
+    getStateFrom:
+      syntax: "getStateFrom(id, [mapStateToProps])"
+      parameters: ["id (string)", "mapStateToProps (function, optional)"]
       return: "object"
-      description: "Create new dispatcher"
+      description: "Get state from dispatcher by ID. Optional mapStateToProps callback for state mapping. Convenience method equivalent to getDispatcher(id).getState(mapStateToProps)"
   animation:
     animator:
       syntax: "animator(id)"
@@ -292,6 +297,24 @@ stateManagement:
         m.render({ id: "list", fields: { content: m.props.items } })
       end sub
     }
+  usingConvenienceMethods: |
+    {
+      id: "quickStateWidget",
+      viewModel: ViewModels.QuickExample,
+      onMountWidget: sub()
+        ' Dispatch using convenience method
+        m.dispatchTo("dataState", { type: "LOAD_DATA" })
+
+        ' Get state using convenience method
+        currentState = m.getStateFrom("dataState")
+        print "Current items count: " + currentState.items.count().toStr()
+
+        ' Get mapped state
+        m.getStateFrom("dataState", sub(props, state)
+          props.items = state.items
+        end sub)
+      end sub
+    }
   createDispatcher: |
     ' Create new dispatcher in widget
     onMountWidget: sub()
@@ -402,6 +425,9 @@ bestPractices:
     ' Use dispatcher for state changes
     dispatcher.dispatch({ type: "UPDATE", payload: data })
 
+    ' Or use convenience method
+    m.dispatchTo("dataState", { type: "UPDATE", payload: data })
+
     Avoid:
     ' Don't mutate viewModelState directly
     m.viewModelState.data = newData  ' Wrong
@@ -410,6 +436,7 @@ rules:
   - "Leverage lifecycle hooks for resource setup/cleanup; avoid heavy work in onMount."
   - "Use getWidget for known IDs; reserve findWidgets for pattern matching."
   - "Dispatch intents for state changes rather than mutating viewModelState directly."
+  - "Use m.dispatchTo() and m.getStateFrom() convenience methods for concise dispatcher access."
   - "Ensure nodes exist before accessing fields; validate via getChildrenWidgets when debugging."
   - "Use getChildrenWidgets() for ordered children, m.children for direct ID access."
   - "Clean up resources in onDestroyWidget to prevent memory leaks."

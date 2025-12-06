@@ -83,6 +83,8 @@ Every widget automatically receives these methods:
 | Method | Parameters | Return | Description |
 |--------|------------|--------|-------------|
 | `getDispatcher` | `id` (string) | object | Get dispatcher by ID |
+| `dispatchTo` | `id` (string), `intent` (object) | - | Dispatch intent to dispatcher by ID |
+| `getStateFrom` | `id` (string), `mapStateToProps` (function, optional) | object | Get state from dispatcher by ID |
 
 ### Animation
 
@@ -407,6 +409,30 @@ m.erase([
             id: "list",
             fields: { content: m.props.items }
         })
+    end sub
+}
+```
+
+### Using Convenience Methods
+
+For concise dispatcher access, use the `dispatchTo()` and `getStateFrom()` convenience methods:
+
+```brightscript
+{
+    id: "quickStateWidget",
+    viewModel: ViewModels.QuickExample,
+    onMountWidget: sub()
+        ' Dispatch using convenience method
+        m.dispatchTo("dataState", { type: "LOAD_DATA" })
+
+        ' Get state using convenience method
+        currentState = m.getStateFrom("dataState")
+        print "Current items count: " + currentState.items.count().toStr()
+
+        ' Get mapped state
+        m.getStateFrom("dataState", sub(props, state)
+            props.items = state.items
+        end sub)
     end sub
 }
 ```

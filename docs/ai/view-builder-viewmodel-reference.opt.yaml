@@ -128,6 +128,13 @@ example:
 
       override sub onCreateView()
         print "ButtonViewModel created"
+
+        ' Access dispatcher state using getState helper (available in ViewModels)
+        dispatcher = m.getDispatcher("appState")
+        currentState = dispatcher.getState()
+
+        ' Or use m.getStateFrom() convenience method
+        currentState = m.getStateFrom("appState")
       end sub
 
     end class
@@ -142,6 +149,7 @@ patterns:
   manualUpdates: "Override onUpdateView to control rerenders on prop changes. Framework does not auto re-render."
   propsConfiguration: "Pass props during render. Props are read-only within ViewModel."
   stateManagement: "Use viewModelState for mutable shared state. Initialize in onCreateView before template executes."
+  dispatcherHelpers: "Use m.dispatchTo(id, intent) and m.getStateFrom(id) convenience methods for concise dispatcher access in ViewModels."
 rules:
   - "Use template() to declare UI structure. Do not mutate props/viewModelState inside template()."
   - "Initialize required state fields in onCreateView before template() executes."
@@ -157,6 +165,7 @@ bestPractices:
   - "Clean up resources in onDestroyView to prevent memory leaks."
   - "Use props for configuration, viewModelState for internal mutable state."
   - "Use type casting (typecast m as Rotor.ViewModel) in field functions for correct context."
+  - "Use m.dispatchTo() and m.getStateFrom() for concise dispatcher interaction."
 pitfalls:
   - "Forgetting to override onUpdateView means UI won't update on prop changes."
   - "Mutating props inside template or lifecycle hooks. Props are read-only."
