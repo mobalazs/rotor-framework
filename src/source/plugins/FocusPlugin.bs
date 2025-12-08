@@ -567,14 +567,14 @@ namespace Rotor
                 return false ' Indicate focus change failed
             end if
 
-            ' Handle blurring the previously focused item
+            ' Prepare ancestor groups for notification (from highest ancestor to closest parent)
+            focusChainGroups = m.findAncestorGroups(focusItem.HID) ' Groups containing the new focus
             lastFocusChainingGroups = []
+
+            ' Handle blurring the previously focused item
             if m.globalFocusHID <> "" ' If something was focused before
                 lastFocused = m.focusItemStack.get(m.globalFocusHID)
                 if lastFocused <> invalid ' Check if the last focused widget hasn't been destroyed
-                    ' Blur the previously focused item
-                    lastFocused.applyFocus(false, enableNativeFocus)
-
                     ' Record the last focused item within its parent group for potential future use (e.g., returning focus)
                     lastFocusChainingGroups = m.findAncestorGroups(m.globalFocusHID)
                     if lastFocusChainingGroups.Count() > 0
@@ -589,14 +589,27 @@ namespace Rotor
                 end if
             end if
 
+            ' Prepare notification list: all affected groups (unique)
+            allAffectedGroups = []
+            for each groupHID in focusChainGroups
+                allAffectedGroups.unshift(groupHID) ' Add in reverse order (highest ancestor first)
+            end for
+            for each groupHID in lastFocusChainingGroups
+                if -1 = Rotor.Utils.findInArray(allAffectedGroups, groupHID)
+                    allAffectedGroups.unshift(groupHID) ' Add in reverse order if not already present
+                end if
+            end for
+
+            ' Notify all ancestor groups BEFORE applying focus (from highest ancestor to closest parent)
+            m.notifyFocusAtAncestorGroups(focusItem.HID, allAffectedGroups)
+
+            ' Blur the previously focused item (after notification)
+            if m.globalFocusHID <> "" and lastFocused <> invalid
+                lastFocused.applyFocus(false, enableNativeFocus)
+            end if
+
             ' Apply focus state (focused/blurred) to the target item.
             focusItem.applyFocus(isFocused, enableNativeFocus)
-
-            ' Update focus state for ancestor groups (blur groups losing focus, focus groups gaining focus)
-            focusChainGroups = m.findAncestorGroups(focusItem.HID) ' Groups containing the new focus
-            focusChainGroups.append(lastFocusChainingGroups) ' Include groups containing the old focus
-            Rotor.Utils.removeRedundantValuesInArray(focusChainGroups) ' Unique list of affected groups
-            m.notifyFocusAtAncestorGroups(focusItem.HID, focusChainGroups) ' Notify all relevant groups
 
             ' Update the globally tracked focused item.
             m.storeGlobalFocusHID(isFocused ? HID : "", isFocused ? focusItem.id : "")
