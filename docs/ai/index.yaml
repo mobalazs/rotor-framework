@@ -70,6 +70,11 @@ documents:
       topics: ["i18n", "localization", "translations"]
       description: "Multi-language support and localization features"
 
+    - file: "tts-service.opt.yaml"
+      title: "Text-to-Speech Service"
+      topics: ["tts", "accessibility", "audio", "speech"]
+      description: "Text-to-speech functionality with native roAudioGuide integration"
+
 all_files:
   - "readme.opt.yaml"
   - "framework-initialization.opt.yaml"
@@ -82,3 +87,4 @@ all_files:
   - "view-builder-fontstyle-plugin.opt.yaml"
   - "view-builder-observer-plugin.opt.yaml"
   - "i18n-support.opt.yaml"
+  - "tts-service.opt.yaml"

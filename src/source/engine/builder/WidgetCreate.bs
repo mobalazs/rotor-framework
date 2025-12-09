@@ -162,6 +162,11 @@ namespace Rotor.ViewBuilder
             return m.getFrameworkInstance().animatorProvider.getFactory(animatorId, m)
         end function
 
+        ' tts - Text-to-Speech service decorator *'
+        widget.tts = sub(config as object)
+            m.getFrameworkInstance().ttsService.speak(config)
+        end sub
+
         ' =============================================================
         ' VIEWMODEL INITIALIZATION
         ' =============================================================

@@ -14,6 +14,7 @@ import "engine/Constants.bs"
 ' engine
 import "engine/builder/Builder.bs"
 import "engine/services/I18n.bs"
+import "engine/services/Tts.bs"
 import "engine/providers/DispatcherProvider.bs"
 import "engine/providers/Dispatcher.bs"
 import "engine/animator/Animator.bs"
@@ -113,6 +114,7 @@ namespace Rotor
         ' subsystems
         builder as object
         i18nService as object
+        ttsService as object
         dispatcherProvider as object
         animatorProvider as object
         info = {
@@ -146,6 +148,7 @@ namespace Rotor
 
             m.builder = new Rotor.ViewBuilder.Builder()
             m.i18nService = new Rotor.ViewBuilder.I18nService()
+            m.ttsService = new Rotor.ViewBuilder.TtsService()
             m.animatorProvider = new Rotor.Animator()
             m.dispatcherProvider = new Rotor.DispatcherProvider(m.threadType)
 
@@ -159,6 +162,7 @@ namespace Rotor
 
             m.builder.init(m)
             m.i18nService.init(m)
+            m.ttsService.init(m)
 
             ' set root node
             if m.config.rootNode = invalid
@@ -318,6 +322,13 @@ namespace Rotor
         public function animator(animatorId) as object
             return m.animatorProvider.getFactory(animatorId, m)
         end function
+
+        ' ---------------------------------------------------------------------
+        ' tts - Text-to-Speech service interface
+        ' @param {object} config - TTS configuration object
+        public sub tts(config as object)
+            m.ttsService.speak(config)
+        end sub
 
         ' ---------------------------------------------------------------------
         ' getInfo - Gets framework and device information
@@ -603,6 +614,7 @@ namespace Rotor
             m.builder.destroy()
             m.dispatcherProvider.destroy()
             m.i18nService.destroy()
+            m.ttsService.destroy()
 
             ' remove references
             m.animatorProvider = invalid

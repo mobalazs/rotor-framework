@@ -39,6 +39,12 @@ sub helloWorldSample()
         fields: {
             translation: [UI.SafeArea.x, UI.SafeArea.y]
         },
+        onMountWidget: sub()
+            m.tts({
+                say: UI.helloWorldText,
+                secure: true
+            })
+        end sub,
         children: [{
             id: "helloRect", ' optional (if `id` is missing, it will be auto-generated)
             nodeType: "Rectangle",

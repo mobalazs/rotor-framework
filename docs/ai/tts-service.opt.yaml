@@ -1,0 +1,287 @@
+```yaml
+ctx: Text-to-Speech (TTS) Service
+type: accessibility / audio
+scope:
+  service: Rotor Framework TtsService
+  consumers:
+    - All widgets via tts() decorator
+    - Framework via framework.ttsService
+  features:
+    - "Native roAudioGuide integration"
+    - "Flush control (interrupt current speech)"
+    - "Spell out mode (character-by-character)"
+    - "Override next flush protection"
+    - "Duplicate speech prevention"
+    - "Sentence secure (rapid navigation protection)"
+    - "Symbol/email/decimal handling with localization"
+core:
+  architecture: |
+    Two-layer design (simpler than Beam's 3-layer):
+    1. TtsService - Framework service wrapping roAudioGuide
+    2. widget.tts() - Widget decorator for direct access
+
+    No event system needed - widgets call service directly
+  initialization: |
+    ' Automatic initialization in Framework
+    sub new(config = {})
+      m.ttsService = new Rotor.ViewBuilder.TtsService()
+      m.ttsService.init(m)
+    end sub
+api:
+  widgetDecorator:
+    syntax: "widget.tts({ say, flush, spellOut, overrideNextFlush, dontRepeat })"
+    description: "Main TTS function available on all widgets"
+    parameters:
+      say: "Text to speak (required, string)"
+      flush: "Interrupt current speech (optional, boolean, default: false)"
+      spellOut: "Spell character-by-character (optional, boolean, default: false)"
+      overrideNextFlush: "Protect from next flush (optional, boolean, default: false)"
+      dontRepeat: "Skip if same as last speech (optional, boolean, default: false)"
+  serviceMethods:
+    speak: "ttsService.speak(config) - Same as widget.tts()"
+    silence: "ttsService.silence() - Stop all speech immediately"
+    enable: "ttsService.enable() - Enable TTS, disable native AudioGuide on rootNode"
+    disable: "ttsService.disable() - Disable TTS, re-enable native AudioGuide"
+    toggleAudioGuide: "ttsService.toggleAudioGuide([enableState]) - Toggle (no arg) or set explicit state (true/false), returns new state"
+    setSymbolDictionary: "ttsService.setSymbolDictionary(dict) - Update symbol pronunciation for localization"
+  deviceIntegration:
+    getIsDeviceAudioGuideEnabled: "Private function - dynamically checks roDeviceInfo.isAudioGuideEnabled() (no caching)"
+    muteAudioGuide: "Root node property - set to true when TTS enabled, false when disabled (inherited by children)"
+    automaticDetection: "Service dynamically checks device AudioGuide status on every operation"
+    nativeControl: "Service manages rootNode.muteAudioGuide automatically"
+usage:
+  basicSpeech: |
+    widget.tts({
+      say: "Hello world"
+    })
+  sentenceSecure: |
+    ' 200ms debounce - last item speaks
+    widget.tts({ say: "Item 1" })  ' Pending
+    widget.tts({ say: "Item 2" })  ' Replaces Item 1
+    widget.tts({ say: "Item 3" })  ' Replaces Item 2
+    ' After 200ms: Item 3 speaks
+  flushControl: |
+    ' Interrupt current speech
+    widget.tts({
+      say: "Important message",
+      flush: true
+    })
+  spellOutMode: |
+    ' Spell character-by-character
+    widget.tts({
+      say: "A1B2C3",
+      spellOut: true
+    })
+    ' Speaks: "A 1 B 2 C 3"
+  emailHandling: |
+    widget.tts({
+      say: "user@domain.com",
+      spellOut: true
+    })
+    ' Speaks: "user at domain dot com"
+  decimalHandling: |
+    widget.tts({
+      say: "3.14",
+      spellOut: true
+    })
+    ' Speaks: "3 point 14"
+  preventDuplicate: |
+    widget.tts({
+      say: "Loading...",
+      dontRepeat: true
+    })
+  overrideFlush: |
+    ' First sentence protection (multi-sentence)
+    widget.tts({
+      say: "Please listen carefully. This is important.",
+      overrideNextFlush: true
+    })
+    ' Only first sentence protected
+    widget.tts({
+      say: "Interrupted",
+      flush: true
+    })
+    ' "Please listen carefully" completes (protected)
+    ' "This is important" interrupted
+    ' "Interrupted" speaks
+spellOutMode:
+  symbolReplacement: |
+    Default dictionary (English):
+    "@" → "at"          "." → "dot"         "-" → "dash"
+    "_" → "underscore"  "#" → "hash"        "$" → "dollar"
+    "%" → "percent"     "&" → "and"         "*" → "star"
+    "+" → "plus"        "=" → "equals"      "/" → "slash"
+    "\" → "backslash"   "|" → "pipe"        "~" → "tilde"
+    "^" → "caret"       "<" → "less than"   ">" → "greater than"
+    "(" → "open paren"  ")" → "close paren"
+    "[" → "open bracket" "]" → "close bracket"
+    "{" → "open brace"  "}" → "close brace"
+    "," → "comma"       ":" → "colon"       ";" → "semicolon"
+  emailDetection: |
+    Automatically detects emails (contains @ and .):
+    "support@company.com" → "support at company dot com"
+  decimalDetection: |
+    Pattern: \d+\.\d+
+    "3.14159" → "3 point 14159"
+  regularText: |
+    Character-by-character with spaces:
+    "ABC" → "A B C"
+localization:
+  symbolDictionary: |
+    ' Hungarian localization
+    framework.ttsService.setSymbolDictionary({
+      "@": "kukac",
+      ".": "pont",
+      "-": "kötőjel",
+      "#": "kettőskereszt"
+    })
+  completeReplacement: |
+    ' Replace entire dictionary (English example)
+    framework.ttsService.setSymbolDictionary({
+      "@": "at sign",
+      ".": "period",
+      "-": "hyphen"
+    })
+patterns:
+  accessibleNavigation: |
+    function onFocusChanged(hasFocus as boolean)
+      if hasFocus
+        m.tts({
+          say: m.title,
+          flush: true
+        })
+      end if
+    end function
+  formValidation: |
+    function validateEmail(email as string)
+      if not isValidEmail(email)
+        m.tts({
+          say: "Invalid email address",
+          flush: true
+        })
+      end if
+    end function
+  passwordEntry: |
+    function onPasswordCharEntered(char as string)
+      m.tts({
+        say: char,
+        spellOut: true,
+        flush: true,
+        dontRepeat: false  ' Allow same character twice
+      })
+    end function
+  loadingStates: |
+    function showLoading()
+      m.tts({
+        say: "Loading content",
+        dontRepeat: true,
+        overrideNextFlush: true  ' Let it finish
+      })
+    end function
+  menuNavigation: |
+    function onMenuItemFocused(item as object)
+      m.tts({
+        say: item.title + ", " + item.description,
+        flush: true,
+        dontRepeat: true
+      })
+    end function
+bestPractices:
+  - "Check isDeviceAudioGuideEnabled before expecting TTS to work"
+  - "Use flush: true for important messages"
+  - "Use dontRepeat: true for repetitive actions"
+  - "Use overrideNextFlush sparingly (critical messages only)"
+  - "Trust sentence secure for navigation (no flush needed on focus changes)"
+  - "Use spellOut for passwords, emails, codes, abbreviations"
+  - "Localize symbol dictionary for native language"
+  - "Keep messages concise (long messages can be interrupted)"
+  - "Provide context ('Menu opened' vs 'Opened')"
+  - "Respect user's device AudioGuide setting (don't override)"
+rules:
+  - "widget.tts() available on all widgets after widget creation"
+  - "Device AudioGuide status checked dynamically (no caching) on every operation"
+  - "Service auto-disables if device AudioGuide not enabled (roDeviceInfo.isAudioGuideEnabled())"
+  - "When TTS enabled, rootNode.muteAudioGuide set to true (mute native, inherited)"
+  - "When TTS disabled, rootNode.muteAudioGuide set to false (unmute native)"
+  - "muteAudioGuide property is inherited by all child nodes"
+  - "toggleAudioGuide() accepts optional boolean: true=enable, false=disable, invalid=toggle"
+  - "Text split by periods (.) into sentences automatically"
+  - "Only first sentence flush-es, remaining sentences queue naturally"
+  - "overrideNextFlush protects ONLY first sentence from next flush"
+  - "Single sentence text (no periods) protects entire text if overrideNextFlush=true"
+  - "Sentence secure: 200ms debounce timer, last pending speech speaks"
+  - "SceneGraph Timer node polls every 200ms to execute pending speech"
+  - "Each non-flush call replaces pending speech and resets timer"
+  - "flush: true bypasses debounce, speaks immediately, cancels pending"
+  - "spellOut mode intelligently handles emails, decimals, symbols"
+  - "dontRepeat compares with lastSpeech string AND uses native roAudioGuide parameter"
+  - "Only one TTS system active at a time (custom or native)"
+pitfalls:
+  - "Service won't work if user hasn't enabled AudioGuide in device settings"
+  - "roAudioGuide unavailable in test environment (service disables itself)"
+  - "Long messages may be interrupted by user actions"
+  - "Symbol dictionary must be set before speaking symbols"
+  - "overrideNextFlush only protects ONE flush operation"
+  - "dontRepeat uses exact string match (case sensitive)"
+  - "spellOut mode adds spaces between characters (increases speech time)"
+  - "Don't manually set rootNode.muteAudioGuide (service manages it)"
+troubleshooting:
+  noSound:
+    - "Check device AudioGuide: framework.ttsService.isDeviceAudioGuideEnabled"
+    - "Check service enabled: framework.ttsService.isEnabled"
+    - "Verify user enabled AudioGuide in Roku device settings (Settings > Accessibility > Audio Guide)"
+    - "Verify roAudioGuide available (not in test environment)"
+  wrongPronunciation:
+    - "Update symbol dictionary for locale"
+    - "Use spellOut: false for regular speech"
+    - "Check symbol dictionary has correct mapping"
+  interruptions:
+    - "Use overrideNextFlush: true for critical messages"
+    - "Reduce flush: true usage"
+    - "Keep messages shorter"
+  nativeConflict:
+    - "Service automatically manages rootNode.muteAudioGuide"
+    - "Don't manually set muteAudioGuide (let service handle it)"
+    - "muteAudioGuide is inherited by all child nodes"
+    - "Only one TTS system should be active (custom or native)"
+comparison:
+  beamVsRotor: |
+    Feature              | Beam TTS           | Rotor TTS
+    ---------------------|--------------------|-----------------
+    Architecture         | 3 layers           | 2 layers
+    Access               | Event-based        | Direct decorator
+    Component Processing | Yes                | No (service only)
+    Symbol Handling      | Yes                | Yes
+    Flush Control        | Yes                | Yes
+    Override Protection  | Yes                | Yes
+    Decimal Handling     | Yes                | Yes
+    Complexity           | High               | Low
+lifecycle:
+  - "Framework creates ttsService during init"
+  - "Service creates roDeviceInfo and roAudioGuide instances"
+  - "Service checks roDeviceInfo.isAudioGuideEnabled()"
+  - "If enabled, mute native AudioGuide (rootNode.muteAudioGuide = true)"
+  - "If disabled, service disables itself"
+  - "Widget decorated with tts() method"
+  - "widget.tts() calls ttsService.speak()"
+  - "speak() checks both isEnabled and isDeviceAudioGuideEnabled"
+  - "Service processes spellOut mode if enabled"
+  - "Service checks flush/override/dontRepeat flags"
+  - "Service calls audioGuide.Say(text)"
+  - "Service tracks lastSpeech for dontRepeat"
+  - "On destroy, unmute native AudioGuide (rootNode.muteAudioGuide = false)"
+debugging:
+  - "Debug logs show all TTS operations in debug builds"
+  - "Log format: '[TTS_SERVICE] Speaking: {text} (flush: {bool}, spellOut: {bool})'"
+  - "Check isEnabled flag for service status"
+  - "Inspect symbolDictionary for localization issues"
+performance:
+  - "Lightweight service (no event overhead)"
+  - "Direct widget access (no routing)"
+  - "Native roAudioGuide optimized by Roku"
+  - "dontRepeat reduces unnecessary calls"
+  - "Sentence secure prevents speech pile-up"
+  - "200ms Timer node overhead minimal (background polling)"
+  - "Debounce reduces actual roAudioGuide.Say() calls"
+  - "Service can be globally disabled for silent mode"
+```
