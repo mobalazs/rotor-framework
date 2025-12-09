@@ -163,18 +163,25 @@ namespace Rotor
     '     outerGroup: { group: { down: "bottomBar" } } [catches bubbling]
     '
     ' =====================================================================
+
+    const PRIMARY_FOCUS_PLUGIN_KEY = "focus"
+    const GROUP_FOCUS_PLUGIN_KEY = "focusGroup"
     class FocusPlugin extends Rotor.BasePlugin
 
-        ' Registry keys - allows plugin to be accessed via both "focus" and "focusGroup" keys
-        aliasPluginKeys = ["focusGroup"]
+        pluginKey = PRIMARY_FOCUS_PLUGIN_KEY
+        aliasPluginKey = GROUP_FOCUS_PLUGIN_KEY
+
+        ' =============================================================
+        ' CONSTRUCTOR
+        ' =============================================================
 
         ' ---------------------------------------------------------------------
-        ' new - Constructor for the FocusPlugin
+        ' new - Initializes the ObserverPlugin instance
         '
-        ' @param {string} key - The key to identify this plugin instance (default: "focus")
+        ' @param {string} pluginKey - Plugin identifier (default: "observer")
         '
-        sub new(pluginKey = "focus" as string)
-            super(pluginKey)
+        sub new()
+            super()
         end sub
 
         ' Framework lifecycle hooks
@@ -188,9 +195,9 @@ namespace Rotor
             ' @param {object} widget - The widget being mounted
             '
             beforeMount: sub(scope as object, widget as object)
-                ' Validation: widget cannot have both "focus" and "focusGroup" configs
-                hasFocus = widget.DoesExist("focus") and widget.focus <> invalid
-                hasFocusGroup = widget.DoesExist("focusGroup") and widget.focusGroup <> invalid
+                ' Validation: widget cannot have both "focus" and GROUP_FOCUS_PLUGIN_KEY configs
+                hasFocus = widget.DoesExist(PRIMARY_FOCUS_PLUGIN_KEY) and widget.focus <> invalid
+                hasFocusGroup = widget.DoesExist(GROUP_FOCUS_PLUGIN_KEY) and widget.focusGroup <> invalid
 
                 if hasFocus and hasFocusGroup
                     #if debug
@@ -243,7 +250,7 @@ namespace Rotor
             ' @param {boolean} enableFocusNavigation - True to enable, false to disable (default: true)
             '
             enableFocusNavigation: sub(enableFocusNavigation = true as boolean)
-                m.getFrameworkInstance().plugins["focus"].enableFocusNavigation = enableFocusNavigation
+                m.getFrameworkInstance().plugins[PRIMARY_FOCUS_PLUGIN_KEY].enableFocusNavigation = enableFocusNavigation
             end sub,
 
             ' ---------------------------------------------------------------------
@@ -252,7 +259,7 @@ namespace Rotor
             ' @returns {boolean} True if enabled, false otherwise
             '
             isFocusNavigationEnabled: function() as boolean
-                return m.getFrameworkInstance().plugins["focus"].enableFocusNavigation
+                return m.getFrameworkInstance().plugins[PRIMARY_FOCUS_PLUGIN_KEY].enableFocusNavigation
             end function,
 
             ' ---------------------------------------------------------------------
@@ -263,7 +270,7 @@ namespace Rotor
             ' @returns {boolean} True if focus state was changed successfully, false otherwise
             '
             setFocus: function(command = true as dynamic, enableNativeFocus = false as boolean) as boolean
-                plugin = m.getFrameworkInstance().plugins["focus"]
+                plugin = m.getFrameworkInstance().plugins[PRIMARY_FOCUS_PLUGIN_KEY]
                 HID = m.HID
 
                 if Rotor.Utils.isString(command)
@@ -279,7 +286,7 @@ namespace Rotor
             ' @returns {object} The widget instance that currently holds focus, or invalid
             '
             getFocusedWidget: function() as object
-                return m.getFrameworkInstance().plugins["focus"].getFocusedWidget()
+                return m.getFrameworkInstance().plugins[PRIMARY_FOCUS_PLUGIN_KEY].getFocusedWidget()
             end function,
 
             ' ---------------------------------------------------------------------
@@ -288,7 +295,7 @@ namespace Rotor
             ' @returns {object} The result of the executed navigation action (see parseOnKeyEventResult)
             '
             proceedLongPress: function() as object
-                return m.getFrameworkInstance().plugins["focus"].proceedLongPress()
+                return m.getFrameworkInstance().plugins[PRIMARY_FOCUS_PLUGIN_KEY].proceedLongPress()
             end function,
 
             ' ---------------------------------------------------------------------
@@ -297,7 +304,7 @@ namespace Rotor
             ' @returns {boolean} True if a long press is active, false otherwise
             '
             isLongPressActive: function() as boolean
-                return m.getFrameworkInstance().plugins["focus"].isLongPress
+                return m.getFrameworkInstance().plugins[PRIMARY_FOCUS_PLUGIN_KEY].isLongPress
             end function,
 
             ' ---------------------------------------------------------------------
@@ -307,7 +314,7 @@ namespace Rotor
             ' @returns {object} The widget instance that currently holds focus, or invalid
             '
             triggerKeyPress: function(key) as object
-                return m.getFrameworkInstance().plugins["focus"].onKeyEventHandler(key, true)
+                return m.getFrameworkInstance().plugins[PRIMARY_FOCUS_PLUGIN_KEY].onKeyEventHandler(key, true)
             end function
 
         }
@@ -395,11 +402,11 @@ namespace Rotor
             config = Rotor.Utils.deepCopy(pluginConfig)
 
             ' Determine if this is a group configuration
-            ' NEW: Check if plugin key is "focusGroup" (explicit group)
+            ' NEW: Check if plugin key is GROUP_FOCUS_PLUGIN_KEY (explicit group)
             ' BACKWARD COMPAT: Check if config has "group" property (old syntax: focus: { group: {...} })
             isGroup = false
 
-            if widget.DoesExist("focusGroup") and widget.focusGroup = pluginConfig
+            if widget.DoesExist(GROUP_FOCUS_PLUGIN_KEY) and widget.focusGroup = pluginConfig
                 ' New syntax: focusGroup: {...}
                 isGroup = true
             else if config.doesExist(Rotor.Const.GROUP_CONFIG_KEY)

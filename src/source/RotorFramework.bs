@@ -100,11 +100,11 @@ namespace Rotor
             },
 
             plugins: [
-                new Rotor.FieldsPlugin("fields"),
-                new Rotor.FontStylePlugin("fontStyle"),
-                new Rotor.FocusPlugin("focus")
-                new Rotor.DispatcherProviderPlugin("dispatcher"),
-                new Rotor.ObserverPlugin("observer")
+                new Rotor.FieldsPlugin(),
+                new Rotor.FontStylePlugin(),
+                new Rotor.FocusPlugin()
+                new Rotor.DispatcherProviderPlugin(),
+                new Rotor.ObserverPlugin()
             ]
         }
 

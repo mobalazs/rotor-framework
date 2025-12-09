@@ -22,6 +22,8 @@ namespace Rotor
     ' =====================================================================
     class FontStylePlugin extends Rotor.BasePlugin
 
+        pluginKey = "fontStyle"
+
         ' =============================================================
         ' MEMBER VARIABLES
         ' =============================================================
@@ -38,12 +40,12 @@ namespace Rotor
         ' =============================================================
 
         ' ---------------------------------------------------------------------
-        ' new - Initializes the FontStylePlugin instance
+        ' new - Initializes the ObserverPlugin instance
         '
-        ' @param {string} pluginKey - Plugin identifier (default: "fontStyle")
+        ' @param {string} pluginKey - Plugin identifier (default: "observer")
         '
-        sub new(pluginKey = "fontStyle" as string)
-            super(pluginKey)
+        sub new()
+            super()
         end sub
 
         ' =============================================================

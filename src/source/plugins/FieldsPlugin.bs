@@ -19,6 +19,8 @@ namespace Rotor
     ' =====================================================================
     class FieldsPlugin extends Rotor.BasePlugin
 
+        pluginKey = "fields"
+
         ' =============================================================
         ' MEMBER VARIABLES
         ' =============================================================
@@ -32,13 +34,12 @@ namespace Rotor
         ' =============================================================
 
         ' ---------------------------------------------------------------------
-        ' new - Initializes the FieldsPlugin instance
+        ' new - Initializes the ObserverPlugin instance
         '
-        ' @param {string} pluginKey - Plugin identifier (default: "fields")
-        ' @param {object} params - Additional parameters (unused)
+        ' @param {string} pluginKey - Plugin identifier (default: "observer")
         '
-        sub new(pluginKey = "fields" as string, params = invalid as object)
-            super(pluginKey)
+        sub new()
+            super()
         end sub
 
         ' =============================================================

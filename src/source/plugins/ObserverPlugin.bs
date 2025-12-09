@@ -15,6 +15,8 @@ namespace Rotor
     ' =====================================================================
     class ObserverPlugin extends Rotor.BasePlugin
 
+        pluginKey = "observer"
+
         ' =============================================================
         ' MEMBER VARIABLES
         ' =============================================================
@@ -31,8 +33,8 @@ namespace Rotor
         '
         ' @param {string} pluginKey - Plugin identifier (default: "observer")
         '
-        sub new(pluginKey = "observer")
-            super(pluginKey)
+        sub new()
+            super()
         end sub
 
         ' =============================================================

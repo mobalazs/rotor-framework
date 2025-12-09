@@ -74,6 +74,7 @@ namespace Rotor.ViewBuilder
                 hooks = plugin.hooks
                 if Rotor.Utils.isValid(hooks) and hooks.Count() > 0
 
+                    ' Register hooks for primary plugin key
                     for each hook in hooks
                         pluginHook = new PluginHookClass({
                             pluginKey: pluginKey,
@@ -81,6 +82,18 @@ namespace Rotor.ViewBuilder
                         })
                         m.pluginHooks[hook][pluginKey] = pluginHook
                     end for
+
+                    ' Register hooks for alias key too (single alias only)
+                    if Rotor.Utils.isString(plugin.aliasPluginKey) and plugin.aliasPluginKey <> ""
+                        aliasKey = plugin.aliasPluginKey
+                        for each hook in hooks
+                            pluginHook = new PluginHookClass({
+                                pluginKey: pluginKey,
+                                handlerFn: hooks[hook]
+                            })
+                            m.pluginHooks[hook][aliasKey] = pluginHook
+                        end for
+                    end if
 
                 end if
 
@@ -90,12 +103,11 @@ namespace Rotor.ViewBuilder
                 ' Map all registry keys to the primary plugin key
                 m.pluginInstanceHash[pluginKey] = pluginKey
 
-                ' Add extra registry keys to pluginKeyList for widget detection
-                if Rotor.Utils.isArray(plugin.aliasPluginKeys) and plugin.aliasPluginKeys.Count() > 0
-                    for each aliasPluginKey in plugin.aliasPluginKeys
-                        m.pluginKeyList.AddTail(aliasPluginKey)
-                        m.pluginInstanceHash[aliasPluginKey] = pluginKey
-                    end for
+                ' Add alias key to pluginKeyList for widget detection (single alias only)
+                if Rotor.Utils.isString(plugin.aliasPluginKey) and plugin.aliasPluginKey <> ""
+                    aliasKey = plugin.aliasPluginKey
+                    m.pluginKeyList.AddTail(aliasKey)
+                    m.pluginInstanceHash[aliasKey] = pluginKey
                 end if
 
                 ' Store plugin instance in framework plugins map
