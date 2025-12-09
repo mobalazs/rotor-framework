@@ -19,7 +19,7 @@ namespace Rotor
         ' =============================================================
 
         isEnabled = true                ' Plugin enabled/disabled flag
-        key as string                   ' Plugin identifier (unique key)
+        pluginKey as string                   ' Plugin identifier (unique key)
         scope as object                 ' Plugin scope (m context in plugin definitions)
         params as object                ' Plugin initialization parameters
 
@@ -37,10 +37,10 @@ namespace Rotor
         ' @param {string} key - Plugin identifier (auto-generated if empty)
         ' @param {object} params - Plugin initialization parameters
         '
-        sub new(key = "" as string, params = invalid as object)
-            if key = "" then key = Rotor.Utils.getUUIDHex(8)
+        sub new(pluginKey = "" as string, params = invalid as object)
+            if pluginKey = "" then pluginKey = Rotor.Utils.getUUIDHex(8)
             m.params = params
-            m.key = key
+            m.pluginKey = pluginKey
         end sub
 
     end class

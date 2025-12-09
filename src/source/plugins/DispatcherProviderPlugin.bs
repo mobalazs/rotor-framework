@@ -27,10 +27,10 @@ namespace Rotor
         ' ---------------------------------------------------------------------
         ' new - Initializes the DispatcherProviderPlugin instance
         '
-        ' @param {string} key - Plugin identifier (default: "dispatcher")
+        ' @param {string} pluginKey - Plugin identifier (default: "dispatcher")
         '
-        sub new(key = "dispatcher" as string)
-            super(key)
+        sub new(pluginKey = "dispatcher" as string)
+            super(pluginKey)
         end sub
 
         ' =============================================================
@@ -47,7 +47,7 @@ namespace Rotor
             ' @param {object} widget - Widget being mounted
             '
             beforeMount: sub(scope as object, widget as object)
-                scope.setDispatcherOnContext(widget, scope.key)
+                scope.setDispatcherOnContext(widget, scope.pluginKey)
             end sub,
 
             ' ---------------------------------------------------------------------
@@ -65,8 +65,8 @@ namespace Rotor
                 ' Merge old and new dispatcher IDs (no duplicates)
                 oldArrayOfDispatcherIds = Rotor.Utils.ensureArray(oldValue ?? [])
                 newArrayOfDispatcherIds = Rotor.Utils.ensureArray(newValue)
-                widget[scope.key] = Rotor.Utils.extendArrayOfStrings(oldArrayOfDispatcherIds, newArrayOfDispatcherIds)
-                scope.setDispatcherOnContext(widget, scope.key)
+                widget[scope.pluginKey] = Rotor.Utils.extendArrayOfStrings(oldArrayOfDispatcherIds, newArrayOfDispatcherIds)
+                scope.setDispatcherOnContext(widget, scope.pluginKey)
             end sub,
 
             ' ---------------------------------------------------------------------
@@ -78,12 +78,12 @@ namespace Rotor
             ' @param {object} widget - Widget being destroyed
             '
             beforeDestroy: sub(scope as object, widget as object)
-                dispatcherFacades = widget.viewModelState[scope.key]
+                dispatcherFacades = widget.viewModelState[scope.pluginKey]
                 if dispatcherFacades.Count() > 0
                     for each dispatcherFacadeKey in dispatcherFacades
                         dispatcherFacadeInstance = dispatcherFacades[dispatcherFacadeKey]
                         dispatcherFacadeInstance.destroy()
-                        widget.viewModelState[scope.key][dispatcherFacadeKey] = invalid
+                        widget.viewModelState[scope.pluginKey][dispatcherFacadeKey] = invalid
                     end for
                 end if
             end sub
@@ -111,13 +111,13 @@ namespace Rotor
 
             for each dispatcherId in Rotor.Utils.ensureArray(config)
                 ' Initialize dispatcher storage in viewModelState
-                if viewModelState[m.key] = invalid then viewModelState[m.key] = {}
+                if viewModelState[m.pluginKey] = invalid then viewModelState[m.pluginKey] = {}
 
                 ' Create facade if it doesn't exist
-                if not viewModelState[m.key].DoesExist(dispatcherId)
+                if not viewModelState[m.pluginKey].DoesExist(dispatcherId)
                     globalScope = GetGlobalAA()
                     frameworkInstance = globalScope.rotor_framework_helper.frameworkInstance
-                    viewModelState[m.key][dispatcherId] = frameworkInstance.dispatcherProvider.getFacade(dispatcherId, widget)
+                    viewModelState[m.pluginKey][dispatcherId] = frameworkInstance.dispatcherProvider.getFacade(dispatcherId, widget)
                 end if
             end for
         end sub

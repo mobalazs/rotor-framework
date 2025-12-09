@@ -29,10 +29,10 @@ namespace Rotor
         ' ---------------------------------------------------------------------
         ' new - Initializes the ObserverPlugin instance
         '
-        ' @param {string} key - Plugin identifier (default: "observer")
+        ' @param {string} pluginKey - Plugin identifier (default: "observer")
         '
-        sub new(key = "observer")
-            super(key)
+        sub new(pluginKey = "observer")
+            super(pluginKey)
         end sub
 
         ' =============================================================
@@ -49,7 +49,7 @@ namespace Rotor
             ' @param {object} widget - Widget being mounted
             '
             beforeMount: sub(scope as object, widget as object)
-                config = widget[scope.key]
+                config = widget[scope.pluginKey]
                 scope.attach(widget.node, config, widget)
             end sub,
 
@@ -67,7 +67,7 @@ namespace Rotor
                 if oldValue <> invalid
                     scope.detach(widget.node)
                 end if
-                widget[scope.key] = newValue
+                widget[scope.pluginKey] = newValue
                 scope.attach(widget.node, newValue, widget)
             end sub,
 
@@ -96,7 +96,7 @@ namespace Rotor
         '
         sub init()
             m.observerStack = new Rotor.ObserverPluginHelper.ObserverStack()
-            m.helperInterfaceId = Rotor.ObserverPluginHelper.OBSERVER_HELPER_INTERFACE + "-" + m.key
+            m.helperInterfaceId = Rotor.ObserverPluginHelper.OBSERVER_HELPER_INTERFACE + "-" + m.pluginKey
         end sub
 
         ' =============================================================
@@ -127,7 +127,7 @@ namespace Rotor
                 if node <> invalid
                     ' Add helper interface field to node with plugin metadata
                     pluginHelperFields = Rotor.Utils.wrapObject(m.helperInterfaceId, {
-                        pluginKey: m.key,
+                        pluginKey: m.pluginKey,
                         attachmentId: attachmentId
                     })
                     Rotor.Utils.setCustomFields(node, pluginHelperFields, true, false)
@@ -157,7 +157,7 @@ namespace Rotor
         '
         sub registerObserver(observerConfig as object, node as object, attachmentId as string, helperInterfaceId as string, listenerScope as object)
             ' Create observer instance
-            newObserver = new Rotor.ObserverPluginHelper.Observer(observerConfig, node, attachmentId, listenerScope, m.key)
+            newObserver = new Rotor.ObserverPluginHelper.Observer(observerConfig, node, attachmentId, listenerScope, m.pluginKey)
             m.observerStack.set(newObserver.id, newObserver)
 
             ' Set up native SceneGraph observation

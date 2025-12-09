@@ -34,11 +34,11 @@ namespace Rotor
         ' ---------------------------------------------------------------------
         ' new - Initializes the FieldsPlugin instance
         '
-        ' @param {string} key - Plugin identifier (default: "fields")
+        ' @param {string} pluginKey - Plugin identifier (default: "fields")
         ' @param {object} params - Additional parameters (unused)
         '
-        sub new(key = "fields" as string, params = invalid as object)
-            super(key)
+        sub new(pluginKey = "fields" as string, params = invalid as object)
+            super(pluginKey)
         end sub
 
         ' =============================================================
@@ -55,7 +55,7 @@ namespace Rotor
             ' @param {object} widget - Widget being mounted
             '
             beforeMount: sub(scope as object, widget as object)
-                value = widget[scope.key]
+                value = widget[scope.pluginKey]
                 scope.setCustomFields(widget, value)
             end sub,
 
@@ -71,7 +71,7 @@ namespace Rotor
             '
             beforeUpdate: sub(scope as object, widget as object, newValue = {}, oldValue = {})
                 ' Extend old config with new values
-                Rotor.Utils.deepExtendAA(widget[scope.key], newValue)
+                Rotor.Utils.deepExtendAA(widget[scope.pluginKey], newValue)
                 scope.setCustomFields(widget, newValue)
             end sub,
 
@@ -82,7 +82,7 @@ namespace Rotor
             ' @param {object} widget - Widget being destroyed
             '
             beforeDestroy: sub(scope as object, widget as object)
-                widget[scope.key].Clear()
+                widget[scope.pluginKey].Clear()
             end sub
         }
 

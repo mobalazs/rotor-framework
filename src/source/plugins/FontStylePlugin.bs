@@ -40,10 +40,10 @@ namespace Rotor
         ' ---------------------------------------------------------------------
         ' new - Initializes the FontStylePlugin instance
         '
-        ' @param {string} key - Plugin identifier (default: "fontStyle")
+        ' @param {string} pluginKey - Plugin identifier (default: "fontStyle")
         '
-        sub new(key = "fontStyle" as string)
-            super(key)
+        sub new(pluginKey = "fontStyle" as string)
+            super(pluginKey)
         end sub
 
         ' =============================================================
@@ -74,7 +74,7 @@ namespace Rotor
             ' @param {dynamic} oldValue - Previous font style configuration
             '
             beforeUpdate: sub(scope as object, widget as object, newValue, oldValue)
-                widget[scope.key] = newValue ?? ""
+                widget[scope.pluginKey] = newValue ?? ""
                 scope.setFontAttribute(widget)
             end sub
         }
@@ -101,7 +101,7 @@ namespace Rotor
         sub setFontAttribute(widget as object)
             ' Font styles only apply to Label nodes
             if widget.nodeType = "Label"
-                value = widget[m.key]
+                value = widget[m.pluginKey]
                 node = widget.node
 
                 ' Step 1: Resolve function-based font style

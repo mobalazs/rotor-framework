@@ -81,6 +81,18 @@ namespace tests
                 }
             }
 
+            pluginInstances = {
+                focus: pluginScope
+            }
+
+            pluginAdapterStub = {
+                pluginHooks: pluginHooks,
+                plugins: pluginInstances,
+                getPlugin: function(pluginKey)
+                    return m.plugins[pluginKey]
+                end function
+            }
+
             nodePoolStub = {
                 releasedNodes: [],
                 releaseNodeBranch: function(node)
@@ -90,14 +102,12 @@ namespace tests
             }
 
             builderStub.widgetTree = widgetTreeStub
-            builderStub.pluginAdapter = { pluginHooks: pluginHooks }
+            builderStub.pluginAdapter = pluginAdapterStub
             builderStub.nodePool = nodePoolStub
 
             return {
                 builder: builderStub,
-                plugins: {
-                    focus: pluginScope
-                }
+                plugins: pluginInstances
             }
         end function
 
