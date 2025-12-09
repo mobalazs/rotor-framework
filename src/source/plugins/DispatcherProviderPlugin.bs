@@ -23,19 +23,6 @@ namespace Rotor
         pluginKey = "dispatcher"
 
         ' =============================================================
-        ' CONSTRUCTOR
-        ' =============================================================
-
-        ' ---------------------------------------------------------------------
-        ' new - Initializes the ObserverPlugin instance
-        '
-        ' @param {string} pluginKey - Plugin identifier (default: "observer")
-        '
-        sub new()
-            super()
-        end sub
-
-        ' =============================================================
         ' LIFECYCLE HOOKS
         ' =============================================================
 

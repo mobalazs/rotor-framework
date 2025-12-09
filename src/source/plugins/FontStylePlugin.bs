@@ -35,20 +35,7 @@ namespace Rotor
         ' Regex pattern for extracting plugin key prefix (unused but kept for compatibility)
         pluginKeyRegex = /^[^\.]*/i
 
-        ' =============================================================
-        ' CONSTRUCTOR
-        ' =============================================================
-
-        ' ---------------------------------------------------------------------
-        ' new - Initializes the ObserverPlugin instance
-        '
-        ' @param {string} pluginKey - Plugin identifier (default: "observer")
-        '
-        sub new()
-            super()
-        end sub
-
-        ' =============================================================
+          ' =============================================================
         ' LIFECYCLE HOOKS
         ' =============================================================
 
@@ -110,14 +97,14 @@ namespace Rotor
                 if Rotor.Utils.isFunction(value)
                     fontStyle = Rotor.Utils.callbackScoped(value, widget)
 
-                ' Step 2: Process string interpolation
+                    ' Step 2: Process string interpolation
                 else if Rotor.Utils.isString(value)
                     results = m.configRegex.MatchAll(value)
 
                     if results.Count() > 0 and Rotor.Utils.isString(value)
                         for each result in results
-                            matchKey = result[2]                ' The key path after @
-                            sourceTypeOperator = result[1]      ' The @ symbol
+                            matchKey = result[2] ' The key path after @
+                            sourceTypeOperator = result[1] ' The @ symbol
 
                             ' Determine source based on operator
                             if sourceTypeOperator = "@"
@@ -146,7 +133,7 @@ namespace Rotor
 
                     fontStyle = value
 
-                ' Step 3: Direct value assignment
+                    ' Step 3: Direct value assignment
                 else
                     fontStyle = value
                 end if

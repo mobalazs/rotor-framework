@@ -171,19 +171,6 @@ namespace Rotor
         pluginKey = PRIMARY_FOCUS_PLUGIN_KEY
         aliasPluginKey = GROUP_FOCUS_PLUGIN_KEY
 
-        ' =============================================================
-        ' CONSTRUCTOR
-        ' =============================================================
-
-        ' ---------------------------------------------------------------------
-        ' new - Initializes the ObserverPlugin instance
-        '
-        ' @param {string} pluginKey - Plugin identifier (default: "observer")
-        '
-        sub new()
-            super()
-        end sub
-
         ' Framework lifecycle hooks
         hooks = {
             ' ---------------------------------------------------------------------
@@ -196,17 +183,18 @@ namespace Rotor
             '
             beforeMount: sub(scope as object, widget as object)
                 ' Validation: widget cannot have both "focus" and GROUP_FOCUS_PLUGIN_KEY configs
-                hasFocus = widget.DoesExist(PRIMARY_FOCUS_PLUGIN_KEY) and widget.focus <> invalid
-                hasFocusGroup = widget.DoesExist(GROUP_FOCUS_PLUGIN_KEY) and widget.focusGroup <> invalid
+                isFocusItem = widget.DoesExist(PRIMARY_FOCUS_PLUGIN_KEY) and widget.focus <> invalid
+                isFocusGroup = widget.DoesExist(GROUP_FOCUS_PLUGIN_KEY) and widget.focusGroup <> invalid
 
-                if hasFocus and hasFocusGroup
+                if isFocusItem and isFocusGroup
                     #if debug
                         ? "[FOCUS_PLUGIN][ERROR] Widget '" + widget.id + "' (HID: " + widget.HID + ") cannot have both 'focus' and 'focusGroup' configurations!"
                     #end if
                     return ' Skip setup for this widget
                 end if
 
-                scope.setFocusConfig(widget, widget[scope.pluginKey])
+                config = widget[isFocusItem ? PRIMARY_FOCUS_PLUGIN_KEY : GROUP_FOCUS_PLUGIN_KEY]
+                scope.setFocusConfig(widget, config)
             end sub,
 
             ' ---------------------------------------------------------------------
@@ -406,12 +394,14 @@ namespace Rotor
             ' BACKWARD COMPAT: Check if config has "group" property (old syntax: focus: { group: {...} })
             isGroup = false
 
-            if widget.DoesExist(GROUP_FOCUS_PLUGIN_KEY) and widget.focusGroup = pluginConfig
+            if widget.DoesExist(GROUP_FOCUS_PLUGIN_KEY)
                 ' New syntax: focusGroup: {...}
                 isGroup = true
+                groupConfig = config
             else if config.doesExist(Rotor.Const.GROUP_CONFIG_KEY)
                 ' Backward compatibility: focus: { group: {...} }
                 isGroup = true
+                groupConfig = config[Rotor.Const.GROUP_CONFIG_KEY]
             end if
 
             ' Ensure essential identifiers are in the config
@@ -420,7 +410,7 @@ namespace Rotor
 
             ' Handle group configuration if present
             if isGroup
-                m.setupGroup(HID, config, widget)
+                m.setupGroup(HID, groupConfig, widget)
             else
                 ' Handle focus item configuration if applicable
                 m.setupFocusItem(HID, config, widget)

@@ -30,19 +30,6 @@ namespace Rotor
         configRegex = /(\@)([^\s\@\,]*)/i
 
         ' =============================================================
-        ' CONSTRUCTOR
-        ' =============================================================
-
-        ' ---------------------------------------------------------------------
-        ' new - Initializes the ObserverPlugin instance
-        '
-        ' @param {string} pluginKey - Plugin identifier (default: "observer")
-        '
-        sub new()
-            super()
-        end sub
-
-        ' =============================================================
         ' LIFECYCLE HOOKS
         ' =============================================================
 
@@ -140,8 +127,8 @@ namespace Rotor
 
                     if results.Count() > 0
                         for each result in results
-                            matchKey = result[2]        ' The key path after @
-                            sourceTypeOperator = result[1]  ' The @ symbol
+                            matchKey = result[2] ' The key path after @
+                            sourceTypeOperator = result[1] ' The @ symbol
 
                             ' Determine source based on operator
                             if sourceTypeOperator = "@"
