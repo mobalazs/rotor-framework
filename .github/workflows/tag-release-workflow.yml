@@ -80,8 +80,6 @@ jobs:
           npm pack
           ls -lh *.tgz
 
-      # 9. Publish to npm with provenance (uses trusted publisher)
+      # 9. Publish to npm with provenance (uses OIDC via trusted publisher)
       - name: Publish to npm
         run: npm publish --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
