@@ -604,5 +604,181 @@ namespace tests
             m.assertEqual(focusedWidget.id, "L1")
         end function
 
+        @describe("focus plugin utility methods")
+
+        @it("getFocusedWidget returns currently focused widget")
+        function _()
+            ' Given: L1 is focused (set in beforeEach)
+            focusPlugin = m.fwInstance.plugins.focus
+
+            ' When: Get focused widget
+            focusedWidget = focusPlugin.getFocusedWidget()
+
+            ' Then: Should return L1 widget
+            m.assertNotInvalid(focusedWidget)
+            m.assertEqual(focusedWidget.id, "L1")
+        end function
+
+        @it("findAncestorGroups returns empty array for top-level widget")
+        function _()
+            ' Given: topWidget has no ancestor groups
+            topWidget = m.fwInstance.getWidget("topWidget")
+            focusPlugin = m.fwInstance.plugins.focus
+
+            ' When: Find ancestor groups for topWidget HID
+            ancestorGroups = focusPlugin.findAncestorGroups(topWidget.HID)
+
+            ' Then: Should return empty array (no ancestors)
+            m.assertNotInvalid(ancestorGroups)
+            m.assertEqual(ancestorGroups.Count(), 0)
+        end function
+
+        @it("findAncestorGroups returns parent group for child widget")
+        function _()
+            ' Given: L1 is inside GroupL2
+            l1Widget = m.fwInstance.getWidget("L1")
+            focusPlugin = m.fwInstance.plugins.focus
+
+            ' When: Find ancestor groups for L1
+            ancestorGroups = focusPlugin.findAncestorGroups(l1Widget.HID)
+
+            ' Then: Should include GroupL2
+            m.assertNotInvalid(ancestorGroups)
+            m.assertTrue(ancestorGroups.Count() > 0)
+        end function
+
+        @describe("focus navigation toggle")
+
+        @it("enableFocusNavigation enables navigation via widget decorator")
+        function _()
+            ' Given: L1 widget
+            l1Widget = m.fwInstance.getWidget("L1")
+
+            ' When: Enable navigation via widget decorator
+            l1Widget.plugins.focus.enableFocusNavigation(true)
+
+            ' Then: Navigation should be enabled
+            m.assertTrue(l1Widget.plugins.focus.isFocusNavigationEnabled())
+        end function
+
+        @it("enableFocusNavigation disables navigation via widget decorator")
+        function _()
+            ' Given: L1 widget with navigation enabled
+            l1Widget = m.fwInstance.getWidget("L1")
+            l1Widget.plugins.focus.enableFocusNavigation(true)
+
+            ' When: Disable navigation
+            l1Widget.plugins.focus.enableFocusNavigation(false)
+
+            ' Then: Navigation should be disabled
+            m.assertFalse(l1Widget.plugins.focus.isFocusNavigationEnabled())
+        end function
+
+        @it("isFocusNavigationEnabled returns current state via widget decorator")
+        function _()
+            ' Given: L1 widget
+            l1Widget = m.fwInstance.getWidget("L1")
+
+            ' When: Check initial state
+            isEnabled = l1Widget.plugins.focus.isFocusNavigationEnabled()
+
+            ' Then: Should return boolean
+            m.assertNotInvalid(isEnabled)
+        end function
+
+        @describe("setFocus edge cases")
+
+        @it("setFocus returns false for invalid ref")
+        function _()
+            ' Given: Focus plugin
+            focusPlugin = m.fwInstance.plugins.focus
+
+            ' When: Try to set focus with invalid ref
+            result = focusPlugin.setFocus(invalid)
+
+            ' Then: Should return false
+            m.assertFalse(result)
+        end function
+
+        @it("setFocus returns false for empty string ref")
+        function _()
+            ' Given: Focus plugin
+            focusPlugin = m.fwInstance.plugins.focus
+
+            ' When: Try to set focus with empty string
+            result = focusPlugin.setFocus("")
+
+            ' Then: Should return false
+            m.assertFalse(result)
+        end function
+
+        @it("setFocus returns false for non-existent widget id")
+        function _()
+            ' Given: Focus plugin
+            focusPlugin = m.fwInstance.plugins.focus
+
+            ' When: Try to set focus with non-existent id
+            result = focusPlugin.setFocus("nonExistentWidget123")
+
+            ' Then: Should return false
+            m.assertFalse(result)
+        end function
+
+        @it("setFocus returns false when already focused")
+        function _()
+            ' Given: L1 is already focused (set in beforeEach)
+            l1Widget = m.fwInstance.getWidget("L1")
+            focusPlugin = m.fwInstance.plugins.focus
+
+            ' When: Try to set focus to L1 again
+            result = l1Widget.plugins.focus.setFocus()
+
+            ' Then: Should return false (no change)
+            m.assertFalse(result)
+        end function
+
+        @describe("focus plugin cleanup")
+
+        @it("removeFocusConfig removes focus item from stack")
+        function _()
+            ' Given: L1 widget with focus config
+            l1Widget = m.fwInstance.getWidget("L1")
+            focusPlugin = m.fwInstance.plugins.focus
+
+            ' Verify L1 is in focus stack
+            focusItem = focusPlugin.focusItemStack.get(l1Widget.HID)
+            m.assertNotInvalid(focusItem)
+
+            ' When: Remove focus config
+            focusPlugin.removeFocusConfig(l1Widget.HID)
+
+            ' Then: L1 should be removed from stack
+            focusItem = focusPlugin.focusItemStack.get(l1Widget.HID)
+            m.assertInvalid(focusItem)
+        end function
+
+        @it("destroy cleans up focus plugin resources")
+        function _()
+            ' Given: Focus plugin with active focus
+            focusPlugin = m.fwInstance.plugins.focus
+            l1Widget = m.fwInstance.getWidget("L1")
+            m.assertNotInvalid(l1Widget)
+
+            ' Verify L1 is in focus stacks before destroy
+            focusItem = focusPlugin.focusItemStack.get(l1Widget.HID)
+            m.assertNotInvalid(focusItem)
+
+            ' When: Destroy plugin
+            focusPlugin.destroy()
+
+            ' Then: Focus stacks should be empty
+            m.assertEqual(focusPlugin.focusItemStack.getAll().Count(), 0)
+            m.assertEqual(focusPlugin.groupStack.getAll().Count(), 0)
+
+            ' Timer should be invalid
+            m.assertInvalid(focusPlugin.longPressTimer)
+            m.assertInvalid(focusPlugin.widgetTree)
+        end function
+
         end class
 end namespace

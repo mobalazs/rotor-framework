@@ -114,7 +114,7 @@ class I18nLocaleViewModel extends Rotor.ViewModel
                 id: "welcomeLabel",
                 nodeType: "Label",
                 fields: {
-                    text: m.viewModelState?.l10n?.welcome ?? "failed",
+                    text: m.viewModelState?.l10n?.welcome ?? "placeholder",
                     width: 400,
                     height: 50
                 }

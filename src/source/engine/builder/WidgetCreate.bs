@@ -96,8 +96,8 @@ namespace Rotor.ViewBuilder
             return m.getFrameworkInstance().builder.widgetTree.getSubtreeClone(searchPattern, configIncludeFilter, m.parentHID)
         end function
 
-       ' Get isRTL flag
-        widget.i18n = function() as boolean
+       ' Get i18n service
+        widget.i18n = function() as object
             return m.getFrameworkInstance().i18nService
         end function
 

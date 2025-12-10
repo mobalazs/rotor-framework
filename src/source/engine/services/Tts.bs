@@ -141,6 +141,9 @@ namespace Rotor.ViewBuilder
         ' @private
         '
         private function getIsDeviceAudioGuideEnabled() as boolean
+            #if unittest
+                return true
+            #end if
             if m.deviceInfo <> invalid and m.deviceInfo.isAudioGuideEnabled() <> invalid
                 return m.deviceInfo.isAudioGuideEnabled()
             end if

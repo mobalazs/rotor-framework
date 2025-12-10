@@ -40,7 +40,7 @@ sub helloWorldSample()
             translation: [UI.SafeArea.x, UI.SafeArea.y]
         },
         onMountWidget: sub()
-            m.tts.speak({
+            m.tts().speak({
                 say: UI.helloWorldText,
                 secure: true
             })

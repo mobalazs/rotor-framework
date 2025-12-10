@@ -63,6 +63,23 @@ class DescendantViewModel extends Rotor.ViewModel
 
 end class
 
+' MARK: Render Thread Dispatcher (minimal setup for testing)
+
+class TestRenderThreadModel extends Rotor.Model
+    state = {
+        counter: 0
+    }
+end class
+
+class TestRenderThreadReducer extends Rotor.Reducer
+    override function reducer(state, intent)
+        if intent.type = "INCREMENT"
+            state.counter++
+        end if
+        return state
+    end function
+end class
+
 ' MARK: Helper methods for tests
 
 function getDispatcherTestTemplate() as object

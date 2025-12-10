@@ -1,0 +1,38 @@
+class TtsTestViewModel extends Rotor.ViewModel
+
+    props = {
+        itemTitle: "Default Item"
+    }
+
+    viewModelState = {
+        score: 100,
+        message: "Test Message"
+    }
+
+    override function template() as object
+        return {
+            nodeType: "Group",
+            children: [{
+                id: "testLabel",
+                nodeType: "Label",
+                fields: {
+                    text: m.props.itemTitle
+                }
+            }]
+        }
+    end function
+end class
+
+function getTtsTestTemplate() as object
+    return {
+        id: "ttsTest",
+        viewModel: TtsTestViewModel,
+        props: {
+            itemTitle: "TTS Test Item"
+        },
+        viewModelState: {
+            score: 100,
+            message: "Hello from TTS"
+        }
+    }
+end function
