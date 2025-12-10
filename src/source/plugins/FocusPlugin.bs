@@ -529,10 +529,7 @@ namespace Rotor
                         ' If group found, find its default/entry focus item recursively.
                         HID = m.capturingFocus_recursively(group.HID)
                         focusItem = m.focusItemStack.get(HID) ' May still be invalid if capture fails
-
                         ' else: ref is not a known FocusItem HID or Group identifier
-                    else
-                        stop
                     end if
                 end if
             end if
