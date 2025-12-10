@@ -9,6 +9,8 @@ on:
 jobs:
   build-lint-coverage:
     runs-on: self-hosted
+    # Skip if this push is a tag (release workflow handles tagged commits)
+    if: startsWith(github.ref, 'refs/heads/')
     permissions:
       contents: read
       packages: read
