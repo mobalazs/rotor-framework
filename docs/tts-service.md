@@ -24,6 +24,39 @@ widget.tts({
 })
 ```
 
+### Dynamic Speech (Function)
+
+```brightscript
+' Use a function that returns text
+widget.tts({
+    say: function() as string
+        return "Current count: " + Str(m.viewModelState.count)
+    end function
+})
+```
+
+### String Interpolation
+
+```brightscript
+' Use @ to reference context.viewModelState properties
+widget.tts().speak({
+    say: "You selected @selectedItem.title",
+    context: m
+})
+
+' Use $ to reference context properties (HID, id, etc.)
+widget.tts().speak({
+    say: "Widget $id has focus",
+    context: m
+})
+
+' Multiple interpolations
+widget.tts().speak({
+    say: "Loading @loadingProgress percent in widget $id",
+    context: m
+})
+```
+
 ### Flush Control (Interrupt Current Speech)
 
 ```brightscript
@@ -136,19 +169,44 @@ Speaks text through the TTS service.
 **Parameters:**
 
 - `config` (object) - TTS configuration object
-  - `say` (string) - Text to speak (required)
+  - `say` (string | function) - Text to speak or function returning text (required)
+    - **String**: Plain text or interpolated text with `@viewModelState.key` or `$context.property` patterns
+    - **Function**: Called with context scope if provided, must return string
+  - `context` (object) - Context for string interpolation (optional, widget or any object with viewModelState)
   - `flush` (boolean) - Interrupt current speech (default: false)
   - `spellOut` (boolean) - Spell out character-by-character (default: false)
   - `overrideNextFlush` (boolean) - Protect from next flush (default: false)
   - `dontRepeat` (boolean) - Skip if same as last speech (default: false)
 
-**Example:**
+**Examples:**
 
 ```brightscript
-widget.tts({
+' Plain string (no context needed)
+widget.tts().speak({
     say: "Menu opened",
     flush: true,
     dontRepeat: true
+})
+
+' String interpolation with context
+widget.tts().speak({
+    say: "Selected @currentItem.name",
+    context: widget  ' or m in widget scope
+})
+
+' String interpolation - context properties
+widget.tts().speak({
+    say: "Focus on widget $id",
+    context: m
+})
+
+' Function with context
+widget.tts().speak({
+    say: function() as string
+        return "Score: " + Str(m.viewModelState.score)
+    end function,
+    context: m,
+    flush: true
 })
 ```
 
@@ -169,12 +227,12 @@ framework.ttsService.speak({
 })
 ```
 
-#### silence()
+#### stopSpeech()
 
-Immediately stops all speech.
+Immediately stops all speech and cancels pending speech.
 
 ```brightscript
-framework.ttsService.silence()
+framework.ttsService.stopSpeech()
 ```
 
 #### enable() / disable()

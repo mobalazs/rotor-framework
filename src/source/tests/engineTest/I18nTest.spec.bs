@@ -90,7 +90,7 @@ namespace tests
 
             ' Then: getLocale should return current locale
             m.assertNotInvalid(widget)
-            m.assertEqual(widget.getLocale(), "en_US")
+            m.assertEqual(widget.i18n().getLocale(), "en_US")
         end function
 
         @it("isRtl returns false for LTR locale")
@@ -100,7 +100,7 @@ namespace tests
 
             ' Then: isRtl should return false
             m.assertNotInvalid(widget)
-            m.assertFalse(widget.isRtl())
+            m.assertFalse(widget.i18n().getIsRtl())
         end function
 
         @it("getLocale works for any widget regardless of i18n config")
@@ -110,7 +110,7 @@ namespace tests
 
             ' Then: getLocale should still work
             m.assertNotInvalid(widget)
-            m.assertEqual(widget.getLocale(), "en_US")
+            m.assertEqual(widget.i18n().getLocale(), "en_US")
         end function
 
         @it("isRtl works for any widget regardless of i18n config")
@@ -120,7 +120,7 @@ namespace tests
 
             ' Then: isRtl should still work
             m.assertNotInvalid(widget)
-            m.assertFalse(widget.isRtl())
+            m.assertFalse(widget.i18n().getIsRtl())
         end function
 
         ' ======================================================================
@@ -179,7 +179,7 @@ namespace tests
             m.fwInstance.i18nService.setL10n(m.translations.fr_FR)
 
             ' Then: getLocale should return fr_FR immediately (dynamic getter)
-            m.assertEqual(widget.getLocale(), "fr_FR")
+            m.assertEqual(widget.i18n().getLocale(), "fr_FR")
         end function
 
         @it("i18nService getLocale returns current locale")
@@ -207,7 +207,7 @@ namespace tests
 
             ' Then: isRtl should return true
             m.assertNotInvalid(widget)
-            m.assertTrue(widget.isRtl())
+            m.assertTrue(widget.i18n().getIsRtl())
         end function
 
         ' ======================================================================

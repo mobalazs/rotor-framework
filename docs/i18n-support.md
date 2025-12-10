@@ -158,14 +158,17 @@ All widgets have built-in methods to access locale and RTL information dynamical
 
 ```brightscript
 override sub onCreateView()
+    ' Get i18n service
+    i18n = m.i18n()
+
     ' Get current locale string (e.g., "en_US", "ar_SA")
-    currentLocale = m.getLocale()
+    currentLocale = i18n.getLocale()
 
     ' Check if current locale is RTL
-    isRTL = m.isRtl()  ' false for LTR languages, true for RTL
+    isRTL = i18n.getIsRtl()  ' false for LTR languages, true for RTL
 
     ' Use in conditional logic
-    if m.isRtl()
+    if i18n.getIsRtl()
         ' Apply RTL-specific layout
     else
         ' Apply LTR layout

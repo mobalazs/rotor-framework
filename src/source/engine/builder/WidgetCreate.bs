@@ -91,12 +91,17 @@ namespace Rotor.ViewBuilder
         end function
 
         ' getSubtreeClone - Creates a clone of widget subtree *'
-        widget.getSubtreeClone = function(searchPattern = "" as string, keyPathList = [] as object) as object
+        widget.getSubtreeClone = function(searchPattern = "" as string, configIncludeFilter = [] as object) as object
             if searchPattern = "" then searchPattern = m.HID
-            return m.getFrameworkInstance().builder.widgetTree.getSubtreeClone(searchPattern, keyPathList, m.parentHID)
+            return m.getFrameworkInstance().builder.widgetTree.getSubtreeClone(searchPattern, configIncludeFilter, m.parentHID)
         end function
 
        ' Get isRTL flag
+        widget.i18n = function() as boolean
+            return m.getFrameworkInstance().i18nService
+        end function
+
+        ' Get isRTL flag
         widget.isRtl = function() as boolean
             i18nService = m.getFrameworkInstance().i18nService
             return i18nService.getIsRtl()
@@ -157,15 +162,15 @@ namespace Rotor.ViewBuilder
             return dispatcherFaced.getState(mapStateToProps)
         end function
 
-        ' animator - Gets animator factory by ID *'
+        ' animator - Gets animator factory by ID'
         widget.animator = function(animatorId) as object
             return m.getFrameworkInstance().animatorProvider.getFactory(animatorId, m)
         end function
 
-        ' tts - Text-to-Speech service decorator *'
-        widget.tts = sub(config as object)
-            m.getFrameworkInstance().ttsService.speak(config)
-        end sub
+        ' TTS - Text-to-Speech service interface'
+        widget.tts = function() as Rotor.ViewBuilder.TtsService
+            return m.getFrameworkInstance().ttsService
+        end function
 
         ' =============================================================
         ' VIEWMODEL INITIALIZATION

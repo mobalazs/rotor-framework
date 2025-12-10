@@ -14,15 +14,16 @@ namespace Rotor.ViewBuilder
     class I18nService
 
 
-        l10n = {}
-        cache = {}
-        locale as string
-        isRTL = false
-        rootWidget as Rotor.Widget
-        frameworkInstance as Rotor.Framework
+        public l10n = {}
+        public locale as string
+        public isRTL = false
 
+        private rootWidget as Rotor.Widget
+        private frameworkInstance as Rotor.Framework
+        private cache = {}
         ' RTL language codes
-        RTL_LANGUAGES = ["ar", "he", "fa", "ur"]
+        private RTL_LANGUAGES = ["ar", "he", "fa", "ur"]
+
 
         ' ---------------------------------------------------------------------
         ' init - Initializes the i18n service with default locale
@@ -41,7 +42,7 @@ namespace Rotor.ViewBuilder
         '
         ' @param {string} locale - Locale string (e.g., "en_US", "ar_SA")
         '
-        sub setLocale(locale as string)
+        public sub setLocale(locale as string)
             m.locale = locale
             m.isRTL = m.detectRTL(locale)
         end sub
@@ -51,7 +52,7 @@ namespace Rotor.ViewBuilder
         '
         ' @returns {string} Current locale (e.g., "en_US")
         '
-        function getLocale() as string
+        public function getLocale() as string
             return m.locale
         end function
 
@@ -81,7 +82,7 @@ namespace Rotor.ViewBuilder
         '
         ' @param {object} l10n - Localization data object
         '
-        sub setL10n(l10n as object)
+        public sub setL10n(l10n as object)
             ' Keep the object reference, but replace all keys
             m.l10n.Clear()
             m.l10n.append(l10n)
@@ -93,7 +94,7 @@ namespace Rotor.ViewBuilder
         '
         ' @param {object} l10n - Localization data to merge
         '
-        sub extendL10n(l10n as object)
+        public sub extendL10n(l10n as object)
             Rotor.Utils.deepExtendAA(m.l10n, l10n)
             m.refreshCache()
         end sub
@@ -111,7 +112,7 @@ namespace Rotor.ViewBuilder
         '
         ' @private
         '
-        sub refreshCache()
+        private sub refreshCache()
             for each cacheKey in m.cache
                 m.cache[cacheKey] = Rotor.Utils.getCloneByKeyPath(m.l10n, cacheKey)
             end for
@@ -145,7 +146,7 @@ namespace Rotor.ViewBuilder
         ' @returns {object} Merged localization data from all key paths
         ' @private
         '
-        function getMultipleAssets(keyPath as dynamic) as object
+        private function getMultipleAssets(keyPath as dynamic) as object
             keysPaths = Rotor.Utils.ensureArray(keyPath)
             assets = {}
             for each keyPath in keysPaths

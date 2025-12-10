@@ -16,12 +16,13 @@ namespace Rotor.ViewBuilder
     '   - Symbol/email handling with localized symbol names
     '
     ' Usage:
-    '   widget.tts({
+    '   widget.tts().speak({
     '       say: "Hello world",
     '       flush: true,
     '       spellOut: false,
     '       overrideNextFlush: false,
-    '       dontRepeat: false
+    '       dontRepeat: false,
+    '       context: {},
     '   })
     ' =====================================================================
     class TtsService
@@ -75,6 +76,11 @@ namespace Rotor.ViewBuilder
         ' Decimal handling regex
         decimalRegex = /(\d+)\.(\d+)/
 
+        ' String interpolation regex (same as FieldsPlugin)
+        ' @ = viewModelState, $ = widget properties
+        ' Matches: @ or $ followed by any characters except space, @, $, or comma
+        contextRegex = /([\@\$])([^\s\@\$\,]*)/i
+
         ' ---------------------------------------------------------------------
         ' init - Initializes the TTS service with native roAudioGuide
         '
@@ -100,7 +106,7 @@ namespace Rotor.ViewBuilder
                 m.timerNode = rootNode.createChild("Timer")
                 m.timerNode.repeat = true
                 m.timerNode.duration = m.debounceDelay / 1000.0 ' Convert ms to seconds
-                m.timerNode.observeFieldScoped("fire", "Rotor_TtsDebounceCallback")
+                m.timerNode.observeFieldScoped("fire", "Rotor_ttsDebounceCallback")
                 m.timerNode.control = "start"
                 #if debug
                     ? "[TTS_SERVICE][INFO] Debounce timer created ("; m.debounceDelay; "ms interval)"
@@ -214,7 +220,7 @@ namespace Rotor.ViewBuilder
                         #end if
                         m.overrideNextFlushFlag = false
                     else
-                        m.audioGuide.Silence()
+                        m.audioGuide.Flush()
                     end if
                 end if
 
@@ -271,7 +277,7 @@ namespace Rotor.ViewBuilder
                         #end if
                         m.overrideNextFlushFlag = false
                     else
-                        m.audioGuide.Silence()
+                        m.audioGuide.Flush()
                     end if
                 end if
 
@@ -296,21 +302,24 @@ namespace Rotor.ViewBuilder
         ' speak - Main TTS function called from widget.tts() decorator
         '
         ' @param {object} config - TTS configuration object
-        '   {string} say - Text to speak
+        '   {string|function} say - Text to speak (string or function returning string)
         '   {boolean} flush - Interrupt current speech (default: false)
         '   {boolean} spellOut - Spell out text character-by-character (default: false)
         '   {boolean} overrideNextFlush - Protect this speech from next flush (default: false)
         '   {boolean} dontRepeat - Don't speak if same as last speech (default: false)
+        '   {object} context - Context for interpolation (optional)
         '
-        sub speak(config as object)
+        public sub speak(config as object)
             ' Check if both device AudioGuide and service are enabled
             if not m.isEnabled or not m.getIsDeviceAudioGuideEnabled() then return
-            if config.say = invalid or config.say = "" then return
+            if config.say = invalid then return
 
             ' Check if pending speech should be executed
             m.checkPendingSpeech()
 
-            textToSpeak = config.say
+            ' Process say value (function, string interpolation, or plain string)
+            textToSpeak = m.processSayValue(config.say, config.context)
+            if textToSpeak = invalid or textToSpeak = "" then return
             shouldFlush = config.flush = true
             shouldSpellOut = config.spellOut = true
             shouldOverrideNextFlush = config.overrideNextFlush = true
@@ -363,6 +372,81 @@ namespace Rotor.ViewBuilder
         end sub
 
         ' ---------------------------------------------------------------------
+        ' processSayValue - Processes the say value (function or string with interpolation)
+        '
+        ' Handles:
+        '   1. Function evaluation - calls function and returns string result
+        '   2. String interpolation - replaces @viewModelState.key patterns
+        '   3. Plain string - returns as-is
+        '
+        ' @param {dynamic} sayValue - Text to speak (string or function)
+        ' @param {object} context - Context context for interpolation
+        ' @returns {string} Processed text ready for speech
+        ' @private
+        '
+        private function processSayValue(sayValue as dynamic, context = invalid as dynamic) as string
+            textToSpeak = ""
+
+            ' Step 1: Resolve function-based values
+            if Rotor.Utils.isFunction(sayValue)
+                if context <> invalid
+                    textToSpeak = Rotor.Utils.callbackScoped(sayValue, context)
+                else
+                    ' No context context - call function with m scope
+                    textToSpeak = sayValue()
+                end if
+                if not Rotor.Utils.isString(textToSpeak)
+                    textToSpeak = ""
+                end if
+            else if Rotor.Utils.isString(sayValue)
+                textToSpeak = sayValue
+            else
+                return ""
+            end if
+
+            ' Step 2: Process string interpolation
+            if Rotor.Utils.isString(textToSpeak) and context <> invalid
+                results = m.contextRegex.MatchAll(textToSpeak)
+
+                if results.Count() > 0
+                    for each result in results
+                        matchKey = result[2]        ' The key path after @
+                        sourceTypeOperator = result[1]  ' The @ symbol
+
+                        ' Determine source based on operator
+                        source = invalid
+                        if sourceTypeOperator = "@"
+                            source = context.viewModelState
+                        else if sourceTypeOperator = "$"
+                            source = context
+                        end if
+
+                        ' Skip if unknown operator
+                        if source = invalid then goto nextResult
+
+                        ' Resolve value from key path
+                        asset = Rotor.Utils.getValueByKeyPath(source, matchKey)
+
+                        ' Handle string vs non-string results
+                        if Rotor.Utils.isString(asset)
+                            ' String interpolation - replace in original string
+                            replaceRegex = CreateObject("roRegex", sourceTypeOperator + matchKey, "ig")
+                            textToSpeak = replaceRegex.ReplaceAll(textToSpeak, asset)
+                        ' else if asset <> invalid
+                        '     ' Non-string value - convert to string
+                        '     replaceRegex = CreateObject("roRegex", sourceTypeOperator + matchKey, "ig")
+                        '     textToSpeak = replaceRegex.ReplaceAll(textToSpeak, Str(asset).Trim())
+                        end if
+
+                        nextResult:
+                    end for
+                end if
+            end if
+
+            return textToSpeak
+        end function
+
+        ' ---------------------------------------------------------------------
         ' processSpellOutMode - Processes text for character-by-character spelling
         '
         ' Handles:
@@ -373,7 +457,6 @@ namespace Rotor.ViewBuilder
         '
         ' @param {string} text - Text to process
         ' @returns {string} Processed text for spelling out
-        ' @public (exposed for testing)
         '
         function processSpellOutMode(text as string) as string
             if text = "" then return ""
@@ -434,15 +517,15 @@ namespace Rotor.ViewBuilder
         end function
 
         ' ---------------------------------------------------------------------
-        ' silence - Immediately stops all speech and cancels pending
+        ' stopSpeech - Immediately stops all speech and cancels pending
         '
-        sub silence()
+        public sub stopSpeech()
             if not m.isEnabled or not m.getIsDeviceAudioGuideEnabled() then return
-            m.audioGuide.Silence()
+            m.audioGuide.Flush()
             m.overrideNextFlushFlag = false
             m.pendingSpeech = invalid
             #if debug
-                ? "[TTS_SERVICE] Silence - canceled all speech"
+                ? "[TTS_SERVICE] Stop speech - canceled all speech"
             #end if
         end sub
 
@@ -458,7 +541,7 @@ namespace Rotor.ViewBuilder
         ' ---------------------------------------------------------------------
         ' enable - Enables TTS service and disables native AudioGuide
         '
-        sub enable()
+        public sub enable()
             if not m.getIsDeviceAudioGuideEnabled()
                 #if debug
                     ? "[TTS_SERVICE][WARNING] Cannot enable - device AudioGuide is disabled"
@@ -481,9 +564,9 @@ namespace Rotor.ViewBuilder
         ' ---------------------------------------------------------------------
         ' disable - Disables TTS service and re-enables native AudioGuide
         '
-        sub disable()
+        public sub disable()
             m.isEnabled = false
-            m.silence()
+            m.stopSpeech()
 
             ' Unmute native AudioGuide on root node if device supports it
             if m.getIsDeviceAudioGuideEnabled()
@@ -503,7 +586,7 @@ namespace Rotor.ViewBuilder
         ' @param {dynamic} enableState - Optional: true = enable, false = disable, invalid = toggle
         ' @returns {boolean} New enabled state
         '
-        function toggleAudioGuide(enableState = invalid as dynamic) as boolean
+        public function toggleAudioGuide(enableState = invalid as dynamic) as boolean
             ' Check device AudioGuide status dynamically
             if not m.getIsDeviceAudioGuideEnabled()
                 #if debug
@@ -532,8 +615,8 @@ namespace Rotor.ViewBuilder
                     ? "[TTS_SERVICE][INFO] TTS enabled, muted native AudioGuide"
                 #end if
             else
-                ' Disabling TTS - silence current speech and unmute native AudioGuide
-                m.audioGuide.Silence()
+                ' Disabling TTS - stop current speech and unmute native AudioGuide
+                m.audioGuide.Flush()
                 m.overrideNextFlushFlag = false
                 rootNode.muteAudioGuide = false
                 #if debug
@@ -572,7 +655,7 @@ namespace Rotor.ViewBuilder
     ' =============================================================================
     ' Global callback for TTS debounce timer
     ' =============================================================================
-    sub TtsDebounceCallback(event as object)
+    sub ttsDebounceCallback(event as object)
         framework = GetGlobalAA().rotor_framework_helper.frameworkInstance
         if framework = invalid then return
         framework.ttsService.onDebounceTimer()

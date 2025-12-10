@@ -58,8 +58,9 @@ api:
     path: "Single translation section path (e.g., i18n: { path: 'navigation' }). Scopes @l10n to that section."
     paths: "Multiple translation section paths merged at root (e.g., i18n: { paths: ['navigation', 'buttons'] })."
   widgetMethods:
-    isRtl: "widget.isRtl() - Returns boolean RTL status for current locale. Available on all widgets."
-    getLocale: "widget.getLocale() - Returns current locale string (e.g., 'en_US'). Available on all widgets."
+    i18n: "widget.i18n() - Returns i18nService instance. Available on all widgets."
+    getIsRtl: "widget.i18n().getIsRtl() - Returns boolean RTL status for current locale."
+    getLocale: "widget.i18n().getLocale() - Returns current locale string (e.g., 'en_US')."
 viewModelIntegration:
   basicConfiguration: |
     class NavigationMenu extends Rotor.ViewModel
@@ -94,9 +95,10 @@ viewModelIntegration:
       }
     }
     override sub onCreateView()
-      ' Access locale and RTL via widget methods (dynamic getters)
-      currentLocale = m.getLocale()  ' "en_US"
-      isRTL = m.isRtl()              ' false for LTR, true for RTL
+      ' Access locale and RTL via i18n service
+      i18n = m.i18n()
+      currentLocale = i18n.getLocale()  ' "en_US"
+      isRTL = i18n.getIsRtl()           ' false for LTR, true for RTL
     end sub
 variableInterpolation:
   scopingRules: |

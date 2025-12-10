@@ -29,17 +29,18 @@ core:
     end sub
 api:
   widgetDecorator:
-    syntax: "widget.tts({ say, flush, spellOut, overrideNextFlush, dontRepeat })"
+    syntax: "widget.tts().speak({ say, context, flush, spellOut, overrideNextFlush, dontRepeat })"
     description: "Main TTS function available on all widgets"
     parameters:
-      say: "Text to speak (required, string)"
+      say: "Text to speak (required, string|function) - Plain string, interpolated string (@viewModelState.key or $context.property), or function returning string"
+      context: "Context for interpolation (optional, object) - Widget or any object with viewModelState property"
       flush: "Interrupt current speech (optional, boolean, default: false)"
       spellOut: "Spell character-by-character (optional, boolean, default: false)"
       overrideNextFlush: "Protect from next flush (optional, boolean, default: false)"
       dontRepeat: "Skip if same as last speech (optional, boolean, default: false)"
   serviceMethods:
     speak: "ttsService.speak(config) - Same as widget.tts()"
-    silence: "ttsService.silence() - Stop all speech immediately"
+    stopSpeech: "ttsService.stopSpeech() - Stop all speech immediately and cancel pending"
     enable: "ttsService.enable() - Enable TTS, disable native AudioGuide on rootNode"
     disable: "ttsService.disable() - Disable TTS, re-enable native AudioGuide"
     toggleAudioGuide: "ttsService.toggleAudioGuide([enableState]) - Toggle (no arg) or set explicit state (true/false), returns new state"
@@ -53,6 +54,29 @@ usage:
   basicSpeech: |
     widget.tts({
       say: "Hello world"
+    })
+  dynamicSpeech: |
+    ' Function returning string
+    widget.tts({
+      say: function() as string
+        return "Score: " + Str(m.viewModelState.score)
+      end function
+    })
+  stringInterpolation: |
+    ' Interpolate context.viewModelState properties with @
+    widget.tts().speak({
+      say: "You selected @currentItem.title",
+      context: m
+    })
+    ' Interpolate context properties with $
+    widget.tts().speak({
+      say: "Focus on widget $id",
+      context: m
+    })
+    ' Multiple interpolations
+    widget.tts().speak({
+      say: "Loading @progress percent in widget $id",
+      context: m
     })
   sentenceSecure: |
     ' 200ms debounce - last item speaks
