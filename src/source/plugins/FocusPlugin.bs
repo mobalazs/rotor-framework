@@ -392,15 +392,13 @@ namespace Rotor
             ' Determine if this is a group configuration
             ' NEW: Check if plugin key is GROUP_FOCUS_PLUGIN_KEY (explicit group)
             ' BACKWARD COMPAT: Check if config has "group" property (old syntax: focus: { group: {...} })
-            isGroup = false
 
+            groupConfig = invalid
             if widget.DoesExist(GROUP_FOCUS_PLUGIN_KEY)
                 ' New syntax: focusGroup: {...}
-                isGroup = true
                 groupConfig = config
             else if config.doesExist(Rotor.Const.GROUP_CONFIG_KEY)
                 ' Backward compatibility: focus: { group: {...} }
-                isGroup = true
                 groupConfig = config[Rotor.Const.GROUP_CONFIG_KEY]
             end if
 
@@ -409,7 +407,7 @@ namespace Rotor
             config.HID = widget.HID
 
             ' Handle group configuration if present
-            if isGroup
+            if groupConfig <> invalid
                 m.setupGroup(HID, groupConfig, widget)
             else
                 ' Handle focus item configuration if applicable
