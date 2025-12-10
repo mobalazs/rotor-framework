@@ -211,9 +211,27 @@ namespace Rotor
                 ' Remove previous config before applying the update
                 scope.removeFocusConfig(widget.HID)
 
-                ' Merge new config into existing widget config
-                Rotor.Utils.deepExtendAA(widget[scope.pluginKey], newValue)
-                scope.setFocusConfig(widget, widget[scope.pluginKey])
+                ' Determine whether this widget is a focus item or focus group
+                targetKey = PRIMARY_FOCUS_PLUGIN_KEY
+                if widget.DoesExist(PRIMARY_FOCUS_PLUGIN_KEY) and widget[PRIMARY_FOCUS_PLUGIN_KEY] <> invalid
+                    targetKey = PRIMARY_FOCUS_PLUGIN_KEY
+                else
+                    targetKey = GROUP_FOCUS_PLUGIN_KEY
+                end if
+
+                ' Ensure target config exists
+                if not Rotor.Utils.isAssociativeArray(widget[targetKey])
+                    widget[targetKey] = {}
+                end if
+
+                ' Merge new config into existing widget config (or replace if non-AA)
+                if Rotor.Utils.isAssociativeArray(newValue)
+                    Rotor.Utils.deepExtendAA(widget[targetKey], newValue)
+                else
+                    widget[targetKey] = newValue
+                end if
+
+                scope.setFocusConfig(widget, widget[targetKey])
             end sub,
 
             ' ---------------------------------------------------------------------
@@ -513,6 +531,8 @@ namespace Rotor
                         focusItem = m.focusItemStack.get(HID) ' May still be invalid if capture fails
 
                         ' else: ref is not a known FocusItem HID or Group identifier
+                    else
+                        stop
                     end if
                 end if
             end if
@@ -558,6 +578,7 @@ namespace Rotor
 
             ' Prepare ancestor groups for notification (from highest ancestor to closest parent)
             focusChainGroups = m.findAncestorGroups(focusItem.HID) ' Groups containing the new focus
+
             lastFocusChainingGroups = []
 
             ' Handle blurring the previously focused item
