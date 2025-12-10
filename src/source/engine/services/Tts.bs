@@ -173,13 +173,21 @@ namespace Rotor.ViewBuilder
         private sub onDebounceTimer()
             if m.pendingSpeech = invalid then return
 
+            ' IMPORTANT: Save pending to local variable and clear member BEFORE executing
+            ' This allows executeSpeech() -> saySentences() to set NEW pending for remaining sentences
+            pendingToExecute = m.pendingSpeech
+            m.pendingSpeech = invalid
+
             ' Execute pending speech after threshold passed
             #if debug
-                ? "[TTS_SERVICE][THRESHOLD] Timer fired, executing: '"; m.pendingSpeech.textToSpeak; "'"
+                ? "[TTS_SERVICE][THRESHOLD] Timer fired, executing: '"; pendingToExecute.textToSpeak; "'"
             #end if
-            m.executeSpeech(m.pendingSpeech)
-            m.pendingSpeech = invalid
-            m.isPendingProtected = false ' Clear protection flag
+
+            ' IMPORTANT: Clear protection flag BEFORE executing pending speech
+            ' Otherwise isPendingProtected will block the pending speech itself!
+            m.isPendingProtected = false
+
+            m.executeSpeech(pendingToExecute)
         end sub
 
         ' ---------------------------------------------------------------------
@@ -244,7 +252,7 @@ namespace Rotor.ViewBuilder
                     if i > 0 then remainingText += ". "
                     remainingText += remainingSentences[i]
                 end for
-                remainingText += "." ' Add final period
+                ' NOTE: Do NOT add final period! This would cause executeSpeech() to call saySentences() again!
 
                 #if debug
                     ? "[TTS_SERVICE][AUTO-PROTECT] Remaining sentences pending (400ms threshold): '"; remainingText; "'"
@@ -359,7 +367,7 @@ namespace Rotor.ViewBuilder
                 #if debug
                     ? "[TTS_SERVICE][OVERRIDE] Current speech bypassing threshold: "; textToSpeak
                 #end if
-                m.pendingSpeech = invalid
+                ' NOTE: Do NOT clear pending here! saySentences() may set new pending for remaining sentences
                 m.executeSpeech({
                     textToSpeak: textToSpeak,
                     shouldFlush: shouldFlush,

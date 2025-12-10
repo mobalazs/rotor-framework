@@ -77,9 +77,9 @@ namespace Rotor
         getStateFrom as function         ' Get state from dispatcher by ID
         animator as function             ' Get animator factory
 
-        ' i18n Integration
-        getLocale as function            ' Get locale e.g: "en_US"
-        isRTL as function                ' Indicates whether the current locale uses right-to-left text
+        ' Service Integration
+        i18n as function                 ' Get i18n service
+        tts as function                  ' Get TTS service
 
         ' =============================================================
         ' PLUGIN METHODS
