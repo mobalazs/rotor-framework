@@ -176,10 +176,8 @@ namespace Rotor.ViewBuilder
                 Rotor.Utils.deepExtendAA(widget.viewModelState, config.viewModelState)
             end if
 
-            ' Setup i18n (l10n)
-            i18nService = widget.getFrameworkInstance().i18nService
-            keysPaths = Rotor.Utils.isString(config.i18n?.path) ? config.i18n.path : Rotor.Utils.isArray(config.i18n?.paths) ? config.i18n.paths : invalid
-            widget.viewModelState.l10n = i18nService.getL10n(keysPaths)
+            ' Set ln10 reference in viewModelState
+            widget.viewModelState.l10n = m.getFrameworkInstance().i18nService.getL10n()
 
             ' Call lifecycle hook before template compilation
             widget.onCreateView()
