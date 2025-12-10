@@ -158,11 +158,9 @@ namespace Rotor
                 frameworkInstance: m
             }
 
-            m.initInfo()
-
             m.builder.init(m)
-            m.i18nService.init(m)
-            m.ttsService.init(m)
+
+            m.initInfo()
 
             ' set root node
             if m.config.rootNode = invalid
@@ -172,6 +170,9 @@ namespace Rotor
                 rootNode = m.config.rootNode
             end if
             m.builder.widgetTree.setRootNode(rootNode)
+
+            m.i18nService.init(m)
+            m.ttsService.init(m)
 
             ' Configure Node Pool
             if Rotor.Utils.isArray(m.config.nodePool)

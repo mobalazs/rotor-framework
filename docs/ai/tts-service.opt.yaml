@@ -37,7 +37,7 @@ api:
       context: "Context for interpolation (optional, object) - Widget or any object with viewModelState property"
       flush: "Interrupt current speech (optional, boolean, default: false)"
       spellOut: "Spell character-by-character (optional, boolean, default: false)"
-      overrideNextFlush: "Protect from next flush (optional, boolean, default: false)"
+      overrideNextFlush: "Bypass threshold AND protect from next flush (optional, boolean, default: false)"
       dontRepeat: "Skip if same as last speech (optional, boolean, default: false)"
   serviceMethods:
     speak: "ttsService.speak(config) - Same as widget.tts()"
@@ -81,12 +81,12 @@ usage:
       context: m
     })
   sentenceSecure: |
-    ' 200ms debounce - last item speaks
+    ' 400ms threshold - last item speaks (ALL speech goes through threshold)
     ttsService = widget.tts()
-    ttsService.speak({ say: "Item 1" })  ' Pending
+    ttsService.speak({ say: "Item 1" })  ' Pending 400ms
     ttsService.speak({ say: "Item 2" })  ' Replaces Item 1
     ttsService.speak({ say: "Item 3" })  ' Replaces Item 2
-    ' After 200ms: Item 3 speaks
+    ' After 400ms: Item 3 speaks
   flushControl: |
     ' Interrupt current speech
     widget.tts().speak({
@@ -118,20 +118,20 @@ usage:
       dontRepeat: true
     })
   overrideFlush: |
-    ' First sentence protection (multi-sentence)
+    ' Bypasses threshold AND protects first sentence (menu title use case)
     ttsService = widget.tts()
     ttsService.speak({
-      say: "Please listen carefully. This is important.",
+      say: "Page Menu, 5 items",
+      flush: true,
       overrideNextFlush: true
     })
-    ' Only first sentence protected
+    ' Bypasses 400ms threshold, speaks immediately, first sentence protected
     ttsService.speak({
-      say: "Interrupted",
+      say: "Home, 1 of 5",
       flush: true
     })
-    ' "Please listen carefully" completes (protected)
-    ' "This is important" interrupted
-    ' "Interrupted" speaks
+    ' "Page Menu, 5 items" completes (protected, blocked flush)
+    ' "Home, 1 of 5" queues and speaks after
 spellOutMode:
   symbolReplacement: |
     Default dictionary (English):

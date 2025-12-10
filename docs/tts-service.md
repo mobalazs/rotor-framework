@@ -110,54 +110,109 @@ widget.tts({
 })
 ```
 
-### Override Next Flush (First Sentence Protection)
+### Override Next Flush (Multi-Part Speech Protection)
 
-Protects the **first sentence** of multi-sentence text from being interrupted by the next flush request:
+Bypasses the 400ms threshold for immediate execution AND protects **all subsequent speech** from being flushed until the pending speech executes. The protection works through two internal flags:
+- `overrideNextFlushFlag`: Set by caller, cleared after first use
+- `isPendingProtected`: Inherits protection across multiple pending replacements
+
+This is essential for multi-part announcements like menu titles:
 
 ```brightscript
-' Multi-sentence text with first sentence protection
+' Menu title bypasses threshold and protects first sentence
+widget.tts({
+    say: "Page Menu, 5 items.",
+    flush: true,
+    overrideNextFlush: true
+})
+' Speaks immediately (no threshold delay)
+' First sentence "Page Menu, 5 items" is PROTECTED
+
+' First menu item queues instead of interrupting
+widget.tts({
+    say: "Home, 1 of 5",
+    flush: true
+})
+' Result:
+' - "Page Menu, 5 items" completes (protection blocked flush)
+' - "Home, 1 of 5" queues and speaks after menu title
+```
+
+**Multi-sentence example:**
+```brightscript
 widget.tts({
     say: "Please listen carefully. This is important. Don't skip this.",
     overrideNextFlush: true
 })
-' Speaks: "Please listen carefully" (PROTECTED),
-'         "This is important" (not protected),
-'         "Don't skip this" (not protected)
+' Bypasses threshold, speaks immediately
+' First sentence "Please listen carefully" is PROTECTED
+' Second and third sentences are NOT protected
 
-' Next flush will be blocked for first sentence only
 widget.tts({
     say: "Interrupted",
     flush: true
 })
+' This call arrives while still speaking
 ' Result:
-' - First sentence "Please listen carefully" completes (protection blocked flush)
-' - Second and third sentences are interrupted
-' - "Interrupted" speaks after first sentence completes
+' - First sentence "Please listen carefully" completes (protection blocks the flush)
+' - Second sentence "This is important" becomes PENDING (goes into 400ms threshold)
+' - Third sentence "Don't skip this" is never spoken (replaced)
+' - "Interrupted" becomes pending, replaces second sentence
+' - After protection ends and threshold expires: "Interrupted" speaks
 ```
 
-**Note:** Text is automatically split by periods (`.`). Only the first sentence receives protection. Single-sentence text (no periods) protects the entire text.
+**How protection inheritance works with threshold:**
+
+The mechanism uses the `isPendingProtected` flag:
+
+1. **Menu title** with `overrideNextFlush: true`:
+   - Bypasses threshold → speaks immediately
+   - Sets `isPendingProtected = true` to block all future flushes
+
+2. **First menu item** with `flush: true`:
+   - `isPendingProtected` blocks the flush → item becomes PENDING (400ms threshold)
+   - Flag remains true, continues blocking
+
+3. **Rapid menu navigation**:
+   - All items have flush blocked by `isPendingProtected`
+   - Each item replaces pending speech within threshold
+   - Last item speaks after 400ms of inactivity
+   - When pending executes, `isPendingProtected` is cleared
+
+**Example: Menu title + rapid navigation**
+```brightscript
+' Menu opens - title speaks immediately and is protected
+widget.tts({ say: "Page Menu, 5 items.", overrideNextFlush: true })
+' Title speaks immediately, isPendingProtected = true
+
+' User immediately navigates (rapid focus changes)
+widget.tts({ say: "Home, 1 of 5", flush: true })       ' Flush blocked by isPendingProtected → PENDING
+widget.tts({ say: "Settings, 2 of 5", flush: true })   ' Flush blocked by isPendingProtected → Replaces "Home"
+widget.tts({ say: "About, 3 of 5", flush: true })      ' Flush blocked by isPendingProtected → Replaces "Settings"
+' User stops at "About"
+' After 400ms: "About, 3 of 5" speaks, isPendingProtected cleared
+```
+
+**Note:** Text is automatically split by periods (`.`). The first sentence of multi-sentence text is automatically protected via `overrideNextFlush: true`. This sets `isPendingProtected = true`, which blocks ALL subsequent flush calls (both remaining sentences AND external calls like menu navigation) until the pending speech executes.
 
 ### Sentence Secure (Rapid Navigation Protection)
 
-The TTS service automatically prevents speech pile-up during rapid navigation (e.g., fast menu scrolling) using a **200ms debounce timer**:
+The TTS service automatically prevents speech pile-up during rapid navigation (e.g., fast menu scrolling) using a **400ms threshold timer**:
 
 ```brightscript
 ' User rapidly navigates through menu items
-widget.tts({ say: "Menu item 1" })  ' Pending (200ms delay)
+widget.tts({ say: "Menu item 1" })  ' Pending (400ms delay)
 widget.tts({ say: "Menu item 2" })  ' Replaces item 1
 widget.tts({ say: "Menu item 3" })  ' Replaces item 2
 widget.tts({ say: "Menu item 4" })  ' Replaces item 3
-' After 200ms of no new calls: "Menu item 4" is spoken (the last one)
-
-' With flush, speaks immediately and cancels pending
-widget.tts({ say: "Important!", flush: true })  ' Speaks immediately
+' After 400ms of no new calls: "Menu item 4" is spoken (the last one)
 ```
 
 **How it works:**
-- Each non-flush TTS call stores speech as "pending" and resets a 200ms timer
-- If another call comes within 200ms, it replaces the pending speech
-- After 200ms of inactivity, the last pending speech is spoken
-- `flush: true` bypasses debounce and speaks immediately, canceling any pending speech
+- ALL TTS calls (both flush=true and flush=false) store speech as "pending" and reset a 400ms timer
+- If another call comes within 400ms, it replaces the pending speech
+- After 400ms of inactivity, the last pending speech is spoken
+- `overrideNextFlush: true` bypasses threshold and speaks immediately, plus protects from next flush
 - Uses SceneGraph Timer node for automatic execution
 
 ## API Reference
@@ -175,7 +230,7 @@ Speaks text through the TTS service.
   - `context` (object) - Context for string interpolation (optional, widget or any object with viewModelState)
   - `flush` (boolean) - Interrupt current speech (default: false)
   - `spellOut` (boolean) - Spell out character-by-character (default: false)
-  - `overrideNextFlush` (boolean) - Protect from next flush (default: false)
+  - `overrideNextFlush` (boolean) - Bypass threshold AND protect from next flush (default: false)
   - `dontRepeat` (boolean) - Skip if same as last speech (default: false)
 
 **Examples:**
