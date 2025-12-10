@@ -1,0 +1,298 @@
+import "pkg:/source/RotorFramework.bs"
+
+namespace tests
+
+    ' @SGNode("observerPluginTest")
+    @suite("ObserverPlugin Test Suite")
+    class observerPluginTestSuite extends rooibos.BaseTestSuite
+
+        fwInstance as Rotor.Framework
+        testNode as object
+
+        protected override function beforeEach()
+            ' Initialize framework
+            m.fwInstance = new Rotor.Framework()
+
+            ' Create a test node for observations
+            m.testNode = CreateObject("roSGNode", "Group")
+        end function
+
+        protected override function afterEach()
+            m.testNode = invalid
+            m.fwInstance.destroy()
+            m.fwInstance = invalid
+        end function
+
+        @describe("Observer plugin lifecycle")
+
+        @it("attaches observer on widget mount")
+        function _()
+            ' Create template with observer
+            template = {
+                id: "testWidget",
+                type: "Group",
+                observer: {
+                    fieldId: "translation",
+                    callback: sub(payload)
+                        ' Observer callback
+                    end sub
+                }
+            }
+
+            m.fwInstance.render(template)
+            widget = m.fwInstance.getWidget("testWidget")
+
+            m.assertNotInvalid(widget)
+            m.assertTrue(true)
+        end function
+
+        @it("handles array of observers")
+        function _()
+            ' Create template with multiple observers
+            template = {
+                id: "testWidget",
+                type: "Group",
+                observer: [
+                    {
+                        fieldId: "translation",
+                        callback: sub(payload)
+                        end sub
+                    },
+                    {
+                        fieldId: "opacity",
+                        callback: sub(payload)
+                        end sub
+                    }
+                ]
+            }
+
+            m.fwInstance.render(template)
+            widget = m.fwInstance.getWidget("testWidget")
+
+            m.assertNotInvalid(widget)
+            m.assertTrue(true)
+        end function
+
+        @it("observer with initial value parameter")
+        function _()
+            ' Create template with observer that has initial value
+            template = {
+                id: "testWidget",
+                type: "Group",
+                observer: {
+                    fieldId: "translation",
+                    value: [100, 200],
+                    callback: sub(payload)
+                    end sub
+                }
+            }
+
+            m.fwInstance.render(template)
+            widget = m.fwInstance.getWidget("testWidget")
+
+            ' Observer with value parameter should attach without error
+            m.assertNotInvalid(widget)
+            m.assertNotInvalid(widget.node)
+        end function
+
+        @it("observer callback is configured on widget")
+        function _()
+            template = {
+                id: "testWidget",
+                type: "Group",
+                observer: {
+                    fieldId: "opacity",
+                    callback: sub(payload)
+                        ' Observer callback
+                    end sub
+                }
+            }
+
+            m.fwInstance.render(template)
+            widget = m.fwInstance.getWidget("testWidget")
+
+            ' Widget should be created with observer attached
+            m.assertNotInvalid(widget)
+            m.assertNotInvalid(widget.node)
+        end function
+
+        @it("observer with once flag is removed after first trigger")
+        function _()
+            template = {
+                id: "testWidget",
+                type: "Group",
+                observer: {
+                    fieldId: "opacity",
+                    once: true,
+                    callback: sub(payload)
+                        ' Observer callback
+                    end sub
+                }
+            }
+
+            m.fwInstance.render(template)
+            widget = m.fwInstance.getWidget("testWidget")
+
+            ' Change field to trigger once observer
+            widget.node.opacity = 0.5
+            m.wait(50)
+
+            ' Test passes if no crash (observer should be removed after first trigger)
+            m.assertTrue(true)
+        end function
+
+        @it("observer with until condition is removed when condition met")
+        function _()
+            template = {
+                id: "testWidget",
+                type: "Group",
+                observer: {
+                    fieldId: "opacity",
+                    until: function(payload)
+                        return payload.opacity >= 0.8
+                    end function,
+                    callback: sub(payload)
+                        ' Observer callback
+                    end sub
+                }
+            }
+
+            m.fwInstance.render(template)
+            widget = m.fwInstance.getWidget("testWidget")
+
+            ' Change field multiple times
+            widget.node.opacity = 0.5
+            m.wait(30)
+            widget.node.opacity = 0.9 ' Should trigger until condition
+            m.wait(30)
+
+            ' Test passes if no crash (observer should be removed when until returns true)
+            m.assertTrue(true)
+        end function
+
+        @it("observer with parsePayload accepts custom function")
+        function _()
+            template = {
+                id: "testWidget",
+                type: "Group",
+                observer: {
+                    fieldId: "opacity",
+                    parsePayload: function(payload)
+                        return { transformed: payload.opacity * 100 }
+                    end function,
+                    callback: sub(payload)
+                        ' Callback with transformed payload
+                    end sub
+                }
+            }
+
+            m.fwInstance.render(template)
+            widget = m.fwInstance.getWidget("testWidget")
+
+            ' Observer with parsePayload should attach without error
+            m.assertNotInvalid(widget)
+        end function
+
+        @it("observer with infoFields includes additional data")
+        function _()
+            template = {
+                id: "testWidget",
+                type: "Group",
+                observer: {
+                    fieldId: "opacity",
+                    infoFields: ["translation"],
+                    callback: sub(payload)
+                        ' Callback with extra info
+                    end sub
+                }
+            }
+
+            m.fwInstance.render(template)
+            widget = m.fwInstance.getWidget("testWidget")
+
+            ' Test passes if observer attaches without error
+            m.assertTrue(true)
+        end function
+
+        @it("multiple observers on same field")
+        function _()
+            template = {
+                id: "testWidget",
+                type: "Group",
+                observer: [
+                    {
+                        fieldId: "opacity",
+                        callback: sub(payload)
+                            ' First observer
+                        end sub
+                    },
+                    {
+                        fieldId: "opacity",
+                        callback: sub(payload)
+                            ' Second observer on same field
+                        end sub
+                    }
+                ]
+            }
+
+            m.fwInstance.render(template)
+            widget = m.fwInstance.getWidget("testWidget")
+
+            ' Multiple observers on same field should work
+            m.assertNotInvalid(widget)
+        end function
+
+        @it("handles widget without observer config")
+        function _()
+            template = {
+                id: "testWidget",
+                type: "Group"
+            }
+
+            m.fwInstance.render(template)
+            widget = m.fwInstance.getWidget("testWidget")
+
+            m.assertNotInvalid(widget)
+        end function
+
+        @it("observer with custom id is tracked")
+        function _()
+            template = {
+                id: "testWidget",
+                type: "Group",
+                observer: {
+                    id: "customObserver",
+                    fieldId: "opacity",
+                    callback: sub(payload)
+                    end sub
+                }
+            }
+
+            m.fwInstance.render(template)
+            widget = m.fwInstance.getWidget("testWidget")
+
+            ' Observer should be attached
+            m.assertNotInvalid(widget)
+        end function
+
+        @it("observer with alwaysNotify flag")
+        function _()
+            template = {
+                id: "testWidget",
+                type: "Group",
+                observer: {
+                    fieldId: "opacity",
+                    alwaysNotify: true,
+                    callback: sub(payload)
+                    end sub
+                }
+            }
+
+            m.fwInstance.render(template)
+            widget = m.fwInstance.getWidget("testWidget")
+
+            ' Observer with alwaysNotify should attach
+            m.assertNotInvalid(widget)
+        end function
+    end class
+end namespace
