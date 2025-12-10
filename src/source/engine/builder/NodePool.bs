@@ -152,6 +152,12 @@ namespace Rotor.ViewBuilder
 
             nodeType = node.subtype()
 
+            ' Mute native AudioGuide (use custom TTS)
+            shouldMuteAudioGuide = m.frameworkInstance?.ttsService?.isEnabled ?? false
+            #if debug
+                shouldMuteAudioGuide = true
+            #end if
+
             node.visible = true
             node.opacity = 1.0
             node.translation = [0.0, 0.0]
@@ -160,7 +166,7 @@ namespace Rotor.ViewBuilder
             node.scaleRotateCenter = [0.0, 0.0]
             node.inheritParentTransform = true
             node.inheritParentOpacity = true
-            node.muteAudioGuide = false
+            node.muteAudioGuide = shouldMuteAudioGuide
             node.renderPass = 0
             node.enableRenderTracking = false
             ' TODO: test below properties to reset

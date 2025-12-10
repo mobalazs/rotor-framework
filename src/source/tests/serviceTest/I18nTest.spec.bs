@@ -448,10 +448,7 @@ namespace tests
             ' When: Render widget
             m.fwInstance.render({
                 id: "emptyL10nWidget",
-                viewModel: I18nSinglePathViewModel,
-                i18n: {
-                    path: "app"
-                }
+                viewModel: I18nSinglePathViewModel
             })
 
             widget = m.fwInstance.getWidget("emptyL10nWidget")

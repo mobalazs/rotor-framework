@@ -34,7 +34,8 @@
 			"source/engine/Constants.bs",
 			"source/roku_modules/**/*",
 			"source/libs/**/*",
-			"source/base/BaseWidget.bs"
+			"source/base/BaseWidget.bs",
+			"source/base/BasePlugin.bs"
 		]
 	}
 }

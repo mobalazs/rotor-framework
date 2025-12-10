@@ -49,15 +49,6 @@ configurationProperties:
       description: "Called before widget destruction"
     onRenderSettled:
       description: "Called after render completes"
-  internationalization:
-    i18n.path:
-      description: "Single translation section path"
-    i18n.paths:
-      description: "Multiple translation section paths (merged at root)"
-    i18n.includeIsRtl:
-      description: "Include RTL flag in viewModelState"
-    i18n.includeLocale:
-      description: "Include locale string in viewModelState"
 injectedMethods:
   frameworkAccess:
     getFrameworkInstance:
@@ -323,31 +314,24 @@ stateManagement:
       Rotor.createDispatcher("localState", model, reducer)
     end sub
 internationalization:
-  basicI18n: |
+  defaultAccess: |
+    ' ALL widgets have viewModelState.l10n automatically
     {
       id: "localizedWidget",
       viewModel: ViewModels.LocalizedWidget,
-      i18n: { path: "menu" },
       onMountWidget: sub()
-        ' Access translations from viewModelState.l10n
-        title = m.viewModelState.l10n.title
-        subtitle = m.viewModelState.l10n.subtitle
-      end sub
-    }
-  multiplePaths: |
-    {
-      i18n: { paths: ["menu", "buttons"] },
-      onMountWidget: sub()
-        ' Merged sections at root level
-        menuTitle = m.viewModelState.l10n.title
-        saveButton = m.viewModelState.l10n.save
+        ' Access translations using full paths
+        title = m.viewModelState.l10n.menu.title
+        subtitle = m.viewModelState.l10n.menu.subtitle
+        saveBtn = m.viewModelState.l10n.buttons.save
       end sub
     }
   rtlAndLocale: |
     {
-      i18n: { path: "app", includeIsRtl: true, includeLocale: true },
       onMountWidget: sub()
-        isRTL = m.viewModelState.isRTL
+        ' Get i18n service (always available on all widgets)
+        i18n = m.i18n()
+        isRTL = i18n.getIsRtl()
         locale = m.viewModelState.locale
         if isRTL
           ' Apply RTL layout

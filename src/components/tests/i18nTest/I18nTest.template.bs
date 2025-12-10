@@ -177,26 +177,17 @@ function getI18nTestTemplate() as object
             ' Widget with single i18n path
             {
                 id: "appTitleWidget",
-                viewModel: I18nSinglePathViewModel,
-                i18n: {
-                    path: "app"
-                }
+                viewModel: I18nSinglePathViewModel
             },
             ' Widget with multiple i18n paths
             {
                 id: "multiPathWidget",
-                viewModel: I18nMultiPathViewModel,
-                i18n: {
-                    paths: ["app", "menu"]
-                }
+                viewModel: I18nMultiPathViewModel
             },
             ' Widget with locale access (uses getter methods)
             {
                 id: "localeWidget",
-                viewModel: I18nLocaleViewModel,
-                i18n: {
-                    path: "messages"
-                }
+                viewModel: I18nLocaleViewModel
             },
             ' Widget without i18n (should get full l10n)
             {
@@ -206,10 +197,7 @@ function getI18nTestTemplate() as object
             ' Widget with deep nested path
             {
                 id: "deepNestedWidget",
-                viewModel: I18nDeepNestedViewModel,
-                i18n: {
-                    path: "nested.level1"
-                }
+                viewModel: I18nDeepNestedViewModel
             }
         ]
     }

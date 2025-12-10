@@ -41,8 +41,7 @@ sub helloWorldSample()
         },
         onMountWidget: sub()
             m.tts().speak({
-                say: UI.helloWorldText,
-                secure: true
+                say: UI.helloWorldText
             })
         end sub,
         children: [{

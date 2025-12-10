@@ -88,9 +88,9 @@ end sub
 
 ## ViewModel Integration
 
-### Basic Configuration
+### Translation Access in Widgets
 
-Configure i18n in ViewModel template to load specific translation sections:
+**All widgets automatically have access to translations via `viewModelState.l10n`**. The complete translation object loaded via `i18nService.setL10n()` is available:
 
 ```brightscript
 class NavigationMenu extends Rotor.ViewModel
@@ -98,22 +98,27 @@ class NavigationMenu extends Rotor.ViewModel
     override function template() as object
         return {
             nodeType: "Group",
-            i18n: {
-                path: "navigation"
-            },
             children: [
                 {
                     id: "homeLabel",
                     nodeType: "Label",
                     fields: {
-                        text: m.viewModelState.l10n.home
+                        ' Access full translation path
+                        text: m.viewModelState.l10n.navigation.home
                     }
                 },
                 {
                     id: "settingsLabel",
                     nodeType: "Label",
                     fields: {
-                        text: m.viewModelState.l10n.settings
+                        text: m.viewModelState.l10n.navigation.settings
+                    }
+                },
+                {
+                    id: "saveButton",
+                    nodeType: "Label",
+                    fields: {
+                        text: m.viewModelState.l10n.buttons.save
                     }
                 }
             ]
@@ -121,36 +126,6 @@ class NavigationMenu extends Rotor.ViewModel
     end function
 end class
 ```
-
-### Advanced Configuration
-
-Load multiple translation sections (merged into single l10n object):
-
-```brightscript
-{
-    nodeType: "Group",
-    i18n: {
-        paths: ["navigation", "buttons"]
-    },
-    children: [
-        {
-            nodeType: "Label",
-            fields: {
-                ' Access merged sections at root level
-                text: "@l10n.home"  ' From navigation
-            }
-        },
-        {
-            nodeType: "Label",
-            fields: {
-                text: "@l10n.save"  ' From buttons
-            }
-        }
-    ]
-}
-```
-
-**Note**: With `paths` (plural), all sections are merged at the root level of `@l10n`. Ensure keys don't conflict across sections.
 
 ### Accessing Locale and RTL Information
 
@@ -180,44 +155,35 @@ These methods are available on all widgets and ViewModels, regardless of whether
 
 ## Variable Interpolation
 
-The `@l10n` scope depends on whether an `i18n` configuration is specified:
+**The `@l10n` reference provides access to the full translation object.** You can access any translation using its complete path:
 
-| Configuration | @l10n Scope | Example |
-|---------------|-------------|---------|
-| No `i18n` config | Full translation object | `@l10n.app.title` |
-| `path: "app"` | Scoped to "app" section | `@l10n.title` |
-| `paths: ["app", "buttons"]` | Merged sections at root | `@l10n.title` and `@l10n.save` |
+```brightscript
+{
+    nodeType: "Label",
+    fields: {
+        text: "@l10n.app.title"        ' Access app.title
+    }
+},
+{
+    nodeType: "Label",
+    fields: {
+        text: "@l10n.navigation.home"  ' Access navigation.home
+    }
+}
+```
 
 ### Static Key References
 
-Use `@l10n` to reference translation keys in field values.
-
-**Without i18n path** (full key path required):
+Use `@l10n` with the full path to your translation keys:
 
 ```brightscript
 {
     nodeType: "Label",
     fields: {
-        text: "@l10n.app.title"  ' Full path: app.title
+        text: "@l10n.app.title"
     }
 }
-```
-
-**With i18n path** (scoped to path):
-
-```brightscript
-{
-    nodeType: "Label",
-    i18n: {
-        path: "app"
-    },
-    fields: {
-        text: "@l10n.title"  ' Scoped: only "title" (within "app")
-    }
-}
-```
-
-### Dynamic Key Paths
+```### Dynamic Key Paths
 
 Build dynamic key paths using template strings and props:
 
@@ -251,27 +217,11 @@ end class
 
 Combine multiple translation references:
 
-**Without path** (full paths):
-
 ```brightscript
 {
     nodeType: "Label",
     fields: {
         text: `@l10n.app.title - @l10n.app.version`
-    }
-}
-```
-
-**With path** (scoped references):
-
-```brightscript
-{
-    nodeType: "Label",
-    i18n: {
-        path: "app"
-    },
-    fields: {
-        text: `@l10n.title - @l10n.version`  ' Both within "app" scope
     }
 }
 ```
@@ -283,11 +233,8 @@ Access nested translation structures:
 ```brightscript
 {
     nodeType: "Label",
-    i18n: {
-        path: "messages"
-    },
     fields: {
-        text: `@l10n.${m.props.messageType}.${m.props.severity}`
+        text: `@l10n.messages.${m.props.messageType}.${m.props.severity}`
     }
 }
 
@@ -314,9 +261,9 @@ Access translations directly in ViewModel logic. The `viewModelState.l10n` follo
 class ConfirmDialog extends Rotor.ViewModel
 
     override sub onCreateView()
-        ' With i18n path: "dialog", l10n is scoped to dialog section
-        titleText = m.viewModelState.l10n.title       ' dialog.title
-        messageText = m.viewModelState.l10n.message   ' dialog.message
+        ' Access translations via viewModelState.l10n
+        titleText = m.viewModelState.l10n.dialog.title
+        messageText = m.viewModelState.l10n.dialog.message
 
         ' Use in logic
         if m.props.showFullMessage
@@ -327,18 +274,15 @@ class ConfirmDialog extends Rotor.ViewModel
     override function template() as object
         return {
             nodeType: "Group",
-            i18n: {
-                path: "dialog"  ' Scopes l10n to "dialog"
-            },
             children: [
                 {
                     nodeType: "Label",
                     fields: {
                         text: function() as string
                             if m.props.isError
-                                return m.viewModelState.l10n.errorTitle
+                                return m.viewModelState.l10n.dialog.errorTitle
                             else
-                                return m.viewModelState.l10n.title
+                                return m.viewModelState.l10n.dialog.title
                             end if
                         end function
                     }
@@ -347,16 +291,6 @@ class ConfirmDialog extends Rotor.ViewModel
         }
     end function
 end class
-```
-
-**Without i18n config**, access full path:
-
-```brightscript
-override sub onCreateView()
-    ' No i18n config - full path required
-    titleText = m.viewModelState.l10n.dialog.title
-    buttonText = m.viewModelState.l10n.buttons.save
-end sub
 ```
 
 ## I18nService API
@@ -510,22 +444,19 @@ class ActionButtons extends Rotor.ViewModel
     override function template() as object
         return {
             nodeType: "Group",
-            i18n: {
-                path: "buttons"
-            },
             children: [
                 {
                     id: "saveButton",
                     viewModel: ViewModels.Button,
                     props: {
-                        label: "@l10n.save"
+                        label: "@l10n.buttons.save"
                     }
                 },
                 {
                     id: "cancelButton",
                     viewModel: ViewModels.Button,
                     props: {
-                        label: "@l10n.cancel"
+                        label: "@l10n.buttons.cancel"
                     }
                 }
             ]
@@ -539,9 +470,6 @@ end class
 ```brightscript
 {
     nodeType: "Label",
-    i18n: {
-        paths: ["messages", "buttons"]
-    },
     fields: {
         text: function() as string
             if m.props.isLoading
@@ -725,13 +653,13 @@ end sub
 Check:
 - `@l10n` reference is in template string: `` `@l10n.key` ``
 - Key path exists in translation file
-- ViewModel has `i18n` configuration with correct path
-- Translation section is loaded (check `viewModelState.l10n`)
+- Translation is loaded via `i18nService.setL10n()`
+- Check `viewModelState.l10n` to verify available translations
 
 ### Performance Issues
 
-- Load only required translation sections using specific paths
-- Cache translations in ViewModel state
+- Load only required locale at startup
+- Cache frequently accessed translation values in ViewModel state
 - Avoid complex nested key resolution in frequently called functions
 
 

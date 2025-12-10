@@ -37,15 +37,6 @@ Notes:
 | `onDestroyWidget` | Called before widget destruction |
 | `onRenderSettled` | Called after render completes |
 
-### Internationalization
-
-| Property | Description |
-|----------|-------------|
-| `i18n.path` | Single translation section path |
-| `i18n.paths` | Multiple translation section paths |
-| `i18n.includeIsRtl` | Include RTL flag in viewModelState |
-| `i18n.includeLocale` | Include locale string in viewModelState |
-
 ## Injected Methods Reference
 
 Every widget automatically receives these methods:
@@ -451,50 +442,35 @@ end sub
 
 ## Internationalization
 
-### Basic i18n
+### Translation Access
+
+**All widgets automatically have `viewModelState.l10n` available** with the full translation object loaded via `i18nService.setL10n()`:
 
 ```brightscript
 {
     id: "localizedWidget",
     viewModel: ViewModels.LocalizedWidget,
-    i18n: {
-        path: "menu"
-    },
     onMountWidget: sub()
-        ' Access translations from viewModelState.l10n
-        title = m.viewModelState.l10n.title
-        subtitle = m.viewModelState.l10n.subtitle
+        ' Access translations using full paths
+        title = m.viewModelState.l10n.menu.title
+        subtitle = m.viewModelState.l10n.menu.subtitle
+        saveBtn = m.viewModelState.l10n.buttons.save
     end sub
 }
 ```
 
-### Multiple Paths
+### RTL and Locale Access
+
+All widgets can access locale and RTL information via the i18n service:
 
 ```brightscript
 {
-    i18n: {
-        paths: ["menu", "buttons"]
-    },
     onMountWidget: sub()
-        ' Merged sections at root level
-        menuTitle = m.viewModelState.l10n.title
-        saveButton = m.viewModelState.l10n.save
-    end sub
-}
-```
-
-### RTL and Locale
-
-```brightscript
-{
-    i18n: {
-        path: "app",
-        includeIsRtl: true,
-        includeLocale: true
-    },
-    onMountWidget: sub()
-        isRTL = m.viewModelState.isRTL
-        locale = m.viewModelState.locale
+        ' Get i18n service (always available)
+        i18n = m.i18n()
+        
+        isRTL = i18n.getIsRtl()
+        locale = i18n.getLocale()
 
         if isRTL
             ' Apply RTL layout

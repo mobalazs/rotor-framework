@@ -7,9 +7,16 @@ namespace Rotor.ViewBuilder
     ' Provides text-to-speech functionality with flush control, recite mode,
     ' and speech management features.
     '
+    ' Threshold System (200ms):
+    '   - flush=false: Speech is held pending for 200ms to filter rapid changes
+    '   - If new requests arrive within 200ms, they replace the pending speech
+    '   - After 200ms of no new requests, the pending speech is executed
+    '   - flush=true: Bypasses threshold and executes immediately
+    '
     ' Features:
     '   - Native roAudioGuide integration
-    '   - Flush control (interrupt current speech)
+    '   - 200ms threshold to filter rapid focus changes
+    '   - Flush control (interrupt current speech and bypass threshold)
     '   - Spell out mode (character-by-character for symbols/emails)
     '   - Override next flush protection
     '   - Duplicate speech prevention (dontRepeat)
@@ -37,10 +44,10 @@ namespace Rotor.ViewBuilder
         overrideNextFlushFlag = false
         isEnabled = true
 
-        ' Sentence secure (debounce)
+        ' Threshold (debounce) - filters rapid focus changes
         pendingSpeech = invalid
         debounceTimer as object
-        debounceDelay = 200
+        debounceDelay = 400
 
         ' Symbol dictionary for recite mode (localized)
         symbolDictionary = {
@@ -100,16 +107,16 @@ namespace Rotor.ViewBuilder
                 return
             end if
 
-            ' Create timer node for debounce polling
+            ' Create timer node for threshold (one-shot, started on demand)
             rootNode = m.frameworkInstance.getRootNode()
             if rootNode <> invalid
                 m.timerNode = rootNode.createChild("Timer")
-                m.timerNode.repeat = true
+                m.timerNode.repeat = false
                 m.timerNode.duration = m.debounceDelay / 1000.0 ' Convert ms to seconds
                 m.timerNode.observeFieldScoped("fire", "Rotor_ttsDebounceCallback")
-                m.timerNode.control = "start"
+                ' Note: Timer is NOT started here, only when pending speech is added
                 #if debug
-                    ? "[TTS_SERVICE][INFO] Debounce timer created ("; m.debounceDelay; "ms interval)"
+                    ? "[TTS_SERVICE][INFO] Threshold timer created (one-shot, "; m.debounceDelay; "ms)"
                 #end if
             end if
 
@@ -151,46 +158,22 @@ namespace Rotor.ViewBuilder
         end function
 
         ' ---------------------------------------------------------------------
-        ' onDebounceTimer - Timer callback for debounce polling
+        ' onDebounceTimer - Timer callback for threshold (one-shot timer)
         '
-        ' Called automatically by Timer node to check if pending speech should execute.
+        ' Called automatically when timer fires after 200ms.
+        ' Executes the pending speech if still valid.
         '
         ' @private
         '
         private sub onDebounceTimer()
             if m.pendingSpeech = invalid then return
 
-            elapsed = m.debounceTimer.TotalMilliseconds()
-            if elapsed >= m.debounceDelay
-                ' Execute pending speech
-                #if debug
-                    ? "[TTS_SERVICE][DEBOUNCE] Executing pending: '"; m.pendingSpeech.textToSpeak; "'"
-                #end if
-                m.executeSpeech(m.pendingSpeech)
-                m.pendingSpeech = invalid
-            end if
-        end sub
-
-        ' ---------------------------------------------------------------------
-        ' checkPendingSpeech - Checks if debounced speech should be executed
-        '
-        ' Called from speak() to check if pending speech has waited long enough.
-        ' Allows immediate execution if delay has passed before timer fires.
-        '
-        ' @private
-        '
-        private sub checkPendingSpeech()
-            if m.pendingSpeech = invalid then return
-
-            elapsed = m.debounceTimer.TotalMilliseconds()
-            if elapsed >= m.debounceDelay
-                ' Execute pending speech immediately
-                #if debug
-                    ? "[TTS_SERVICE][DEBOUNCE] Immediate execution: '"; m.pendingSpeech.textToSpeak; "'"
-                #end if
-                m.executeSpeech(m.pendingSpeech)
-                m.pendingSpeech = invalid
-            end if
+            ' Execute pending speech after threshold passed
+            #if debug
+                ? "[TTS_SERVICE][THRESHOLD] Timer fired, executing: '"; m.pendingSpeech.textToSpeak; "'"
+            #end if
+            m.executeSpeech(m.pendingSpeech)
+            m.pendingSpeech = invalid
         end sub
 
         ' ---------------------------------------------------------------------
@@ -227,7 +210,10 @@ namespace Rotor.ViewBuilder
                     end if
                 end if
 
-                ' Set override flag ONLY for first sentence
+                ' Speak this sentence
+                speechId = m.audioGuide.Say(trimmed, flushThis, dontRepeat)
+
+                ' Set override flag ONLY for first sentence AFTER speaking it
                 if isFirstSentence and shouldOverrideNextFlush
                     m.overrideNextFlushFlag = true
                     #if debug
@@ -235,12 +221,8 @@ namespace Rotor.ViewBuilder
                     #end if
                 end if
 
-                ' Speak this sentence
-                speechId = m.audioGuide.Say(trimmed, flushThis, dontRepeat)
-
                 ' Track last speech
                 m.lastSpeech = trimmed
-
                 #if debug
                     sentenceLabel = "First sentence"
                     if not isFirstSentence then sentenceLabel = "Sentence"
@@ -317,9 +299,6 @@ namespace Rotor.ViewBuilder
             if not m.isEnabled or not m.getIsDeviceAudioGuideEnabled() then return
             if config.say = invalid then return
 
-            ' Check if pending speech should be executed
-            m.checkPendingSpeech()
-
             ' Process say value (function, string interpolation, or plain string)
             textToSpeak = m.processSayValue(config.say, config.context)
             if textToSpeak = invalid or textToSpeak = "" then return
@@ -341,11 +320,28 @@ namespace Rotor.ViewBuilder
                 return
             end if
 
+            ' Check if previous speech set overrideNextFlush flag
+            ' This means: bypass threshold, send to roAudioGuide, but don't flush (queue it)
+            if m.overrideNextFlushFlag
+                #if debug
+                    ? "[TTS_SERVICE][OVERRIDE] Bypassing threshold and flush, queuing speech: "; textToSpeak
+                #end if
+                m.overrideNextFlushFlag = false
+                m.pendingSpeech = invalid
+                m.executeSpeech({
+                    textToSpeak: textToSpeak,
+                    shouldFlush: false, ' Queue instead of flushing
+                    shouldOverrideNextFlush: shouldOverrideNextFlush,
+                    dontRepeat: dontRepeat
+                })
+                return
+            end if
+
             ' If flush requested, cancel pending and execute immediately
             if shouldFlush
                 #if debug
                     if m.pendingSpeech <> invalid
-                        ? "[TTS_SERVICE][DEBOUNCE] Flush - canceling pending speech"
+                        ? "[TTS_SERVICE][THRESHOLD] Flush - canceling pending and executing immediately"
                     end if
                 #end if
                 m.pendingSpeech = invalid
@@ -356,12 +352,13 @@ namespace Rotor.ViewBuilder
                     dontRepeat: dontRepeat
                 })
             else
-                ' Debounce - store as pending and reset timer
+                ' Threshold - store as pending and restart timer
+                ' If new request comes within 200ms, replace pending (filter rapid changes)
                 #if debug
                     if m.pendingSpeech <> invalid
-                        ? "[TTS_SERVICE][DEBOUNCE] Replacing pending: '"; m.pendingSpeech.textToSpeak; "' with: '"; textToSpeak; "'"
+                        ? "[TTS_SERVICE][THRESHOLD] Replacing pending: '"; m.pendingSpeech.textToSpeak; "' with: '"; textToSpeak; "'"
                     else
-                        ? "[TTS_SERVICE][DEBOUNCE] Pending: '"; textToSpeak; "' ("; m.debounceDelay; "ms)"
+                        ? "[TTS_SERVICE][THRESHOLD] Pending: '"; textToSpeak; "' ("; m.debounceDelay; "ms)"
                     end if
                 #end if
                 m.pendingSpeech = {
@@ -370,7 +367,12 @@ namespace Rotor.ViewBuilder
                     shouldOverrideNextFlush: shouldOverrideNextFlush,
                     dontRepeat: dontRepeat
                 }
-                m.debounceTimer.Mark()
+
+                ' Restart timer (stop previous, start new one-shot)
+                if m.timerNode <> invalid
+                    m.timerNode.control = "stop"
+                    m.timerNode.control = "start"
+                end if
             end if
         end sub
 
@@ -413,8 +415,8 @@ namespace Rotor.ViewBuilder
 
                 if results.Count() > 0
                     for each result in results
-                        matchKey = result[2]        ' The key path after @
-                        sourceTypeOperator = result[1]  ' The @ symbol
+                        matchKey = result[2] ' The key path after @
+                        sourceTypeOperator = result[1] ' The @ symbol
 
                         ' Determine source based on operator
                         source = invalid
@@ -435,10 +437,10 @@ namespace Rotor.ViewBuilder
                             ' String interpolation - replace in original string
                             replaceRegex = CreateObject("roRegex", sourceTypeOperator + matchKey, "ig")
                             textToSpeak = replaceRegex.ReplaceAll(textToSpeak, asset)
-                        ' else if asset <> invalid
-                        '     ' Non-string value - convert to string
-                        '     replaceRegex = CreateObject("roRegex", sourceTypeOperator + matchKey, "ig")
-                        '     textToSpeak = replaceRegex.ReplaceAll(textToSpeak, Str(asset).Trim())
+                            ' else if asset <> invalid
+                            '     ' Non-string value - convert to string
+                            '     replaceRegex = CreateObject("roRegex", sourceTypeOperator + matchKey, "ig")
+                            '     textToSpeak = replaceRegex.ReplaceAll(textToSpeak, Str(asset).Trim())
                         end if
 
                         nextResult:
@@ -527,8 +529,14 @@ namespace Rotor.ViewBuilder
             m.audioGuide.Flush()
             m.overrideNextFlushFlag = false
             m.pendingSpeech = invalid
+
+            ' Stop timer if running
+            if m.timerNode <> invalid
+                m.timerNode.control = "stop"
+            end if
+
             #if debug
-                ? "[TTS_SERVICE] Stop speech - canceled all speech"
+                ? "[TTS_SERVICE] Stop speech - flushed all speech and canceled pending"
             #end if
         end sub
 
@@ -656,7 +664,7 @@ namespace Rotor.ViewBuilder
     end class
 
     ' =============================================================================
-    ' Global callback for TTS debounce timer
+    ' Global callback for TTS threshold timer
     ' =============================================================================
     sub ttsDebounceCallback(event as object)
         framework = GetGlobalAA().rotor_framework_helper.frameworkInstance
