@@ -28,9 +28,10 @@ core:
       m.ttsService.init(m)
     end sub
 api:
-  widgetDecorator:
+  widgetDecorator: "Service getter injected DIRECTLY onto widget (NOT under widget.plugins)"
+  access:
     syntax: "widget.tts().speak({ say, context, flush, spellOut, overrideNextFlush, dontRepeat })"
-    description: "Main TTS function available on all widgets"
+    description: "widget.tts() returns TtsService instance. Main TTS function available on all widgets as decorator method."
     parameters:
       say: "Text to speak (required, string|function) - Plain string, interpolated string (@viewModelState.key or $context.property), or function returning string"
       context: "Context for interpolation (optional, object) - Widget or any object with viewModelState property"
@@ -52,12 +53,13 @@ api:
     nativeControl: "Service manages rootNode.muteAudioGuide automatically"
 usage:
   basicSpeech: |
-    widget.tts({
+    ' Get TTS service via widget decorator, then call speak()
+    widget.tts().speak({
       say: "Hello world"
     })
   dynamicSpeech: |
     ' Function returning string
-    widget.tts({
+    widget.tts().speak({
       say: function() as string
         return "Score: " + Str(m.viewModelState.score)
       end function
@@ -80,48 +82,50 @@ usage:
     })
   sentenceSecure: |
     ' 200ms debounce - last item speaks
-    widget.tts({ say: "Item 1" })  ' Pending
-    widget.tts({ say: "Item 2" })  ' Replaces Item 1
-    widget.tts({ say: "Item 3" })  ' Replaces Item 2
+    ttsService = widget.tts()
+    ttsService.speak({ say: "Item 1" })  ' Pending
+    ttsService.speak({ say: "Item 2" })  ' Replaces Item 1
+    ttsService.speak({ say: "Item 3" })  ' Replaces Item 2
     ' After 200ms: Item 3 speaks
   flushControl: |
     ' Interrupt current speech
-    widget.tts({
+    widget.tts().speak({
       say: "Important message",
       flush: true
     })
   spellOutMode: |
     ' Spell character-by-character
-    widget.tts({
+    widget.tts().speak({
       say: "A1B2C3",
       spellOut: true
     })
     ' Speaks: "A 1 B 2 C 3"
   emailHandling: |
-    widget.tts({
+    widget.tts().speak({
       say: "user@domain.com",
       spellOut: true
     })
     ' Speaks: "user at domain dot com"
   decimalHandling: |
-    widget.tts({
+    widget.tts().speak({
       say: "3.14",
       spellOut: true
     })
     ' Speaks: "3 point 14"
   preventDuplicate: |
-    widget.tts({
+    widget.tts().speak({
       say: "Loading...",
       dontRepeat: true
     })
   overrideFlush: |
     ' First sentence protection (multi-sentence)
-    widget.tts({
+    ttsService = widget.tts()
+    ttsService.speak({
       say: "Please listen carefully. This is important.",
       overrideNextFlush: true
     })
     ' Only first sentence protected
-    widget.tts({
+    ttsService.speak({
       say: "Interrupted",
       flush: true
     })
@@ -170,7 +174,7 @@ patterns:
   accessibleNavigation: |
     function onFocusChanged(hasFocus as boolean)
       if hasFocus
-        m.tts({
+        m.tts().speak({
           say: m.title,
           flush: true
         })
@@ -179,7 +183,7 @@ patterns:
   formValidation: |
     function validateEmail(email as string)
       if not isValidEmail(email)
-        m.tts({
+        m.tts().speak({
           say: "Invalid email address",
           flush: true
         })
@@ -187,7 +191,7 @@ patterns:
     end function
   passwordEntry: |
     function onPasswordCharEntered(char as string)
-      m.tts({
+      m.tts().speak({
         say: char,
         spellOut: true,
         flush: true,
@@ -196,7 +200,7 @@ patterns:
     end function
   loadingStates: |
     function showLoading()
-      m.tts({
+      m.tts().speak({
         say: "Loading content",
         dontRepeat: true,
         overrideNextFlush: true  ' Let it finish
@@ -204,7 +208,7 @@ patterns:
     end function
   menuNavigation: |
     function onMenuItemFocused(item as object)
-      m.tts({
+      m.tts().speak({
         say: item.title + ", " + item.description,
         flush: true,
         dontRepeat: true

@@ -57,10 +57,12 @@ api:
   ViewModelConfig:
     path: "Single translation section path (e.g., i18n: { path: 'navigation' }). Scopes @l10n to that section."
     paths: "Multiple translation section paths merged at root (e.g., i18n: { paths: ['navigation', 'buttons'] })."
-  widgetMethods:
-    i18n: "widget.i18n() - Returns i18nService instance. Available on all widgets."
-    getIsRtl: "widget.i18n().getIsRtl() - Returns boolean RTL status for current locale."
-    getLocale: "widget.i18n().getLocale() - Returns current locale string (e.g., 'en_US')."
+  widgetDecorators: "Service getter injected DIRECTLY onto widget (NOT under widget.plugins)"
+  serviceAccess:
+    widget.i18n: "widget.i18n() - Returns i18nService instance. Available on all widgets as decorator method."
+    widget.i18n().getLocale: "widget.i18n().getLocale() - Returns current locale string (e.g., 'en_US')."
+    widget.i18n().getIsRtl: "widget.i18n().getIsRtl() - Returns boolean RTL status for current locale."
+  deprecatedMethods: "widget.getLocale() and widget.isRtl() REMOVED. Use widget.i18n().getLocale() and widget.i18n().getIsRtl() instead."
 viewModelIntegration:
   basicConfiguration: |
     class NavigationMenu extends Rotor.ViewModel
@@ -209,9 +211,10 @@ rtlSupport:
     i18nService.setLocale("ar_SA")
     isRTL = i18nService.getIsRtl()  ' Returns true
 
-    ' Access RTL status in ViewModel via widget method
+    ' Access RTL status in ViewModel via i18n service getter
     override sub onCreateView()
-      if m.isRtl()
+      i18n = m.i18n()
+      if i18n.getIsRtl()
         ' Apply RTL-specific layout adjustments
       else
         ' Apply LTR layout
@@ -223,7 +226,7 @@ rtlSupport:
       nodeType: "Label",
       fields: {
         horizAlign: function() as string
-          return m.isRtl() ? "right" : "left"
+          return m.i18n().getIsRtl() ? "right" : "left"
         end function
       }
     }
@@ -235,15 +238,15 @@ bestPractices:
   - "Use ViewModel i18n.path to limit loaded sections for performance."
   - "Prefer template string interpolation for dynamic keys."
   - "Use dynamic keys for reusable components (@l10n.status.${m.props.statusType})."
-  - "For RTL locales, use widget.isRtl() method to check RTL status dynamically."
-  - "Use widget.getLocale() and widget.isRtl() methods for dynamic locale access (not stored in viewModelState)."
+  - "For RTL locales, use widget.i18n().getIsRtl() to check RTL status dynamically."
+  - "Use widget.i18n().getLocale() and widget.i18n().getIsRtl() for dynamic locale/RTL access (not stored in viewModelState)."
 rules:
   - "Define translations per locale; keep keys consistent across locales."
   - "Initialize i18nService with current locale before rendering ViewModels."
   - "Use ViewModel i18n.path to limit loaded sections for performance."
   - "Prefer template string interpolation for dynamic keys: `@l10n.${m.props.key}`"
-  - "For RTL locales, use widget.isRtl() method to check RTL status dynamically."
-  - "Use widget.getLocale() and widget.isRtl() methods (not includeLocale/includeIsRtl config options)."
+  - "For RTL locales, use widget.i18n().getIsRtl() method to check RTL status dynamically."
+  - "Use widget.i18n().getLocale() and widget.i18n().getIsRtl() service getters (NOT widget.getLocale()/widget.isRtl() - those are removed)."
   - "Set locale during app init; runtime switching not fully implemented."
 limitations:
   runtimeLocaleSwitching: "Changing locale at runtime not fully implemented. Set locale during app init."

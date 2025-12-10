@@ -94,14 +94,15 @@ rules:
       4. No more ancestors? → STAY on current item
 
 api:
-  widgetMethods:
-    setFocus: "setFocus(id/boolean, enableNativeFocus?) - set focus on widget or by ID"
-    getFocusedWidget: "getFocusedWidget() - returns currently focused widget"
-    enableFocusNavigation: "enableFocusNavigation(enabled) - globally enable/disable navigation"
-    isFocusNavigationEnabled: "isFocusNavigationEnabled() - check if navigation enabled"
-    proceedLongPress: "proceedLongPress() - manually trigger long press action"
-    isLongPressActive: "isLongPressActive() - check if long press active"
-    triggerKeyPress: "triggerKeyPress(key) - simulate key press for testing/programmatic nav"
+  widgetDecorators: "Plugin methods injected DIRECTLY onto widget (NOT under widget.plugins.focus)"
+  methods:
+    widget.setFocus: "widget.setFocus(id/boolean, enableNativeFocus?) - set focus on widget or by ID"
+    widget.getFocusedWidget: "widget.getFocusedWidget() - returns currently focused widget"
+    widget.enableFocusNavigation: "widget.enableFocusNavigation(enabled) - globally enable/disable navigation"
+    widget.isFocusNavigationEnabled: "widget.isFocusNavigationEnabled() - check if navigation enabled"
+    widget.proceedLongPress: "widget.proceedLongPress() - manually trigger long press action"
+    widget.isLongPressActive: "widget.isLongPressActive() - check if long press active"
+    widget.triggerKeyPress: "widget.triggerKeyPress(key) - simulate key press for testing/programmatic nav"
 
 patterns:
   simpleButton: |
