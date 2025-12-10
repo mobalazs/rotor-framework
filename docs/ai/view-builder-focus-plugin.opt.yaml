@@ -138,9 +138,9 @@ patterns:
       left: "sidebar"  (exit to sidebar)
     }
   programmaticControl: |
-    m.plugins.focus.setFocus("targetWidget")
-    m.plugins.focus.enableFocusNavigation(false) - during animation
-    m.plugins.focus.enableFocusNavigation(true) - re-enable after
+    m.setFocus("targetWidget")
+    m.enableFocusNavigation(false) - during animation
+    m.enableFocusNavigation(true) - re-enable after
 
 bestPractices:
   visualFeedback: "Always handle focus state visually via onFocusChanged. Use blendColor/opacity changes."
@@ -162,17 +162,17 @@ pitfalls:
 troubleshooting:
   notRespondingToKeys:
     checks:
-      - "widget.plugins.focus.isFocusNavigationEnabled() === false?"
+      - "widget.isFocusNavigationEnabled() === false?"
       - "widget.focus.isEnabled === false?"
-      - "widget.plugins.focus.getFocusedWidget() === invalid? (no initial focus set)"
+      - "widget.getFocusedWidget() === invalid? (no initial focus set)"
     debug: |
       sub debugFocusNavigation()
         widget = m.getWidget("myButton")
-        if widget.plugins.focus.isFocusNavigationEnabled() = false
+        if widget.isFocusNavigationEnabled() = false
           print "Focus navigation disabled globally"
         if widget.focus.isEnabled = false
           print "Widget focus disabled"
-        focused = widget.plugins.focus.getFocusedWidget()
+        focused = widget.getFocusedWidget()
         if focused = invalid -> print "No widget has focus - set initial"
   groupNavNotWorking:
     - "Check defaultFocusId matches existing focus item ID within group (RULE #12)"

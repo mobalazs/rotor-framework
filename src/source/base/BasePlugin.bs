@@ -18,30 +18,13 @@ namespace Rotor
         ' MEMBER VARIABLES
         ' =============================================================
 
-        isEnabled = true                ' Plugin enabled/disabled flag
-        key as string                   ' Plugin identifier (unique key)
-        scope as object                 ' Plugin scope (m context in plugin definitions)
-        params as object                ' Plugin initialization parameters
+        isEnabled = true ' Plugin enabled/disabled flag
+        pluginKey as string ' Plugin identifier (unique key)
+        scope as object ' Plugin scope (m context in plugin definitions)
 
         ' Optional plugin features (implemented by subclasses):
-        ' hooks as object               ' Widget lifecycle hooks (beforeMount, beforeUpdate, etc.)
-        ' widgetMethods as object       ' Methods to inject into widgets
-
-        ' =============================================================
-        ' CONSTRUCTOR
-        ' =============================================================
-
-        ' ---------------------------------------------------------------------
-        ' Constructor - Initializes plugin with key and parameters
-        '
-        ' @param {string} key - Plugin identifier (auto-generated if empty)
-        ' @param {object} params - Plugin initialization parameters
-        '
-        sub new(key = "" as string, params = invalid as object)
-            if key = "" then key = Rotor.Utils.getUUIDHex(8)
-            m.params = params
-            m.key = key
-        end sub
+        optional hooks as object ' Widget lifecycle hooks (beforeMount, beforeUpdate, etc.)
+        optional widgetMethods as object ' Methods to inject into widgets
 
     end class
 

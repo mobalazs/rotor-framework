@@ -51,6 +51,7 @@ namespace Rotor.ViewBuilder
         ' Plugins has limited type of hooks to lifecycle (check the list below)
         pluginHooks = {}
         pluginKeyList = CreateObject("roList")
+        pluginInstanceHash = {} ' Maps plugin keys to plugin instances (supports multiple keys per plugin)
 
         frameworkInstance as Rotor.Framework
 
@@ -67,18 +68,13 @@ namespace Rotor.ViewBuilder
             for each plugin in plugins
 
                 ' Plugin key
-                pluginKey = plugin.key
-
-                ' add plugin key to tree viewModelState
-                ' obj = Rotor.Utils.wrapObject(pluginKey, {})
-
-                ' create workspace for plugin in root of widget tree
-                ' m.frameworkInstance.builder.widgetTree.tree.extendContext(obj)
+                pluginKey = plugin.pluginKey
 
                 ' Setup hooks
                 hooks = plugin.hooks
                 if Rotor.Utils.isValid(hooks) and hooks.Count() > 0
 
+                    ' Register hooks for primary plugin key
                     for each hook in hooks
                         pluginHook = new PluginHookClass({
                             pluginKey: pluginKey,
@@ -87,18 +83,58 @@ namespace Rotor.ViewBuilder
                         m.pluginHooks[hook][pluginKey] = pluginHook
                     end for
 
+                    ' Register hooks for alias key too (single alias only)
+                    if Rotor.Utils.isString(plugin.aliasPluginKey) and plugin.aliasPluginKey <> ""
+                        aliasKey = plugin.aliasPluginKey
+                        for each hook in hooks
+                            pluginHook = new PluginHookClass({
+                                pluginKey: pluginKey,
+                                handlerFn: hooks[hook]
+                            })
+                            m.pluginHooks[hook][aliasKey] = pluginHook
+                        end for
+                    end if
+
                 end if
 
-                ' add plugin instance to viewBuilder
+                ' Register primary plugin key
                 m.pluginKeyList.AddTail(pluginKey)
-                m.frameworkInstance.plugins[pluginKey] = plugin
-                m.frameworkInstance.plugins[pluginKey].frameworkInstance = m.frameworkInstance
-                if Rotor.Utils.isFunction(m.frameworkInstance.plugins[pluginKey].init)
-                    m.frameworkInstance.plugins[pluginKey].init()
+
+                ' Map all registry keys to the primary plugin key
+                m.pluginInstanceHash[pluginKey] = pluginKey
+
+                ' Add alias key to pluginKeyList for widget detection (single alias only)
+                if Rotor.Utils.isString(plugin.aliasPluginKey) and plugin.aliasPluginKey <> ""
+                    aliasKey = plugin.aliasPluginKey
+                    m.pluginKeyList.AddTail(aliasKey)
+                    m.pluginInstanceHash[aliasKey] = pluginKey
                 end if
+
+                ' Store plugin instance in framework plugins map
+                m.frameworkInstance.plugins[pluginKey] = plugin
+
+                ' Set framework instance reference
+                plugin.frameworkInstance = m.frameworkInstance
+
+                ' Initialize plugin if init method exists
+                if Rotor.Utils.isFunction(plugin.init)
+                    ' Initialize plugin
+                    plugin.init()
+                end if
+
             end for
 
         end sub
+
+        ' ---------------------------------------------------------------------
+        ' getPlugin - Retrieves plugin instance by key
+        ' @param {string} pluginKey - Plugin registry key
+        ' @returns {object} Plugin instance
+        ' ---------------------------------------------------------------------
+        public function getPlugin(pluginKey) as Rotor.BasePlugin
+            primaryPluginKey = m.pluginInstanceHash[pluginKey]
+            return m.frameworkInstance.plugins[primaryPluginKey]
+        end function
 
         ' ---------------------------------------------------------------------
         ' destroyPlugins - Destroys all registered plugins

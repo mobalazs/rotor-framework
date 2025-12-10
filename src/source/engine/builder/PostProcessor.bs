@@ -254,7 +254,7 @@ namespace Rotor.ViewBuilder
         ' ---------------------------------------------------------------------
         sub runPluginHookHandler(LifeCycleHookTypeType as string, pluginHook as object, widget = invalid as object, newValue = invalid as dynamic, oldValue = invalid as dynamic)
             pluginKey = pluginHook.pluginKey
-            scope = m.frameworkInstance.plugins[pluginKey]
+            scope = m.frameworkInstance.builder.pluginAdapter.getPlugin(pluginKey)
             if scope.isEnabled
                 if LifeCycleHookTypeType = Rotor.Const.LifeCycleHookType.BEFORE_UPDATE
                     pluginHook.handlerFn(scope, widget, newValue, oldValue)

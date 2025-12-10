@@ -101,18 +101,6 @@ namespace Rotor.ViewBuilder
             return m.getFrameworkInstance().i18nService
         end function
 
-        ' Get isRTL flag
-        widget.isRtl = function() as boolean
-            i18nService = m.getFrameworkInstance().i18nService
-            return i18nService.getIsRtl()
-        end function
-
-        ' Get locale string
-        widget.getLocale = function() as string
-            i18nService = m.getFrameworkInstance().i18nService
-            return i18nService.getLocale()
-        end function
-
         ' render - Renders widget updates (self, descendants, or children) *'
         widget.render = sub(payloads as dynamic, params = {} as object)
             for each payload in Rotor.Utils.ensureArray(payloads)
@@ -288,17 +276,11 @@ namespace Rotor.ViewBuilder
                     end if
                 end for
 
-                ' Inject plugin widget methods
-                plugin = m.frameworkInstance.plugins[pluginKey]
+                ' Inject plugin widget methods directly to widget
+                plugin = m.frameworkInstance.builder.pluginAdapter.getPlugin(pluginKey)
                 if Rotor.Utils.isValid(plugin["widgetMethods"])
-                    if widgetAddon.plugins = invalid then widgetAddon.plugins = {}
-                    if widgetAddon.plugins[pluginKey] = invalid then widgetAddon.plugins[pluginKey] = {
-                        pluginKey: pluginKey,
-                        id: widget.id,
-                        HID: widget.HID,
-                        parentHID: widget.parentHID
-                    }
-                    widgetAddon.plugins[pluginKey].append(plugin["widgetMethods"])
+                    ' Inject methods directly to widget
+                    widgetAddon.append(plugin["widgetMethods"])
                 end if
 
             end if
