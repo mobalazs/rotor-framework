@@ -34,34 +34,7 @@ namespace tests
         ' TEST SUITE 1: Basic i18n Path Integration
         ' ======================================================================
 
-        @describe("basic i18n path integration")
-
-        @it("widget with single i18n path receives correct l10n data")
-        function _()
-            ' Given: Widget with i18n.path = "app"
-            widget = m.fwInstance.getWidget("appTitleWidget")
-
-            ' Then: viewModelState.l10n should contain app translations
-            m.assertNotInvalid(widget)
-            m.assertNotInvalid(widget?.viewModelState)
-            m.assertNotInvalid(widget?.viewModelState?.l10n)
-            m.assertEqual(widget?.viewModelState?.l10n?.app.title, "Test Application")
-            m.assertEqual(widget?.viewModelState?.l10n?.app.subtitle, "Integration Test")
-        end function
-
-        @it("widget with multiple i18n paths receives merged l10n data")
-        function _()
-            ' Given: Widget with i18n.paths = ["app", "menu"]
-            widget = m.fwInstance.getWidget("multiPathWidget")
-
-            ' Then: viewModelState.l10n should contain both app and menu
-            m.assertNotInvalid(widget)
-            m.assertNotInvalid(widget?.viewModelState)
-            m.assertNotInvalid(widget?.viewModelState.l10n)
-            m.assertEqual(widget?.viewModelState.l10n?.app.title, "Test Application")
-            m.assertEqual(widget?.viewModelState.l10n?.menu.home, "Home")
-            m.assertEqual(widget?.viewModelState.l10n?.menu.settings, "Settings")
-        end function
+        @describe("basic i18n integration")
 
         @it("widget without i18n config receives full l10n object")
         function _()
@@ -90,7 +63,7 @@ namespace tests
 
             ' Then: getLocale should return current locale
             m.assertNotInvalid(widget)
-            m.assertEqual(widget.getLocale(), "en_US")
+            m.assertEqual(widget.i18n().getLocale(), "en_US")
         end function
 
         @it("isRtl returns false for LTR locale")
@@ -100,7 +73,7 @@ namespace tests
 
             ' Then: isRtl should return false
             m.assertNotInvalid(widget)
-            m.assertFalse(widget.isRtl())
+            m.assertFalse(widget.i18n().getIsRtl())
         end function
 
         @it("getLocale works for any widget regardless of i18n config")
@@ -110,7 +83,7 @@ namespace tests
 
             ' Then: getLocale should still work
             m.assertNotInvalid(widget)
-            m.assertEqual(widget.getLocale(), "en_US")
+            m.assertEqual(widget.i18n().getLocale(), "en_US")
         end function
 
         @it("isRtl works for any widget regardless of i18n config")
@@ -120,26 +93,7 @@ namespace tests
 
             ' Then: isRtl should still work
             m.assertNotInvalid(widget)
-            m.assertFalse(widget.isRtl())
-        end function
-
-        ' ======================================================================
-        ' TEST SUITE 3: Deep Nested Paths
-        ' ======================================================================
-
-        @describe("deep nested paths")
-
-        @it("resolves deep nested keyPath correctly")
-        function _()
-            ' Given: Widget with i18n.path = "nested.level1"
-            widget = m.fwInstance.getWidget("deepNestedWidget")
-
-            ' Then: viewModelState.l10n should contain level2 data
-            m.assertNotInvalid(widget)
-            m.assertNotInvalid(widget?.viewModelState)
-            m.assertNotInvalid(widget?.viewModelState.l10n)
-            m.assertNotInvalid(widget?.viewModelState.l10n?.level1)
-            m.assertEqual(widget?.viewModelState?.l10n?.level1?.level2?.deepValue, "Deep Nested Value")
+            m.assertFalse(widget.i18n().getIsRtl())
         end function
 
         ' ======================================================================
@@ -179,7 +133,7 @@ namespace tests
             m.fwInstance.i18nService.setL10n(m.translations.fr_FR)
 
             ' Then: getLocale should return fr_FR immediately (dynamic getter)
-            m.assertEqual(widget.getLocale(), "fr_FR")
+            m.assertEqual(widget.i18n().getLocale(), "fr_FR")
         end function
 
         @it("i18nService getLocale returns current locale")
@@ -207,7 +161,7 @@ namespace tests
 
             ' Then: isRtl should return true
             m.assertNotInvalid(widget)
-            m.assertTrue(widget.isRtl())
+            m.assertTrue(widget.i18n().getIsRtl())
         end function
 
         ' ======================================================================

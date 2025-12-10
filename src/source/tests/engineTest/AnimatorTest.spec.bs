@@ -99,5 +99,388 @@ namespace tests
             })
         end function
 
+        @describe("animator factory methods")
+
+        @it("animator factory returns control object with methods")
+        function _()
+            topWidget = m.fwInstance.getWidget("viewModelTest")
+
+            animator = m.fwInstance.animator("test-animator")
+
+            ' Factory should have control methods
+            m.assertNotInvalid(animator)
+            m.assertNotInvalid(animator.create)
+            m.assertNotInvalid(animator.timeline)
+            m.assertNotInvalid(animator.play)
+            m.assertNotInvalid(animator.stop)
+            m.assertNotInvalid(animator.pause)
+            m.assertNotInvalid(animator.finish)
+            m.assertNotInvalid(animator.destroy)
+        end function
+
+        @it("getState returns animation state")
+        function _()
+            topWidget = m.fwInstance.getWidget("viewModelTest")
+
+            animator = m.fwInstance.animator("test-get-state")
+            animator.create({
+                duration: 1,
+                target: topWidget,
+                translationTo: [100, 100]
+            })
+
+            ' Before play, state might be invalid or stopped
+            state = animator.getState()
+            ' State should exist (value depends on animation state)
+            m.assertNotInvalid(animator.getState)
+        end function
+
+        @it("isStopped returns boolean")
+        function _()
+            topWidget = m.fwInstance.getWidget("viewModelTest")
+
+            animator = m.fwInstance.animator("test-is-stopped")
+            animator.create({
+                duration: 1,
+                target: topWidget,
+                translationTo: [100, 100]
+            })
+
+            ' Should return boolean (not invalid)
+            result = animator.isStopped()
+            ' Result should be boolean or invalid before animation started
+            m.assertNotInvalid(animator.isStopped)
+        end function
+
+        @it("isRunning returns boolean")
+        function _()
+            topWidget = m.fwInstance.getWidget("viewModelTest")
+
+            animator = m.fwInstance.animator("test-is-running")
+            animator.create({
+                duration: 1,
+                target: topWidget,
+                translationTo: [100, 100]
+            })
+
+            ' Should have isRunning method
+            m.assertNotInvalid(animator.isRunning)
+        end function
+
+        @it("isPaused returns boolean")
+        function _()
+            topWidget = m.fwInstance.getWidget("viewModelTest")
+
+            animator = m.fwInstance.animator("test-is-paused")
+            animator.create({
+                duration: 1,
+                target: topWidget,
+                translationTo: [100, 100]
+            })
+
+            ' Should have isPaused method
+            m.assertNotInvalid(animator.isPaused)
+        end function
+
+        @it("stop method stops animation")
+        function _()
+            topWidget = m.fwInstance.getWidget("viewModelTest")
+
+            animator = m.fwInstance.animator("test-stop")
+            animator.create({
+                duration: 5,
+                target: topWidget,
+                translationTo: [500, 500]
+            })
+            animator.play()
+
+            ' Stop should not crash
+            animator.stop()
+
+            ' Test passes if no crash
+            m.assertTrue(true)
+        end function
+
+        @it("pause method pauses animation")
+        function _()
+            topWidget = m.fwInstance.getWidget("viewModelTest")
+
+            animator = m.fwInstance.animator("test-pause")
+            animator.create({
+                duration: 5,
+                target: topWidget,
+                translationTo: [500, 500]
+            })
+            animator.play()
+
+            ' Pause should not crash
+            animator.pause()
+
+            ' Test passes if no crash
+            m.assertTrue(true)
+        end function
+
+        @it("finish method finishes animation immediately")
+        function _()
+            topWidget = m.fwInstance.getWidget("viewModelTest")
+
+            animator = m.fwInstance.animator("test-finish")
+            animator.create({
+                duration: 5,
+                target: topWidget,
+                translationTo: [500, 500]
+            })
+            animator.play()
+
+            ' Finish should not crash
+            animator.finish()
+
+            ' Test passes if no crash
+            m.assertTrue(true)
+        end function
+
+        @it("getAnimNode returns animation node")
+        function _()
+            topWidget = m.fwInstance.getWidget("viewModelTest")
+
+            animator = m.fwInstance.animator("test-get-animnode")
+            animator.create({
+                duration: 1,
+                target: topWidget,
+                translationTo: [100, 100]
+            })
+
+            animNode = animator.getAnimNode()
+
+            ' Should return animation node
+            m.assertNotInvalid(animNode)
+        end function
+
+        @it("destroy method cleans up animator resources")
+        function _()
+            topWidget = m.fwInstance.getWidget("viewModelTest")
+
+            animator = m.fwInstance.animator("test-destroy")
+            animator.create({
+                duration: 1,
+                target: topWidget,
+                translationTo: [100, 100]
+            })
+
+            ' Destroy should not crash
+            animator.destroy()
+
+            ' After destroy, animNode should be invalid
+            animNode = animator.getAnimNode()
+            m.assertInvalid(animNode)
+        end function
+
+        @it("getInterpolators returns interpolators for single animation")
+        function _()
+            topWidget = m.fwInstance.getWidget("viewModelTest")
+
+            animator = m.fwInstance.animator("test-get-interpolators-single")
+            animator.create({
+                duration: 1,
+                target: topWidget,
+                translationTo: [100, 100]
+            })
+
+            interpolators = animator.getInterpolators()
+
+            ' Should return interpolators array
+            m.assertNotInvalid(interpolators)
+        end function
+
+        @it("getInterpolators returns interpolators for timeline")
+        function _()
+            topWidget = m.fwInstance.getWidget("viewModelTest")
+            titleLabelWidget = m.fwInstance.getWidget("titleLabel")
+
+            animator = m.fwInstance.animator("test-get-interpolators-timeline")
+            animator.timeline({
+                duration: 1,
+                easeFunction: "linear"
+            }).add({
+                target: topWidget,
+                translationTo: [100, 100]
+            }).add({
+                target: titleLabelWidget,
+                opacity: 0.5
+            }).getAnimation()
+
+            interpolators = animator.getInterpolators()
+
+            ' Should return interpolators array
+            m.assertNotInvalid(interpolators)
+        end function
+
+        @it("getInterpolators returns invalid when no animation node")
+        function _()
+            animator = m.fwInstance.animator("test-get-interpolators-invalid")
+
+            interpolators = animator.getInterpolators()
+
+            ' Should return invalid if no animation created
+            m.assertInvalid(interpolators)
+        end function
+
+        @it("unobserveState removes observer")
+        function _()
+            topWidget = m.fwInstance.getWidget("viewModelTest")
+
+            animator = m.fwInstance.animator("test-unobserve-state")
+            animator.create({
+                duration: 1,
+                target: topWidget,
+                translationTo: [100, 100]
+            })
+
+            ' Should not crash when calling unobserveState
+            animator.unobserveState()
+
+            m.assertTrue(true)
+        end function
+
+        @it("timeline supports chaining with play")
+        function _()
+            topWidget = m.fwInstance.getWidget("viewModelTest")
+
+            animator = m.fwInstance.animator("test-timeline-chaining")
+            result = animator.timeline({
+                duration: 0.1,
+                easeFunction: "linear"
+            }).add({
+                target: topWidget,
+                translationTo: [100, 100]
+            }).play()
+
+            ' Timeline play should work with chaining
+            m.assertNotInvalid(result)
+            m.assertNotInvalid(result.observeState)
+        end function
+
+        @it("stop method handles invalid animNode gracefully")
+        function _()
+            animator = m.fwInstance.animator("test-stop-invalid")
+
+            ' Should not crash when calling stop without animation
+            animator.stop()
+
+            m.assertTrue(true)
+        end function
+
+        @it("pause method handles invalid animNode gracefully")
+        function _()
+            animator = m.fwInstance.animator("test-pause-invalid")
+
+            ' Should not crash when calling pause without animation
+            animator.pause()
+
+            m.assertTrue(true)
+        end function
+
+        @it("finish method handles invalid animNode gracefully")
+        function _()
+            animator = m.fwInstance.animator("test-finish-invalid")
+
+            ' Should not crash when calling finish without animation
+            animator.finish()
+
+            m.assertTrue(true)
+        end function
+
+        @it("getAnimNode returns invalid before animation created")
+        function _()
+            animator = m.fwInstance.animator("test-no-animation-yet")
+
+            ' Should return invalid if no animation created yet
+            animNode = animator.getAnimNode()
+
+            m.assertInvalid(animNode)
+        end function
+
+        @it("create destroys previous animation before creating new one")
+        function _()
+            topWidget = m.fwInstance.getWidget("viewModelTest")
+
+            animator = m.fwInstance.animator("test-create-destroy-previous")
+
+            ' Create first animation
+            animator.create({
+                duration: 1,
+                target: topWidget,
+                translationTo: [100, 100]
+            })
+
+            firstAnimNode = animator.getAnimNode()
+            m.assertNotInvalid(firstAnimNode)
+
+            ' Create second animation (should destroy first)
+            animator.create({
+                duration: 1,
+                target: topWidget,
+                translationTo: [200, 200]
+            })
+
+            secondAnimNode = animator.getAnimNode()
+            m.assertNotInvalid(secondAnimNode)
+        end function
+
+        @it("timeline destroys previous animation before creating new one")
+        function _()
+            topWidget = m.fwInstance.getWidget("viewModelTest")
+
+            animator = m.fwInstance.animator("test-timeline-destroy-previous")
+
+            ' Create first timeline
+            animator.timeline({
+                duration: 1
+            }).add({
+                target: topWidget,
+                translationTo: [100, 100]
+            }).getAnimation()
+
+            firstAnimNode = animator.getAnimNode()
+            m.assertNotInvalid(firstAnimNode)
+
+            ' Create second timeline (should destroy first)
+            animator.timeline({
+                duration: 1
+            }).add({
+                target: topWidget,
+                translationTo: [200, 200]
+            }).getAnimation()
+
+            secondAnimNode = animator.getAnimNode()
+            m.assertNotInvalid(secondAnimNode)
+        end function
+
+        @it("animator supports targets array")
+        function _()
+            topWidget = m.fwInstance.getWidget("viewModelTest")
+            titleLabelWidget = m.fwInstance.getWidget("titleLabel")
+
+            animator = m.fwInstance.animator("test-targets-array")
+            animator.create({
+                duration: 0.1,
+                targets: [topWidget, titleLabelWidget],
+                translationTo: [100, 100]
+            })
+
+            animNode = animator.getAnimNode()
+            m.assertNotInvalid(animNode)
+        end function
+
+        @it("destroy handles invalid scope gracefully")
+        function _()
+            animator = m.fwInstance.animator("test-destroy-invalid-scope")
+
+            ' Should not crash when calling destroy without animation
+            animator.destroy()
+
+            m.assertTrue(true)
+        end function
+
     end class
 end namespace

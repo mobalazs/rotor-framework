@@ -4,7 +4,7 @@
 
 ## Overview
 
-The Fields Plugin provides declarative field management for SceneGraph nodes. It enables setting and updating node properties through a `fields` configuration, supporting static values, function expressions, and dynamic values (using `@` operator and string interpolation).
+The Fields Plugin provides declarative field management for SceneGraph nodes. It enables setting and updating node properties through a `fields` configuration, supporting static values, function expressions, and dynamic values (using `@` and `$` operators with string interpolation).
 
 ## Config Value Types
 
@@ -12,7 +12,7 @@ The Fields Plugin provides declarative field management for SceneGraph nodes. It
 |------|-------------|---------|
 | Static Value | Direct assignment to node field | `text: "Hello World"` |
 | Function Expression | Dynamic expression computed from state | `function() as string` |
-| Dynamic Value | String with `@` operator, interpolation, or both | See examples below |
+| Dynamic Value | String with `@` or `$` operators, interpolation, or both | See examples below |
 
 ### Dynamic Value Examples
 
@@ -22,14 +22,16 @@ fields: {
     title: "@currentTitle",
     status: "@userStatus",
 
-    ' String interpolation - embed expressions
-    count: `${m.props.itemCount} items`,
-    message: `Score: ${m.props.score} points`,
+    ' $ operator - reference widget properties (HID, id, etc.)
+    debug: "$HID",
+    widgetId: "$id",
 
-    ' Combined - mix @ operator and interpolation
-    greeting: `Hello @userName, you have ${m.props.unreadCount} messages`,
-    path: `@l10n.menu.${m.props.pageKey}.title`,
-    display: `@currentUser - Level ${m.props.level} - @statusMessage`
+    ' String interpolation - embed multiple references
+    greeting: "Hello @userName, you have @unreadCount messages",
+    info: "Widget $id has @itemCount items",
+
+    ' Mixed operators
+    display: "@currentUser - Widget: $id - Level @level"
 }
 ```
 

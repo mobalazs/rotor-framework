@@ -25,9 +25,10 @@ namespace Rotor
         ' MEMBER VARIABLES
         ' =============================================================
 
-        ' Regex pattern for matching @-prefixed expressions
-        ' Matches: @ followed by any characters except space, @, or comma
-        configRegex = /(\@)([^\s\@\,]*)/i
+        ' Regex pattern for matching @ and $ prefixed expressions
+        ' @ = viewModelState, $ = widget properties
+        ' Matches: @ or $ followed by any characters except space, @, $, or comma
+        configRegex = /([\@\$])([^\s\@\$\,]*)/i
 
         ' =============================================================
         ' LIFECYCLE HOOKS
@@ -131,11 +132,15 @@ namespace Rotor
                             sourceTypeOperator = result[1] ' The @ symbol
 
                             ' Determine source based on operator
+                            source = invalid
                             if sourceTypeOperator = "@"
                                 source = widget.viewModelState
-                            else
+                            else if sourceTypeOperator = "$"
                                 source = widget
                             end if
+
+                            ' Skip if unknown operator
+                            if source = invalid then goto nextResult
 
                             ' Resolve value from key path
                             asset = Rotor.Utils.getValueByKeyPath(source, matchKey)
@@ -150,6 +155,8 @@ namespace Rotor
                                 value = asset
                                 exit for
                             end if
+
+                            nextResult:
                         end for
                     end if
 

@@ -491,7 +491,7 @@ namespace Rotor
             sub setupField(fieldId as string, value as dynamic, alwaysNotify as boolean)
                 fields = {}
                 fields[m.fieldId] = value
-                Rotor.Utils.setCustomFields(m.node, fields, m.value <> invalid, alwaysNotify)
+                Rotor.Utils.setCustomFields(m.node, fields, value <> invalid, alwaysNotify)
             end sub
 
             ' =============================================================

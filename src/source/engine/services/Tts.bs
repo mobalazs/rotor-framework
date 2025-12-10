@@ -1,0 +1,668 @@
+' ===== TTS SERVICE =====
+namespace Rotor.ViewBuilder
+
+    ' =====================================================================
+    ' TtsService - Text-to-Speech service using native roAudioGuide
+    '
+    ' Provides text-to-speech functionality with flush control, recite mode,
+    ' and speech management features.
+    '
+    ' Features:
+    '   - Native roAudioGuide integration
+    '   - Flush control (interrupt current speech)
+    '   - Spell out mode (character-by-character for symbols/emails)
+    '   - Override next flush protection
+    '   - Duplicate speech prevention (dontRepeat)
+    '   - Symbol/email handling with localized symbol names
+    '
+    ' Usage:
+    '   widget.tts().speak({
+    '       say: "Hello world",
+    '       flush: true,
+    '       spellOut: false,
+    '       overrideNextFlush: false,
+    '       dontRepeat: false,
+    '       context: {},
+    '   })
+    ' =====================================================================
+    class TtsService
+
+        audioGuide as object
+        deviceInfo as object
+        frameworkInstance as Rotor.Framework
+        timerNode as object
+
+        ' State tracking
+        lastSpeech = ""
+        overrideNextFlushFlag = false
+        isEnabled = true
+
+        ' Sentence secure (debounce)
+        pendingSpeech = invalid
+        debounceTimer as object
+        debounceDelay = 200
+
+        ' Symbol dictionary for recite mode (localized)
+        symbolDictionary = {
+            "_": "underscore",
+            "-": "dash",
+            ",": "comma",
+            ";": "semicolon",
+            ":": "colon",
+            ".": "dot",
+            "(": "open paren",
+            ")": "close paren",
+            "[": "open bracket",
+            "]": "close bracket",
+            "{": "open brace",
+            "}": "close brace",
+            "@": "at",
+            "*": "star",
+            "/": "slash",
+            "\": "backslash",
+            "&": "and",
+            "#": "hash",
+            "%": "percent",
+            "^": "caret",
+            "+": "plus",
+            "<": "less than",
+            "=": "equals",
+            ">": "greater than",
+            "|": "pipe",
+            "~": "tilde",
+            "$": "dollar"
+        }
+
+        ' Decimal handling regex
+        decimalRegex = /(\d+)\.(\d+)/
+
+        ' String interpolation regex (same as FieldsPlugin)
+        ' @ = viewModelState, $ = widget properties
+        ' Matches: @ or $ followed by any characters except space, @, $, or comma
+        contextRegex = /([\@\$])([^\s\@\$\,]*)/i
+
+        ' ---------------------------------------------------------------------
+        ' init - Initializes the TTS service with native roAudioGuide
+        '
+        ' @param {Rotor.Framework} frameworkInstance - Framework instance reference
+        '
+        sub init(frameworkInstance as Rotor.Framework)
+            m.frameworkInstance = frameworkInstance
+            m.deviceInfo = CreateObject("roDeviceInfo")
+            m.audioGuide = CreateObject("roAudioGuide")
+            m.debounceTimer = CreateObject("roTimespan")
+
+            if m.audioGuide = invalid
+                #if debug
+                    ? "[TTS_SERVICE][ERROR] Failed to create roAudioGuide instance"
+                #end if
+                m.isEnabled = false
+                return
+            end if
+
+            ' Create timer node for debounce polling
+            rootNode = m.frameworkInstance.getRootNode()
+            if rootNode <> invalid
+                m.timerNode = rootNode.createChild("Timer")
+                m.timerNode.repeat = true
+                m.timerNode.duration = m.debounceDelay / 1000.0 ' Convert ms to seconds
+                m.timerNode.observeFieldScoped("fire", "Rotor_ttsDebounceCallback")
+                m.timerNode.control = "start"
+                #if debug
+                    ? "[TTS_SERVICE][INFO] Debounce timer created ("; m.debounceDelay; "ms interval)"
+                #end if
+            end if
+
+            ' Check device AudioGuide status dynamically
+            if not m.getIsDeviceAudioGuideEnabled()
+                #if debug
+                    ? "[TTS_SERVICE][INFO] Device AudioGuide is disabled, TTS service disabled"
+                #end if
+                m.isEnabled = false
+                return
+            end if
+
+            ' If device AudioGuide is enabled and we want to use custom TTS,
+            ' mute native AudioGuide on root node
+            if m.getIsDeviceAudioGuideEnabled() and m.isEnabled
+                if rootNode <> invalid
+                    rootNode.muteAudioGuide = true
+                    #if debug
+                        ? "[TTS_SERVICE][INFO] Muted native AudioGuide on root node (using custom TTS)"
+                    #end if
+                end if
+            end if
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' getIsDeviceAudioGuideEnabled - Dynamically checks device AudioGuide status
+        '
+        ' @returns {boolean} True if device AudioGuide is enabled
+        ' @private
+        '
+        private function getIsDeviceAudioGuideEnabled() as boolean
+            #if unittest
+                return true
+            #end if
+            if m.deviceInfo <> invalid and m.deviceInfo.isAudioGuideEnabled() <> invalid
+                return m.deviceInfo.isAudioGuideEnabled()
+            end if
+            return false
+        end function
+
+        ' ---------------------------------------------------------------------
+        ' onDebounceTimer - Timer callback for debounce polling
+        '
+        ' Called automatically by Timer node to check if pending speech should execute.
+        '
+        ' @private
+        '
+        private sub onDebounceTimer()
+            if m.pendingSpeech = invalid then return
+
+            elapsed = m.debounceTimer.TotalMilliseconds()
+            if elapsed >= m.debounceDelay
+                ' Execute pending speech
+                #if debug
+                    ? "[TTS_SERVICE][DEBOUNCE] Executing pending: '"; m.pendingSpeech.textToSpeak; "'"
+                #end if
+                m.executeSpeech(m.pendingSpeech)
+                m.pendingSpeech = invalid
+            end if
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' checkPendingSpeech - Checks if debounced speech should be executed
+        '
+        ' Called from speak() to check if pending speech has waited long enough.
+        ' Allows immediate execution if delay has passed before timer fires.
+        '
+        ' @private
+        '
+        private sub checkPendingSpeech()
+            if m.pendingSpeech = invalid then return
+
+            elapsed = m.debounceTimer.TotalMilliseconds()
+            if elapsed >= m.debounceDelay
+                ' Execute pending speech immediately
+                #if debug
+                    ? "[TTS_SERVICE][DEBOUNCE] Immediate execution: '"; m.pendingSpeech.textToSpeak; "'"
+                #end if
+                m.executeSpeech(m.pendingSpeech)
+                m.pendingSpeech = invalid
+            end if
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' saySentences - Splits text into sentences and speaks them
+        '
+        ' @param {string} text - Text to split and speak
+        ' @param {boolean} shouldFlush - Flush before first sentence
+        ' @param {boolean} shouldOverrideNextFlush - Protect first sentence from next flush
+        ' @param {boolean} dontRepeat - Use native dontRepeat
+        ' @private
+        '
+        private sub saySentences(text as string, shouldFlush as boolean, shouldOverrideNextFlush as boolean, dontRepeat as boolean)
+            ' Split by sentence-ending punctuation
+            sentences = text.Split(".")
+            if sentences.Count() = 0 then return
+
+            isFirstSentence = true
+            for each sentence in sentences
+                trimmed = sentence.Trim()
+                if trimmed = "" then goto nextSentence
+
+                ' Only flush on first sentence
+                flushThis = isFirstSentence and shouldFlush
+
+                ' Handle flush with override protection
+                if flushThis
+                    if m.overrideNextFlushFlag
+                        #if debug
+                            ? "[TTS_SERVICE] Flush blocked by overrideNextFlush protection"
+                        #end if
+                        m.overrideNextFlushFlag = false
+                    else
+                        m.audioGuide.Flush()
+                    end if
+                end if
+
+                ' Set override flag ONLY for first sentence
+                if isFirstSentence and shouldOverrideNextFlush
+                    m.overrideNextFlushFlag = true
+                    #if debug
+                        ? "[TTS_SERVICE] First sentence protected from next flush"
+                    #end if
+                end if
+
+                ' Speak this sentence
+                speechId = m.audioGuide.Say(trimmed, flushThis, dontRepeat)
+
+                ' Track last speech
+                m.lastSpeech = trimmed
+
+                #if debug
+                    sentenceLabel = "First sentence"
+                    if not isFirstSentence then sentenceLabel = "Sentence"
+                    ? "[TTS_SERVICE] "; sentenceLabel; " (ID: "; speechId; "): "; trimmed; " (flush: "; flushThis; ", protected: "; (isFirstSentence and shouldOverrideNextFlush); ")"
+                #end if
+
+                isFirstSentence = false
+
+                nextSentence:
+            end for
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' executeSpeech - Internal method that actually speaks text
+        '
+        ' @param {object} config - TTS configuration
+        ' @private
+        '
+        private sub executeSpeech(config as object)
+            textToSpeak = config.textToSpeak
+            shouldFlush = config.shouldFlush
+            shouldOverrideNextFlush = config.shouldOverrideNextFlush
+            dontRepeat = config.dontRepeat
+
+            ' Check if text contains multiple sentences
+            hasPeriod = Instr(1, textToSpeak, ".") > 0
+            if hasPeriod
+                ' Multi-sentence text - use sentence splitting
+                m.saySentences(textToSpeak, shouldFlush, shouldOverrideNextFlush, dontRepeat)
+            else
+                ' Single sentence - speak directly
+                ' Handle flush with override protection
+                if shouldFlush
+                    if m.overrideNextFlushFlag
+                        #if debug
+                            ? "[TTS_SERVICE] Flush blocked by overrideNextFlush protection"
+                        #end if
+                        m.overrideNextFlushFlag = false
+                    else
+                        m.audioGuide.Flush()
+                    end if
+                end if
+
+                ' Set override flag for next flush
+                if shouldOverrideNextFlush
+                    m.overrideNextFlushFlag = true
+                end if
+
+                ' Speak the text using native dontRepeat parameter
+                speechId = m.audioGuide.Say(textToSpeak, shouldFlush, dontRepeat)
+
+                ' Track last speech
+                m.lastSpeech = textToSpeak
+
+                #if debug
+                    ? "[TTS_SERVICE] Speaking (ID: "; speechId; "): "; textToSpeak; " (flush: "; shouldFlush; ", dontRepeat: "; dontRepeat; ")"
+                #end if
+            end if
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' speak - Main TTS function called from widget.tts() decorator
+        '
+        ' @param {object} config - TTS configuration object
+        '   {string|function} say - Text to speak (string or function returning string)
+        '   {boolean} flush - Interrupt current speech (default: false)
+        '   {boolean} spellOut - Spell out text character-by-character (default: false)
+        '   {boolean} overrideNextFlush - Protect this speech from next flush (default: false)
+        '   {boolean} dontRepeat - Don't speak if same as last speech (default: false)
+        '   {object} context - Context for interpolation (optional)
+        '
+        public sub speak(config as object)
+            ' Check if both device AudioGuide and service are enabled
+            if not m.isEnabled or not m.getIsDeviceAudioGuideEnabled() then return
+            if config.say = invalid then return
+
+            ' Check if pending speech should be executed
+            m.checkPendingSpeech()
+
+            ' Process say value (function, string interpolation, or plain string)
+            textToSpeak = m.processSayValue(config.say, config.context)
+            if textToSpeak = invalid or textToSpeak = "" then return
+            shouldFlush = config.flush = true
+            shouldSpellOut = config.spellOut = true
+            shouldOverrideNextFlush = config.overrideNextFlush = true
+            dontRepeat = config.dontRepeat = true
+
+            ' Process text based on spell out mode
+            if shouldSpellOut
+                textToSpeak = m.processSpellOutMode(textToSpeak)
+            end if
+
+            ' Check if we should skip duplicate speech
+            if dontRepeat and textToSpeak = m.lastSpeech
+                #if debug
+                    ? "[TTS_SERVICE] Skipping duplicate speech: "; textToSpeak
+                #end if
+                return
+            end if
+
+            ' If flush requested, cancel pending and execute immediately
+            if shouldFlush
+                #if debug
+                    if m.pendingSpeech <> invalid
+                        ? "[TTS_SERVICE][DEBOUNCE] Flush - canceling pending speech"
+                    end if
+                #end if
+                m.pendingSpeech = invalid
+                m.executeSpeech({
+                    textToSpeak: textToSpeak,
+                    shouldFlush: shouldFlush,
+                    shouldOverrideNextFlush: shouldOverrideNextFlush,
+                    dontRepeat: dontRepeat
+                })
+            else
+                ' Debounce - store as pending and reset timer
+                #if debug
+                    if m.pendingSpeech <> invalid
+                        ? "[TTS_SERVICE][DEBOUNCE] Replacing pending: '"; m.pendingSpeech.textToSpeak; "' with: '"; textToSpeak; "'"
+                    else
+                        ? "[TTS_SERVICE][DEBOUNCE] Pending: '"; textToSpeak; "' ("; m.debounceDelay; "ms)"
+                    end if
+                #end if
+                m.pendingSpeech = {
+                    textToSpeak: textToSpeak,
+                    shouldFlush: false,
+                    shouldOverrideNextFlush: shouldOverrideNextFlush,
+                    dontRepeat: dontRepeat
+                }
+                m.debounceTimer.Mark()
+            end if
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' processSayValue - Processes the say value (function or string with interpolation)
+        '
+        ' Handles:
+        '   1. Function evaluation - calls function and returns string result
+        '   2. String interpolation - replaces @viewModelState.key patterns
+        '   3. Plain string - returns as-is
+        '
+        ' @param {dynamic} sayValue - Text to speak (string or function)
+        ' @param {object} context - Context context for interpolation
+        ' @returns {string} Processed text ready for speech
+        ' @private
+        '
+        private function processSayValue(sayValue as dynamic, context = invalid as dynamic) as string
+            textToSpeak = ""
+
+            ' Step 1: Resolve function-based values
+            if Rotor.Utils.isFunction(sayValue)
+                if context <> invalid
+                    textToSpeak = Rotor.Utils.callbackScoped(sayValue, context)
+                else
+                    ' No context context - call function with m scope
+                    textToSpeak = sayValue()
+                end if
+                if not Rotor.Utils.isString(textToSpeak)
+                    textToSpeak = ""
+                end if
+            else if Rotor.Utils.isString(sayValue)
+                textToSpeak = sayValue
+            else
+                return ""
+            end if
+
+            ' Step 2: Process string interpolation
+            if Rotor.Utils.isString(textToSpeak) and context <> invalid
+                results = m.contextRegex.MatchAll(textToSpeak)
+
+                if results.Count() > 0
+                    for each result in results
+                        matchKey = result[2]        ' The key path after @
+                        sourceTypeOperator = result[1]  ' The @ symbol
+
+                        ' Determine source based on operator
+                        source = invalid
+                        if sourceTypeOperator = "@"
+                            source = context.viewModelState
+                        else if sourceTypeOperator = "$"
+                            source = context
+                        end if
+
+                        ' Skip if unknown operator
+                        if source = invalid then goto nextResult
+
+                        ' Resolve value from key path
+                        asset = Rotor.Utils.getValueByKeyPath(source, matchKey)
+
+                        ' Handle string vs non-string results
+                        if Rotor.Utils.isString(asset)
+                            ' String interpolation - replace in original string
+                            replaceRegex = CreateObject("roRegex", sourceTypeOperator + matchKey, "ig")
+                            textToSpeak = replaceRegex.ReplaceAll(textToSpeak, asset)
+                        ' else if asset <> invalid
+                        '     ' Non-string value - convert to string
+                        '     replaceRegex = CreateObject("roRegex", sourceTypeOperator + matchKey, "ig")
+                        '     textToSpeak = replaceRegex.ReplaceAll(textToSpeak, Str(asset).Trim())
+                        end if
+
+                        nextResult:
+                    end for
+                end if
+            end if
+
+            return textToSpeak
+        end function
+
+        ' ---------------------------------------------------------------------
+        ' processSpellOutMode - Processes text for character-by-character spelling
+        '
+        ' Handles:
+        '   - Symbol replacement with spoken names
+        '   - Email address handling (user at domain dot com)
+        '   - Decimal number handling (3.14 -> "3 point 14")
+        '   - Character spacing for individual letters
+        '
+        ' @param {string} text - Text to process
+        ' @returns {string} Processed text for spelling out
+        '
+        function processSpellOutMode(text as string) as string
+            if text = "" then return ""
+
+            result = ""
+            textLength = Len(text)
+
+            ' Check for decimal number pattern
+            decimalMatch = m.decimalRegex.Match(text)
+            if decimalMatch.Count() > 0
+                ' Handle decimal: "3.14" -> "3 point 14"
+                return decimalMatch[1] + " point " + decimalMatch[2]
+            end if
+
+            ' Check for email pattern (alphanumeric@alphanumeric.alphanumeric)
+            ' Simple heuristic: has @ with letters before and after, and has . after @
+            hasAt = Instr(1, text, "@") > 0
+            isEmail = false
+            if hasAt
+                atPos = Instr(1, text, "@")
+                ' Check if there are characters before @
+                hasTextBefore = atPos > 1
+                ' Check if there is a . after @
+                hasDotAfter = Instr(atPos, text, ".") > atPos
+                isEmail = hasTextBefore and hasDotAfter
+            end if
+
+            if isEmail
+                ' Email mode: replace @ and . with localized spoken words
+                result = text
+                atWord = " at "
+                dotWord = " dot "
+                if m.symbolDictionary.DoesExist("@")
+                    atWord = " " + m.symbolDictionary["@"] + " "
+                end if
+                if m.symbolDictionary.DoesExist(".")
+                    dotWord = " " + m.symbolDictionary["."] + " "
+                end if
+                result = result.Replace("@", atWord)
+                result = result.Replace(".", dotWord)
+                return result
+            end if
+
+            ' Character-by-character recitation with symbol replacement
+            for i = 0 to textLength - 1
+                char = Mid(text, i + 1, 1)
+
+                ' Check if character is a symbol
+                if m.symbolDictionary.DoesExist(char)
+                    result = result + m.symbolDictionary[char] + " "
+                else
+                    ' Regular character - add with space for separation
+                    result = result + char + " "
+                end if
+            end for
+
+            return result.Trim()
+        end function
+
+        ' ---------------------------------------------------------------------
+        ' stopSpeech - Immediately stops all speech and cancels pending
+        '
+        public sub stopSpeech()
+            if not m.isEnabled or not m.getIsDeviceAudioGuideEnabled() then return
+            m.audioGuide.Flush()
+            m.overrideNextFlushFlag = false
+            m.pendingSpeech = invalid
+            #if debug
+                ? "[TTS_SERVICE] Stop speech - canceled all speech"
+            #end if
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' setSymbolDictionary - Updates symbol dictionary for localization
+        '
+        ' @param {object} dictionary - Symbol to spoken word mapping
+        '
+        sub setSymbolDictionary(dictionary as object)
+            m.symbolDictionary = dictionary
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' enable - Enables TTS service and disables native AudioGuide
+        '
+        public sub enable()
+            if not m.getIsDeviceAudioGuideEnabled()
+                #if debug
+                    ? "[TTS_SERVICE][WARNING] Cannot enable - device AudioGuide is disabled"
+                #end if
+                return
+            end if
+
+            m.isEnabled = true
+
+            ' Mute native AudioGuide on root node
+            rootNode = m.frameworkInstance.getRootNode()
+            if rootNode <> invalid
+                rootNode.muteAudioGuide = true
+                #if debug
+                    ? "[TTS_SERVICE][INFO] Enabled TTS, muted native AudioGuide"
+                #end if
+            end if
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' disable - Disables TTS service and re-enables native AudioGuide
+        '
+        public sub disable()
+            m.isEnabled = false
+            m.stopSpeech()
+
+            ' Unmute native AudioGuide on root node if device supports it
+            if m.getIsDeviceAudioGuideEnabled()
+                rootNode = m.frameworkInstance.getRootNode()
+                if rootNode <> invalid
+                    rootNode.muteAudioGuide = false
+                    #if debug
+                        ? "[TTS_SERVICE][INFO] Disabled TTS, unmuted native AudioGuide"
+                    #end if
+                end if
+            end if
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' toggleAudioGuide - Toggles TTS service on/off or sets explicit state
+        '
+        ' @param {dynamic} enableState - Optional: true = enable, false = disable, invalid = toggle
+        ' @returns {boolean} New enabled state
+        '
+        public function toggleAudioGuide(enableState = invalid as dynamic) as boolean
+            ' Check device AudioGuide status dynamically
+            if not m.getIsDeviceAudioGuideEnabled()
+                #if debug
+                    ? "[TTS_SERVICE][WARNING] Cannot toggle - device AudioGuide is disabled"
+                #end if
+                return m.isEnabled
+            end if
+
+            ' Determine new state
+            if enableState = invalid
+                ' Toggle mode - switch current state
+                m.isEnabled = not m.isEnabled
+            else
+                ' Explicit set mode
+                m.isEnabled = enableState
+            end if
+
+            ' Get root node
+            rootNode = m.frameworkInstance.getRootNode()
+            if rootNode = invalid then return m.isEnabled
+
+            if m.isEnabled
+                ' Enabling TTS - mute native AudioGuide
+                rootNode.muteAudioGuide = true
+                #if debug
+                    ? "[TTS_SERVICE][INFO] TTS enabled, muted native AudioGuide"
+                #end if
+            else
+                ' Disabling TTS - stop current speech and unmute native AudioGuide
+                m.audioGuide.Flush()
+                m.overrideNextFlushFlag = false
+                rootNode.muteAudioGuide = false
+                #if debug
+                    ? "[TTS_SERVICE][INFO] TTS disabled, unmuted native AudioGuide"
+                #end if
+            end if
+
+            return m.isEnabled
+        end function
+
+        ' ---------------------------------------------------------------------
+        ' destroy - Cleans up TTS service resources
+        '
+        sub destroy()
+            ' Stop and remove timer node
+            if m.timerNode <> invalid
+                m.timerNode.control = "stop"
+                m.timerNode.unobserveFieldScoped("fire")
+                m.timerNode = invalid
+            end if
+
+            ' Cancel pending speech
+            m.pendingSpeech = invalid
+
+            ' Disable TTS and unmute native AudioGuide
+            m.toggleAudioGuide(false)
+
+            m.audioGuide = invalid
+            m.deviceInfo = invalid
+            m.debounceTimer = invalid
+            m.frameworkInstance = invalid
+        end sub
+
+    end class
+
+    ' =============================================================================
+    ' Global callback for TTS debounce timer
+    ' =============================================================================
+    sub ttsDebounceCallback(event as object)
+        framework = GetGlobalAA().rotor_framework_helper.frameworkInstance
+        if framework = invalid then return
+        framework.ttsService.onDebounceTimer()
+    end sub
+
+end namespace
+

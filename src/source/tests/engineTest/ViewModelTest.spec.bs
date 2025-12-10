@@ -233,5 +233,38 @@ namespace tests
             m.assertEqual(node.text, "Updated Text")
         end function
 
+        @describe("framework lifecycle")
+
+        @it("framework destroy cleans up all resources")
+        function _()
+            ' Given: Create new framework instance (independent of beforeEach)
+            frameworkInstance = new Rotor.Framework()
+
+            ' When: Render template
+            template = getViewModelTemplate()
+            frameworkInstance.render(template)
+
+            ' Verify framework is initialized
+            m.assertNotInvalid(frameworkInstance)
+            m.assertNotInvalid(frameworkInstance.builder)
+            rootWidget = frameworkInstance.getRootWidget()
+            m.assertNotInvalid(rootWidget)
+
+            ' Get reference to widget before destroy
+            viewModelWidget = frameworkInstance.getWidget("viewModelTest")
+            m.assertNotInvalid(viewModelWidget)
+
+            ' When: Destroy framework
+            frameworkInstance.destroy()
+
+            ' Then: Framework resources should be cleaned up
+            ' Builder's widget tree should be cleared
+            m.assertInvalid(frameworkInstance.builder.widgetTree.root)
+
+            ' Widgets should be removed from tree
+            widgetAfterDestroy = frameworkInstance.getWidget("viewModelTest")
+            m.assertInvalid(widgetAfterDestroy)
+        end function
+
         end class
     end namespace

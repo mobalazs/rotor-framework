@@ -389,29 +389,17 @@ namespace Rotor
             ' Make a copy to avoid modifying the original config
             config = Rotor.Utils.deepCopy(pluginConfig)
 
-            ' Determine if this is a group configuration
-            ' NEW: Check if plugin key is GROUP_FOCUS_PLUGIN_KEY (explicit group)
-            ' BACKWARD COMPAT: Check if config has "group" property (old syntax: focus: { group: {...} })
-
-            groupConfig = invalid
-            if widget.DoesExist(GROUP_FOCUS_PLUGIN_KEY)
-                ' New syntax: focusGroup: {...}
-                groupConfig = config
-            else if config.doesExist(Rotor.Const.GROUP_CONFIG_KEY)
-                ' Backward compatibility: focus: { group: {...} }
-                groupConfig = config[Rotor.Const.GROUP_CONFIG_KEY]
-            end if
-
             ' Ensure essential identifiers are in the config
             config.id = id
             config.HID = widget.HID
 
             ' Handle group configuration if present
-            if groupConfig <> invalid
-                m.setupGroup(HID, groupConfig, widget)
-            else
+            if widget.DoesExist(PRIMARY_FOCUS_PLUGIN_KEY)
                 ' Handle focus item configuration if applicable
                 m.setupFocusItem(HID, config, widget)
+            else
+                ' Handle group configuration
+                m.setupGroup(HID, config, widget)
             end if
         end sub
 
@@ -423,23 +411,12 @@ namespace Rotor
         ' @param {object} widget - The widget instance itself
         '
         sub setupGroup(HID as string, config as object, widget as object)
-            ' Handle both old and new syntax for group config
-            ' NEW: focusGroup: { defaultFocusId: ... } - config is already the group config
-            ' OLD: focus: { group: { defaultFocusId: ... } } - need to extract group config
-            if config.doesExist(Rotor.Const.GROUP_CONFIG_KEY)
-                ' Old syntax: extract group config from "group" property
-                groupConfig = config[Rotor.Const.GROUP_CONFIG_KEY]
-            else
-                ' New syntax: config is already the group config
-                groupConfig = config
-            end if
-
             ' Copy essential info to the group-specific config
-            groupConfig.id = config.id
-            groupConfig.HID = config.HID
-            groupConfig.widget = widget
+            config.id = config.id
+            config.HID = config.HID
+            config.widget = widget
             ' Create and configure the Group instance
-            newGroup = new Rotor.FocusPluginHelper.GroupClass(groupConfig)
+            newGroup = new Rotor.FocusPluginHelper.GroupClass(config)
             newGroup.focusItemsRef = m.focusItemStack ' Provide reference to focus items
             newGroup.groupsRef = m.groupStack ' Provide reference to other groups
             m.groupStack.set(config.HID, newGroup) ' Register the new group
