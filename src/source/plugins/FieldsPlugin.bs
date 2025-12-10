@@ -19,6 +19,8 @@ namespace Rotor
     ' =====================================================================
     class FieldsPlugin extends Rotor.BasePlugin
 
+        pluginKey = "fields"
+
         ' =============================================================
         ' MEMBER VARIABLES
         ' =============================================================
@@ -26,20 +28,6 @@ namespace Rotor
         ' Regex pattern for matching @-prefixed expressions
         ' Matches: @ followed by any characters except space, @, or comma
         configRegex = /(\@)([^\s\@\,]*)/i
-
-        ' =============================================================
-        ' CONSTRUCTOR
-        ' =============================================================
-
-        ' ---------------------------------------------------------------------
-        ' new - Initializes the FieldsPlugin instance
-        '
-        ' @param {string} key - Plugin identifier (default: "fields")
-        ' @param {object} params - Additional parameters (unused)
-        '
-        sub new(key = "fields" as string, params = invalid as object)
-            super(key)
-        end sub
 
         ' =============================================================
         ' LIFECYCLE HOOKS
@@ -55,7 +43,7 @@ namespace Rotor
             ' @param {object} widget - Widget being mounted
             '
             beforeMount: sub(scope as object, widget as object)
-                value = widget[scope.key]
+                value = widget[scope.pluginKey]
                 scope.setCustomFields(widget, value)
             end sub,
 
@@ -71,7 +59,7 @@ namespace Rotor
             '
             beforeUpdate: sub(scope as object, widget as object, newValue = {}, oldValue = {})
                 ' Extend old config with new values
-                Rotor.Utils.deepExtendAA(widget[scope.key], newValue)
+                Rotor.Utils.deepExtendAA(widget[scope.pluginKey], newValue)
                 scope.setCustomFields(widget, newValue)
             end sub,
 
@@ -82,7 +70,7 @@ namespace Rotor
             ' @param {object} widget - Widget being destroyed
             '
             beforeDestroy: sub(scope as object, widget as object)
-                widget[scope.key].Clear()
+                widget[scope.pluginKey].Clear()
             end sub
         }
 
@@ -139,8 +127,8 @@ namespace Rotor
 
                     if results.Count() > 0
                         for each result in results
-                            matchKey = result[2]        ' The key path after @
-                            sourceTypeOperator = result[1]  ' The @ symbol
+                            matchKey = result[2] ' The key path after @
+                            sourceTypeOperator = result[1] ' The @ symbol
 
                             ' Determine source based on operator
                             if sourceTypeOperator = "@"

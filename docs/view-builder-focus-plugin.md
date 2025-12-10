@@ -362,14 +362,14 @@ Widgets with focus configuration automatically receive these methods via `widget
     focus: {
         onSelected: sub()
             ' Set focus to specific widget
-            m.plugins.focus.setFocus("targetWidget")
+            m.setFocus("targetWidget")
 
             ' Disable navigation during animation
-            m.plugins.focus.enableFocusNavigation(false)
+            m.enableFocusNavigation(false)
 
             ' Re-enable after animation
             m.animateTransition(sub()
-                m.plugins.focus.enableFocusNavigation(true)
+                m.enableFocusNavigation(true)
             end sub)
         end sub
     }
@@ -627,9 +627,9 @@ User presses direction key:
 ' Check if focus navigation is enabled
 sub debugFocusNavigation()
     widget = m.getWidget("myButton")
-    if widget.plugins.focus.isFocusNavigationEnabled() = false
+    if widget.isFocusNavigationEnabled() = false
         print "Focus navigation is disabled globally"
-        widget.plugins.focus.enableFocusNavigation(true)
+        widget.enableFocusNavigation(true)
     end if
 
     ' Check if item is enabled
@@ -638,7 +638,7 @@ sub debugFocusNavigation()
     end if
 
     ' Check current focused widget
-    focused = widget.plugins.focus.getFocusedWidget()
+    focused = widget.getFocusedWidget()
     if focused <> invalid
         print "Currently focused: " + focused.id
     else

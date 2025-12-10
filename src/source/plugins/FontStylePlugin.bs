@@ -22,6 +22,8 @@ namespace Rotor
     ' =====================================================================
     class FontStylePlugin extends Rotor.BasePlugin
 
+        pluginKey = "fontStyle"
+
         ' =============================================================
         ' MEMBER VARIABLES
         ' =============================================================
@@ -33,20 +35,7 @@ namespace Rotor
         ' Regex pattern for extracting plugin key prefix (unused but kept for compatibility)
         pluginKeyRegex = /^[^\.]*/i
 
-        ' =============================================================
-        ' CONSTRUCTOR
-        ' =============================================================
-
-        ' ---------------------------------------------------------------------
-        ' new - Initializes the FontStylePlugin instance
-        '
-        ' @param {string} key - Plugin identifier (default: "fontStyle")
-        '
-        sub new(key = "fontStyle" as string)
-            super(key)
-        end sub
-
-        ' =============================================================
+          ' =============================================================
         ' LIFECYCLE HOOKS
         ' =============================================================
 
@@ -74,7 +63,7 @@ namespace Rotor
             ' @param {dynamic} oldValue - Previous font style configuration
             '
             beforeUpdate: sub(scope as object, widget as object, newValue, oldValue)
-                widget[scope.key] = newValue ?? ""
+                widget[scope.pluginKey] = newValue ?? ""
                 scope.setFontAttribute(widget)
             end sub
         }
@@ -101,21 +90,21 @@ namespace Rotor
         sub setFontAttribute(widget as object)
             ' Font styles only apply to Label nodes
             if widget.nodeType = "Label"
-                value = widget[m.key]
+                value = widget[m.pluginKey]
                 node = widget.node
 
                 ' Step 1: Resolve function-based font style
                 if Rotor.Utils.isFunction(value)
                     fontStyle = Rotor.Utils.callbackScoped(value, widget)
 
-                ' Step 2: Process string interpolation
+                    ' Step 2: Process string interpolation
                 else if Rotor.Utils.isString(value)
                     results = m.configRegex.MatchAll(value)
 
                     if results.Count() > 0 and Rotor.Utils.isString(value)
                         for each result in results
-                            matchKey = result[2]                ' The key path after @
-                            sourceTypeOperator = result[1]      ' The @ symbol
+                            matchKey = result[2] ' The key path after @
+                            sourceTypeOperator = result[1] ' The @ symbol
 
                             ' Determine source based on operator
                             if sourceTypeOperator = "@"
@@ -144,7 +133,7 @@ namespace Rotor
 
                     fontStyle = value
 
-                ' Step 3: Direct value assignment
+                    ' Step 3: Direct value assignment
                 else
                     fontStyle = value
                 end if

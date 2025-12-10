@@ -163,16 +163,13 @@ namespace Rotor
     '     outerGroup: { group: { down: "bottomBar" } } [catches bubbling]
     '
     ' =====================================================================
+
+    const PRIMARY_FOCUS_PLUGIN_KEY = "focus"
+    const GROUP_FOCUS_PLUGIN_KEY = "focusGroup"
     class FocusPlugin extends Rotor.BasePlugin
 
-        ' ---------------------------------------------------------------------
-        ' new - Constructor for the FocusPlugin
-        '
-        ' @param {string} key - The key to identify this plugin instance (default: "focus")
-        '
-        sub new(key = "focus" as string)
-            super(key)
-        end sub
+        pluginKey = PRIMARY_FOCUS_PLUGIN_KEY
+        aliasPluginKey = GROUP_FOCUS_PLUGIN_KEY
 
         ' Framework lifecycle hooks
         hooks = {
@@ -185,7 +182,19 @@ namespace Rotor
             ' @param {object} widget - The widget being mounted
             '
             beforeMount: sub(scope as object, widget as object)
-                scope.setFocusConfig(widget, widget[scope.key])
+                ' Validation: widget cannot have both "focus" and GROUP_FOCUS_PLUGIN_KEY configs
+                isFocusItem = widget.DoesExist(PRIMARY_FOCUS_PLUGIN_KEY) and widget.focus <> invalid
+                isFocusGroup = widget.DoesExist(GROUP_FOCUS_PLUGIN_KEY) and widget.focusGroup <> invalid
+
+                if isFocusItem and isFocusGroup
+                    #if debug
+                        ? "[FOCUS_PLUGIN][ERROR] Widget '" + widget.id + "' (HID: " + widget.HID + ") cannot have both 'focus' and 'focusGroup' configurations!"
+                    #end if
+                    return ' Skip setup for this widget
+                end if
+
+                config = widget[isFocusItem ? PRIMARY_FOCUS_PLUGIN_KEY : GROUP_FOCUS_PLUGIN_KEY]
+                scope.setFocusConfig(widget, config)
             end sub,
 
             ' ---------------------------------------------------------------------
@@ -203,8 +212,8 @@ namespace Rotor
                 scope.removeFocusConfig(widget.HID)
 
                 ' Merge new config into existing widget config
-                Rotor.Utils.deepExtendAA(widget[scope.key], newValue)
-                scope.setFocusConfig(widget, widget[scope.key])
+                Rotor.Utils.deepExtendAA(widget[scope.pluginKey], newValue)
+                scope.setFocusConfig(widget, widget[scope.pluginKey])
             end sub,
 
             ' ---------------------------------------------------------------------
@@ -229,9 +238,7 @@ namespace Rotor
             ' @param {boolean} enableFocusNavigation - True to enable, false to disable (default: true)
             '
             enableFocusNavigation: sub(enableFocusNavigation = true as boolean)
-                globalScope = GetGlobalAA()
-                pluginKey = m.pluginKey ' Plugin's key in the widget's plugin dictionary.
-                globalScope.rotor_framework_helper.frameworkInstance.plugins[pluginKey].enableFocusNavigation = enableFocusNavigation
+                m.getFrameworkInstance().plugins[PRIMARY_FOCUS_PLUGIN_KEY].enableFocusNavigation = enableFocusNavigation
             end sub,
 
             ' ---------------------------------------------------------------------
@@ -240,9 +247,7 @@ namespace Rotor
             ' @returns {boolean} True if enabled, false otherwise
             '
             isFocusNavigationEnabled: function() as boolean
-                globalScope = GetGlobalAA()
-                pluginKey = m.pluginKey ' Plugin's key in the widget's plugin dictionary.
-                return globalScope.rotor_framework_helper.frameworkInstance.plugins[pluginKey].enableFocusNavigation
+                return m.getFrameworkInstance().plugins[PRIMARY_FOCUS_PLUGIN_KEY].enableFocusNavigation
             end function,
 
             ' ---------------------------------------------------------------------
@@ -253,17 +258,13 @@ namespace Rotor
             ' @returns {boolean} True if focus state was changed successfully, false otherwise
             '
             setFocus: function(command = true as dynamic, enableNativeFocus = false as boolean) as boolean
-                globalScope = GetGlobalAA()
-                pluginKey = m.pluginKey ' Plugin's key in the widget's plugin dictionary.
-                HID = m.HID ' Widget's unique Hierarchical ID (bound viewModelState).
+                plugin = m.getFrameworkInstance().plugins[PRIMARY_FOCUS_PLUGIN_KEY]
+                HID = m.HID
 
                 if Rotor.Utils.isString(command)
-                    ' If string, focus widget by ID/HID.
-                    otherId = command
-                    return globalScope.rotor_framework_helper.frameworkInstance.plugins[pluginKey].setFocus(otherId, true, enableNativeFocus)
-                else ' Boolean value provided
-                    ' If boolean, focus/blur current widget.
-                    return globalScope.rotor_framework_helper.frameworkInstance.plugins[pluginKey].setFocus(HID, command, enableNativeFocus)
+                    return plugin.setFocus(command, true, enableNativeFocus)
+                else
+                    return plugin.setFocus(HID, command, enableNativeFocus)
                 end if
             end function,
 
@@ -272,10 +273,8 @@ namespace Rotor
             '
             ' @returns {object} The widget instance that currently holds focus, or invalid
             '
-            getFocusedWidget: function() as object ' Params isFocused, enableNativeFocus seem unused here
-                globalScope = GetGlobalAA()
-                pluginKey = m.pluginKey ' Plugin's key in the widget's plugin dictionary.
-                return globalScope.rotor_framework_helper.frameworkInstance.plugins[pluginKey].getFocusedWidget()
+            getFocusedWidget: function() as object
+                return m.getFrameworkInstance().plugins[PRIMARY_FOCUS_PLUGIN_KEY].getFocusedWidget()
             end function,
 
             ' ---------------------------------------------------------------------
@@ -283,10 +282,8 @@ namespace Rotor
             '
             ' @returns {object} The result of the executed navigation action (see parseOnKeyEventResult)
             '
-            proceedLongPress: function() as object ' Params isFocused, enableNativeFocus seem unused here
-                globalScope = GetGlobalAA()
-                pluginKey = m.pluginKey ' Plugin's key in the widget's plugin dictionary.
-                return globalScope.rotor_framework_helper.frameworkInstance.plugins[pluginKey].proceedLongPress()
+            proceedLongPress: function() as object
+                return m.getFrameworkInstance().plugins[PRIMARY_FOCUS_PLUGIN_KEY].proceedLongPress()
             end function,
 
             ' ---------------------------------------------------------------------
@@ -294,10 +291,8 @@ namespace Rotor
             '
             ' @returns {boolean} True if a long press is active, false otherwise
             '
-            isLongPressActive: function() as boolean ' Params isFocused, enableNativeFocus seem unused here
-                globalScope = GetGlobalAA()
-                pluginKey = m.pluginKey ' Plugin's key in the widget's plugin dictionary.
-                return globalScope.rotor_framework_helper.frameworkInstance.plugins[pluginKey].isLongPress
+            isLongPressActive: function() as boolean
+                return m.getFrameworkInstance().plugins[PRIMARY_FOCUS_PLUGIN_KEY].isLongPress
             end function,
 
             ' ---------------------------------------------------------------------
@@ -307,9 +302,7 @@ namespace Rotor
             ' @returns {object} The widget instance that currently holds focus, or invalid
             '
             triggerKeyPress: function(key) as object
-                globalScope = GetGlobalAA()
-                pluginKey = m.pluginKey
-                return globalScope.rotor_framework_helper.frameworkInstance.plugins[pluginKey].onKeyEventHandler(key, true)
+                return m.getFrameworkInstance().plugins[PRIMARY_FOCUS_PLUGIN_KEY].onKeyEventHandler(key, true)
             end function
 
         }
@@ -344,7 +337,7 @@ namespace Rotor
             m.widgetTree = m.frameworkInstance.builder.widgetTree ' Reference to the main widget tree
             m.longPressTimer.addField("pluginKey", "string", false)
             m.longPressTimer.setFields({
-                "pluginKey": m.key,
+                "pluginKey": m.pluginKey,
                 duration: m.longPressDuration
             })
             ' Observe timer fire event to handle long press callback
@@ -395,20 +388,29 @@ namespace Rotor
 
             ' Make a copy to avoid modifying the original config
             config = Rotor.Utils.deepCopy(pluginConfig)
-            isGroup = config.doesExist(Rotor.Const.GROUP_CONFIG_KEY)
-            ' An item is focusItem if it's explicitly a group with other props, or not a group but has props.
-            ' isFocusItem = (isGroup = true and config.Count() > 1) or (isGroup = false and config.Count() > 0)
+
+            ' Determine if this is a group configuration
+            ' NEW: Check if plugin key is GROUP_FOCUS_PLUGIN_KEY (explicit group)
+            ' BACKWARD COMPAT: Check if config has "group" property (old syntax: focus: { group: {...} })
+
+            groupConfig = invalid
+            if widget.DoesExist(GROUP_FOCUS_PLUGIN_KEY)
+                ' New syntax: focusGroup: {...}
+                groupConfig = config
+            else if config.doesExist(Rotor.Const.GROUP_CONFIG_KEY)
+                ' Backward compatibility: focus: { group: {...} }
+                groupConfig = config[Rotor.Const.GROUP_CONFIG_KEY]
+            end if
 
             ' Ensure essential identifiers are in the config
             config.id = id
             config.HID = widget.HID
 
             ' Handle group configuration if present
-            if isGroup
-                m.setupGroup(HID, config, widget)
+            if groupConfig <> invalid
+                m.setupGroup(HID, groupConfig, widget)
             else
                 ' Handle focus item configuration if applicable
-                ' if isFocusItem
                 m.setupFocusItem(HID, config, widget)
             end if
         end sub
@@ -421,7 +423,17 @@ namespace Rotor
         ' @param {object} widget - The widget instance itself
         '
         sub setupGroup(HID as string, config as object, widget as object)
-            groupConfig = config[Rotor.Const.GROUP_CONFIG_KEY]
+            ' Handle both old and new syntax for group config
+            ' NEW: focusGroup: { defaultFocusId: ... } - config is already the group config
+            ' OLD: focus: { group: { defaultFocusId: ... } } - need to extract group config
+            if config.doesExist(Rotor.Const.GROUP_CONFIG_KEY)
+                ' Old syntax: extract group config from "group" property
+                groupConfig = config[Rotor.Const.GROUP_CONFIG_KEY]
+            else
+                ' New syntax: config is already the group config
+                groupConfig = config
+            end if
+
             ' Copy essential info to the group-specific config
             groupConfig.id = config.id
             groupConfig.HID = config.HID
@@ -567,14 +579,14 @@ namespace Rotor
                 return false ' Indicate focus change failed
             end if
 
-            ' Handle blurring the previously focused item
+            ' Prepare ancestor groups for notification (from highest ancestor to closest parent)
+            focusChainGroups = m.findAncestorGroups(focusItem.HID) ' Groups containing the new focus
             lastFocusChainingGroups = []
+
+            ' Handle blurring the previously focused item
             if m.globalFocusHID <> "" ' If something was focused before
                 lastFocused = m.focusItemStack.get(m.globalFocusHID)
                 if lastFocused <> invalid ' Check if the last focused widget hasn't been destroyed
-                    ' Blur the previously focused item
-                    lastFocused.applyFocus(false, enableNativeFocus)
-
                     ' Record the last focused item within its parent group for potential future use (e.g., returning focus)
                     lastFocusChainingGroups = m.findAncestorGroups(m.globalFocusHID)
                     if lastFocusChainingGroups.Count() > 0
@@ -589,14 +601,27 @@ namespace Rotor
                 end if
             end if
 
+            ' Prepare notification list: all affected groups (unique)
+            allAffectedGroups = []
+            for each groupHID in focusChainGroups
+                allAffectedGroups.unshift(groupHID) ' Add in reverse order (highest ancestor first)
+            end for
+            for each groupHID in lastFocusChainingGroups
+                if -1 = Rotor.Utils.findInArray(allAffectedGroups, groupHID)
+                    allAffectedGroups.unshift(groupHID) ' Add in reverse order if not already present
+                end if
+            end for
+
+            ' Notify all ancestor groups BEFORE applying focus (from highest ancestor to closest parent)
+            m.notifyFocusAtAncestorGroups(focusItem.HID, allAffectedGroups)
+
+            ' Blur the previously focused item (after notification)
+            if m.globalFocusHID <> "" and lastFocused <> invalid
+                lastFocused.applyFocus(false, enableNativeFocus)
+            end if
+
             ' Apply focus state (focused/blurred) to the target item.
             focusItem.applyFocus(isFocused, enableNativeFocus)
-
-            ' Update focus state for ancestor groups (blur groups losing focus, focus groups gaining focus)
-            focusChainGroups = m.findAncestorGroups(focusItem.HID) ' Groups containing the new focus
-            focusChainGroups.append(lastFocusChainingGroups) ' Include groups containing the old focus
-            Rotor.Utils.removeRedundantValuesInArray(focusChainGroups) ' Unique list of affected groups
-            m.notifyFocusAtAncestorGroups(focusItem.HID, focusChainGroups) ' Notify all relevant groups
 
             ' Update the globally tracked focused item.
             m.storeGlobalFocusHID(isFocused ? HID : "", isFocused ? focusItem.id : "")
