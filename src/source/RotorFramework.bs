@@ -320,16 +320,8 @@ namespace Rotor
         ' @returns {object} Animator factory instance
         '
         public function animator(animatorId) as object
-            return m.getRootWidget().animator(animatorId)
+            return m.animatorProvider.getFactory(animatorId, m)
         end function
-
-        ' ---------------------------------------------------------------------
-        ' tts - Text-to-Speech service interface
-        ' @param {object} config - TTS configuration object
-        public sub tts(config as object)
-            config.widget = m.getRootWidget()
-            m.ttsService.speak(config)
-        end sub
 
         ' ---------------------------------------------------------------------
         ' getInfo - Gets framework and device information

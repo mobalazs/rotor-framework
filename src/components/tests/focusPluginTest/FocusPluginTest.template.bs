@@ -34,13 +34,11 @@ function getFocusTestTemplate() as object
             height: 80,
             color: "0x4A90E2FF"
         },
-        focus: {
-            group: {
-                defaultFocusId: "GroupL2",
-                down: "GroupL2",
-                left: "GroupL2",
-                right: "GroupR2"
-            }
+        focusGroup: {
+            defaultFocusId: "GroupL2",
+            down: "GroupL2",
+            left: "GroupL2",
+            right: "GroupR2"
         },
         children: [
             ' GroupL - Left branch (depth 1)
@@ -104,11 +102,9 @@ function getFocusTestTemplate() as object
                     fields: {
                         translation: [0, 80]
                     },
-                    focus: {
-                        group: {
-                            defaultFocusId: "R1",
-                            left: true ' means handled
-                        }
+                    focusGroup: {
+                        defaultFocusId: "R1",
+                        left: true ' means handled
                     },
                     children: [
                         ' R1 - First right leaf (depth 3)

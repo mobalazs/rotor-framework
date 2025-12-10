@@ -1,0 +1,70 @@
+import "pkg:/source/RotorFramework.bs"
+import "pkg:/components/tests/widgetTest/WidgetTest.template.bs"
+
+namespace tests
+
+    @SGNode("viewModelTest")
+    @suite("RotorFramework public API wrappers")
+    class RotorFrameworkApiTest extends rooibos.BaseTestSuite
+
+        fwInstance as Rotor.Framework
+
+        protected override function beforeEach()
+            m.fwInstance = new Rotor.Framework()
+        end function
+
+        protected override function afterEach()
+            if m.fwInstance <> invalid
+                m.fwInstance.destroy()
+                m.fwInstance = invalid
+            end if
+        end function
+
+        @describe("framework API wrappers")
+
+        @it("erase removes widget via framework wrapper")
+        sub _()
+            m.fwInstance.render(getHelloTemplate())
+
+            m.assertNotInvalid(m.fwInstance.getWidget("helloLabel"))
+
+            m.fwInstance.erase("helloLabel")
+
+            m.assertInvalid(m.fwInstance.getWidget("helloLabel"))
+        end sub
+
+        @it("getWidgetByHID returns widget by hierarchical id")
+        sub _()
+            m.fwInstance.render(getHelloTemplate())
+
+            widget = m.fwInstance.getWidget("helloRect")
+            m.assertNotInvalid(widget)
+
+            found = m.fwInstance.getWidgetByHID(widget.HID)
+            m.assertEqual(found, widget)
+        end sub
+
+        @it("getInfo exposes device info")
+        sub _()
+            info = m.fwInstance.getInfo()
+            m.assertNotInvalid(info)
+            m.assertNotInvalid(info.device)
+        end sub
+
+        @it("presetNodePool preallocates nodes via framework wrapper")
+        sub _()
+            m.fwInstance.presetNodePool({
+                nodePool: [{
+                    nodeType: "Label",
+                    amount: 2
+                }]
+            })
+
+            info = m.fwInstance.getNodePoolInfo()
+            m.assertNotInvalid(info)
+            m.assertEqual(info.poolFulness["Label"], 2)
+        end sub
+
+    end class
+
+end namespace
