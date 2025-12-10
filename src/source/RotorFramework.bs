@@ -320,7 +320,7 @@ namespace Rotor
         ' @returns {object} Animator factory instance
         '
         public function animator(animatorId) as object
-            return m.animatorProvider.getFactory(animatorId, m)
+            return m.getRootWidget().animator(animatorId)
         end function
 
         ' ---------------------------------------------------------------------

@@ -133,7 +133,7 @@ namespace Rotor.ViewBuilder
         ' @param {dynamic} keyPath - Key path string or invalid for entire l10n
         ' @returns {object} Localization data (reference if invalid, cloned if keyPath provided)
         '
-        public function getL10n(keyPath) as object
+        public function getL10n(keyPath = invalid) as object
             ' Best for regular use cases
             if keyPath = invalid then return m.l10n ' Return just reference to l10n
             return m.getMultipleAssets(keyPath)

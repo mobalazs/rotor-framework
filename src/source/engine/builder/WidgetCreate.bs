@@ -176,8 +176,9 @@ namespace Rotor.ViewBuilder
                 Rotor.Utils.deepExtendAA(widget.viewModelState, config.viewModelState)
             end if
 
-            ' Set ln10 reference in viewModelState
-            widget.viewModelState.l10n = m.getFrameworkInstance().i18nService.getL10n()
+            ' Set l10n reference in viewModelState
+            i18nService = widget.getFrameworkInstance().i18nService
+            widget.viewModelState.l10n = i18nService.getL10n()
 
             ' Call lifecycle hook before template compilation
             widget.onCreateView()

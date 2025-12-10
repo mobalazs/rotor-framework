@@ -655,23 +655,23 @@ namespace tests
             l1Widget = m.fwInstance.getWidget("L1")
 
             ' When: Enable navigation via widget decorator
-            l1Widget.plugins.focus.enableFocusNavigation(true)
+            l1Widget.enableFocusNavigation(true)
 
             ' Then: Navigation should be enabled
-            m.assertTrue(l1Widget.plugins.focus.isFocusNavigationEnabled())
+            m.assertTrue(l1Widget.isFocusNavigationEnabled())
         end function
 
         @it("enableFocusNavigation disables navigation via widget decorator")
         function _()
             ' Given: L1 widget with navigation enabled
             l1Widget = m.fwInstance.getWidget("L1")
-            l1Widget.plugins.focus.enableFocusNavigation(true)
+            l1Widget.enableFocusNavigation(true)
 
             ' When: Disable navigation
-            l1Widget.plugins.focus.enableFocusNavigation(false)
+            l1Widget.enableFocusNavigation(false)
 
             ' Then: Navigation should be disabled
-            m.assertFalse(l1Widget.plugins.focus.isFocusNavigationEnabled())
+            m.assertFalse(l1Widget.isFocusNavigationEnabled())
         end function
 
         @it("isFocusNavigationEnabled returns current state via widget decorator")
@@ -680,7 +680,7 @@ namespace tests
             l1Widget = m.fwInstance.getWidget("L1")
 
             ' When: Check initial state
-            isEnabled = l1Widget.plugins.focus.isFocusNavigationEnabled()
+            isEnabled = l1Widget.isFocusNavigationEnabled()
 
             ' Then: Should return boolean
             m.assertNotInvalid(isEnabled)
@@ -731,7 +731,7 @@ namespace tests
             focusPlugin = m.fwInstance.plugins.focus
 
             ' When: Try to set focus to L1 again
-            result = l1Widget.plugins.focus.setFocus()
+            result = l1Widget.setFocus()
 
             ' Then: Should return false (no change)
             m.assertFalse(result)

@@ -57,10 +57,8 @@ function getFocusTestTemplate() as object
                     fields: {
                         translation: [0, 80]
                     },
-                    focus: {
-                        group: {
-                            defaultFocusId: "L1"
-                        }
+                    focusGroup: {
+                        defaultFocusId: "L1"
                     },
                     children: [
                         ' L1 - First left leaf (depth 3)
@@ -152,14 +150,12 @@ function getFocusTestTemplate() as object
                 fields: {
                     translation: [100, 400]
                 },
-                focus: {
-                    group: {
-                        defaultFocusId: "DeepTarget",
-                        left: true,
-                        right: true,
-                        up: true,
-                        down: true
-                    }
+                focusGroup: {
+                    defaultFocusId: "DeepTarget",
+                    left: true,
+                    right: true,
+                    up: true,
+                    down: true
                 },
                 children: {
                     id: "DeepLevel1",
@@ -207,14 +203,12 @@ function getFocusTestTemplate() as object
                 fields: {
                     translation: [300, 400]
                 },
-                focus: {
-                    group: {
-                        defaultFocusId: "NestedTargetGroup",
-                        left: false,
-                        right: false,
-                        up: false,
-                        down: false
-                    }
+                focusGroup: {
+                    defaultFocusId: "NestedTargetGroup",
+                    left: false,
+                    right: false,
+                    up: false,
+                    down: false
                 },
                 children: {
                     id: "NestedChildGroup",
@@ -228,14 +222,12 @@ function getFocusTestTemplate() as object
                         fields: {
                             translation: [0, 0]
                         },
-                        focus: {
-                            group: {
-                                defaultFocusId: "FinalTarget",
-                                left: false,
-                                right: false,
-                                up: false,
-                                down: false
-                            }
+                        focusGroup: {
+                            defaultFocusId: "FinalTarget",
+                            left: false,
+                            right: false,
+                            up: false,
+                            down: false
                         },
                         children: [
                             {
