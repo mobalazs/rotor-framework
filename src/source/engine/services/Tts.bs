@@ -7,14 +7,14 @@ namespace Rotor.ViewBuilder
     ' Provides text-to-speech functionality with flush control, recite mode,
     ' and speech management features.
     '
-    ' Threshold System (400ms):
-    '   - ALL speech is held pending for 400ms to filter rapid changes
-    '   - If new requests arrive within 400ms, they replace the pending speech
-    '   - After 400ms of no new requests, the pending speech is executed
-    '   - overrideNextFlush=true: Bypasses threshold, executes immediately
+    ' Threshold System:
+    '   - ALL speech is held pending for 300ms to filter rapid changes
+    '   - If new requests arrive within 300ms, they replace the pending speech
+    '   - After 300ms of no new requests, the pending speech is executed
+    '   - preventNextFlush=true: Bypasses threshold, executes immediately
     '
-    ' Override Next Flush Protection:
-    '   - When overrideNextFlush=true: Speech bypasses threshold AND is protected
+    ' Prevent Next Flush Protection:
+    '   - When preventNextFlush=true: Speech bypasses threshold AND is protected
     '   - ALL subsequent flush=true calls are blocked via isPendingProtected flag
     '   - Protection persists across multiple pending replacements until pending executes
     '   - Use case: Menu title + ALL rapid navigation items filtered correctly
@@ -24,8 +24,9 @@ namespace Rotor.ViewBuilder
     '   - Threshold to filter rapid focus changes (prevents "Home Home Home")
     '   - Flush control (interrupt current speech)
     '   - Spell out mode (character-by-character for symbols/emails)
-    '   - Override next flush protection (for multi-part announcements)
+    '   - Prevent next flush protection (for multi-part announcements)
     '   - Duplicate speech prevention (dontRepeat)
+    '   - Speak once mode (once) - caches text to prevent re-speaking
     '   - Symbol/email handling with localized symbol names
     '
     ' Usage:
@@ -33,8 +34,9 @@ namespace Rotor.ViewBuilder
     '       say: "Hello world",
     '       flush: true,
     '       spellOut: false,
-    '       overrideNextFlush: false,
+    '       preventNextFlush: false,
     '       dontRepeat: false,
+    '       once: false,
     '       context: {},
     '   })
     ' =====================================================================
@@ -46,9 +48,12 @@ namespace Rotor.ViewBuilder
         timerNode as object
 
         ' State tracking
-        lastSpeech = ""
-        overrideNextFlushFlag = false
         isEnabled = true
+        allowNativeAudioGuide = true
+
+        lastSpeech = ""
+        preventNextFlushFlag = false
+        skipCache = {} ' Cache for "once" feature - tracks text that should only be spoken once
 
         ' Threshold (debounce) - filters rapid focus changes
         pendingSpeech = invalid
@@ -100,8 +105,11 @@ namespace Rotor.ViewBuilder
         '
         ' @param {Rotor.Framework} frameworkInstance - Framework instance reference
         '
-        sub init(frameworkInstance as Rotor.Framework)
+        sub init(frameworkInstance as Rotor.Framework, allowNativeAudioGuide = true as boolean)
             m.frameworkInstance = frameworkInstance
+
+            m.allowNativeAudioGuide = allowNativeAudioGuide
+
             m.deviceInfo = CreateObject("roDeviceInfo")
             m.audioGuide = CreateObject("roAudioGuide")
             m.debounceTimer = CreateObject("roTimespan")
@@ -132,17 +140,148 @@ namespace Rotor.ViewBuilder
                 #end if
                 m.isEnabled = false
                 return
+            else if m.isEnabled ' enable according to initial state
+                ' If device AudioGuide is enabled and we want to use custom TTS,
+                m.enable()
             end if
 
-            ' If device AudioGuide is enabled and we want to use custom TTS,
-            ' mute native AudioGuide on root node
-            if m.getIsDeviceAudioGuideEnabled() and m.isEnabled
-                if rootNode <> invalid
-                    rootNode.muteAudioGuide = true
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' speak - Main TTS function called from widget.tts() decorator
+        '
+        ' @param {object} config - TTS configuration object
+        '   {string|function} say - Text to speak (string or function returning string)
+        '   {boolean} flush - Interrupt current speech (default: false)
+        '   {boolean} spellOut - Spell out text character-by-character (default: false)
+        '   {boolean} preventNextFlush - Bypass threshold AND protect from next flush (default: false)
+        '   {boolean} dontRepeat - Don't speak if same as last speech (default: false)
+        '   {string} onceKey - Cache key for speak-once mode (if provided, caches and skips on repeat)
+        '   {object} context - Context for interpolation (optional)
+        '
+        public sub speak(config as object)
+            ' Check if both device AudioGuide and service are enabled
+            if not m.isEnabled or not m.getIsDeviceAudioGuideEnabled() then return
+            if config.say = invalid then return
+
+            ' Extract parameters
+            shouldFlush = config?.flush ?? false
+            shouldSpellOut = config?.spellOut ?? false
+            shouldPreventNextFlush = config?.preventNextFlush ?? false
+            dontRepeat = config?.dontRepeat ?? false
+            onceKey = config?.onceKey ?? invalid
+
+            ' Check if onceKey provided and already cached
+            if Rotor.Utils.isString(onceKey)
+                if m.skipCache.DoesExist(onceKey)
                     #if debug
-                        ? "[TTS_SERVICE][INFO] Muted native AudioGuide on root node (using custom TTS)"
+                        ? "[TTS_SERVICE] Skipping speech with onceKey (already spoken): "; onceKey
                     #end if
+                    return
                 end if
+                ' Add to cache immediately to prevent duplicate calls
+                m.skipCache[onceKey] = true
+            end if
+
+            ' Process say value (function, string interpolation, or plain string)
+            textToSpeak = m.processSayValue(config.say, config.context)
+            if textToSpeak = invalid or textToSpeak = "" then return
+
+            ' Process text based on spell out mode
+            if shouldSpellOut
+                textToSpeak = m.processSpellOutMode(textToSpeak)
+            end if
+
+            ' Check if we should skip duplicate speech
+            if dontRepeat and textToSpeak = m.lastSpeech
+                #if debug
+                    ? "[TTS_SERVICE] Skipping duplicate speech: "; textToSpeak
+                #end if
+                return
+            end if
+
+            ' Check if current speech has preventNextFlush=true
+            ' This means: bypass threshold immediately AND set flag to protect from next flush
+            if shouldPreventNextFlush
+                #if debug
+                    ? "[TTS_SERVICE][OVERRIDE] Current speech bypassing threshold: "; textToSpeak
+                #end if
+
+                ' Track if there was pending speech
+                hadPendingSpeech = false
+
+                ' IMPORTANT: Execute pending speech FIRST if it exists (maintains correct order)
+                if m.pendingSpeech <> invalid
+                    #if debug
+                        ? "[TTS_SERVICE][OVERRIDE] Executing pending speech first: '"; m.pendingSpeech.textToSpeak; "'"
+                    #end if
+                    pendingToExecute = m.pendingSpeech
+                    m.pendingSpeech = invalid
+                    hadPendingSpeech = true
+                    ' Stop timer
+                    if m.timerNode <> invalid
+                        m.timerNode.control = "stop"
+                    end if
+                    ' Execute pending speech
+                    m.executeSpeech(pendingToExecute)
+                end if
+
+                ' Now execute the new speech with preventNextFlush
+                ' IMPORTANT: If there was pending, queue it (flush=false) so it doesn't interrupt
+                ' If no pending, use original shouldFlush to clear any previous speech
+                m.executeSpeech({
+                    say: config.say,
+                    textToSpeak: textToSpeak,
+                    shouldFlush: hadPendingSpeech ? false : shouldFlush,
+                    shouldPreventNextFlush: shouldPreventNextFlush,
+                    dontRepeat: dontRepeat
+                })
+                m.preventNextFlushFlag = true ' Set flag to protect this speech from next flush
+                return
+            end if
+
+            ' Check if previous speech set preventNextFlush flag OR if pending is already protected
+            ' This means: next call should NOT flush, but SHOULD go to threshold (pending)
+            ' This allows rapid menu navigation to filter properly (threshold replaces pending)
+            if m.preventNextFlushFlag or m.isPendingProtected
+                #if debug
+                    ? "[TTS_SERVICE][OVERRIDE] Flush blocked, speech goes to threshold: "; textToSpeak
+                #end if
+                if m.preventNextFlushFlag
+                    m.preventNextFlushFlag = false ' Clear flag after first use
+                    m.isPendingProtected = true ' Mark pending as protected
+                end if
+                ' Force shouldFlush to false so it won't interrupt protected speech
+                shouldFlush = false
+                ' Continue to threshold logic below (don't return here!)
+            else
+                ' Not protected - clear flag
+                m.isPendingProtected = false
+            end if
+
+            ' Apply threshold to ALL speech (both flush=true and flush=false)
+            ' This prevents rapid interruptions from focus changes (e.g., "Home Home Home")
+            ' If new request comes within 300ms, replace pending (filter rapid changes)
+            #if debug
+                if m.pendingSpeech <> invalid
+                    ? "[TTS_SERVICE][THRESHOLD] Replacing pending: '"; m.pendingSpeech.textToSpeak; "' with: '"; textToSpeak; "'"
+                else
+                    flushLabel = ""
+                    if shouldFlush then flushLabel = " (will flush)"
+                    ? "[TTS_SERVICE][THRESHOLD] Pending: '"; textToSpeak; "' ("; m.debounceDelay; "ms)"; flushLabel
+                end if
+            #end if
+            m.pendingSpeech = {
+                textToSpeak: textToSpeak,
+                shouldFlush: shouldFlush,
+                shouldPreventNextFlush: shouldPreventNextFlush,
+                dontRepeat: dontRepeat
+            }
+
+            ' Restart timer (stop previous, start new one-shot)
+            if m.timerNode <> invalid
+                m.timerNode.control = "stop"
+                m.timerNode.control = "start"
             end if
         end sub
 
@@ -174,7 +313,7 @@ namespace Rotor.ViewBuilder
             if m.pendingSpeech = invalid then return
 
             ' IMPORTANT: Save pending to local variable and clear member BEFORE executing
-            ' This allows executeSpeech() -> saySentences() to set NEW pending for remaining sentences
+            ' This allows executeSpeech() to set NEW pending if needed
             pendingToExecute = m.pendingSpeech
             m.pendingSpeech = invalid
 
@@ -191,90 +330,6 @@ namespace Rotor.ViewBuilder
         end sub
 
         ' ---------------------------------------------------------------------
-        ' saySentences - Speaks first sentence immediately, queues remaining as pending
-        '
-        ' @param {string} text - Text to split and speak
-        ' @param {boolean} shouldFlush - Flush before first sentence
-        ' @param {boolean} dontRepeat - Use native dontRepeat
-        ' @private
-        '
-        private sub saySentences(text as string, shouldFlush as boolean, dontRepeat as boolean)
-            ' Split by sentence-ending punctuation
-            sentences = text.Split(".")
-            if sentences.Count() = 0 then return
-
-            ' Find first non-empty sentence
-            firstSentence = ""
-            remainingSentences = []
-            isFirst = true
-            for each sentence in sentences
-                trimmed = sentence.Trim()
-                if trimmed = "" then goto nextSentence
-
-                if isFirst
-                    firstSentence = trimmed
-                    isFirst = false
-                else
-                    remainingSentences.Push(trimmed)
-                end if
-
-                nextSentence:
-            end for
-
-            if firstSentence = "" then return
-
-            ' Handle flush with override protection
-            if shouldFlush
-                if m.overrideNextFlushFlag
-                    #if debug
-                        ? "[TTS_SERVICE] Flush blocked by overrideNextFlush protection"
-                    #end if
-                    m.overrideNextFlushFlag = false
-                else
-                    m.audioGuide.Flush()
-                end if
-            end if
-
-            ' Speak ONLY first sentence
-            speechId = m.audioGuide.Say(firstSentence, shouldFlush, dontRepeat)
-            m.lastSpeech = firstSentence
-
-            ' Set override flag to protect first sentence from next flush
-            m.overrideNextFlushFlag = true
-            #if debug
-                ? "[TTS_SERVICE] First sentence (ID: "; speechId; "): "; firstSentence; " (protected, flush: "; shouldFlush; ")"
-            #end if
-
-            ' Queue remaining sentences as pending (threshold strategy)
-            if remainingSentences.Count() > 0
-                remainingText = ""
-                for i = 0 to remainingSentences.Count() - 1
-                    if i > 0 then remainingText += ". "
-                    remainingText += remainingSentences[i]
-                end for
-                ' NOTE: Do NOT add final period! This would cause executeSpeech() to call saySentences() again!
-
-                #if debug
-                    ? "[TTS_SERVICE][AUTO-PROTECT] Remaining sentences pending (400ms threshold): '"; remainingText; "'"
-                #end if
-
-                ' Store remaining text as pending (can be replaced by new speak() calls)
-                m.pendingSpeech = {
-                    textToSpeak: remainingText,
-                    shouldFlush: false, ' Queue, don't interrupt first sentence
-                    shouldOverrideNextFlush: false,
-                    dontRepeat: dontRepeat
-                }
-
-                ' Start threshold timer for remaining sentences
-                if m.timerNode <> invalid
-                    m.timerNode.control = "stop"
-                    m.timerNode.control = "start"
-                end if
-            end if
-        end sub
-
-        ' ---------------------------------------------------------------------
         ' executeSpeech - Internal method that actually speaks text
         '
         ' @param {object} config - TTS configuration
@@ -283,145 +338,59 @@ namespace Rotor.ViewBuilder
         private sub executeSpeech(config as object)
             textToSpeak = config.textToSpeak
             shouldFlush = config.shouldFlush
-            shouldOverrideNextFlush = config.shouldOverrideNextFlush
+            shouldPreventNextFlush = config.shouldPreventNextFlush
             dontRepeat = config.dontRepeat
 
-            ' Check if text contains multiple sentences
-            hasPeriod = Instr(1, textToSpeak, ".") > 0
-            if hasPeriod
-                ' Multi-sentence text - automatic first sentence protection
-                ' First sentence speaks immediately with protection flag
-                ' Remaining sentences go to pending (threshold strategy)
-                m.saySentences(textToSpeak, shouldFlush, dontRepeat)
-            else
-                ' Single sentence - speak directly
-                ' Handle flush with override protection
-                if shouldFlush
-                    if m.overrideNextFlushFlag
-                        #if debug
-                            ? "[TTS_SERVICE] Flush blocked by overrideNextFlush protection"
-                        #end if
-                        m.overrideNextFlushFlag = false
-                    else
-                        m.audioGuide.Flush()
-                    end if
-                end if
+            ' Force flush for long or multi-sentence text (ensures important announcements interrupt previous speech)
+            isLongText = Len(textToSpeak) > 50
+            isMultiSentence = Instr(1, textToSpeak, ".") > 0
 
-                ' Set override flag for next flush
-                if shouldOverrideNextFlush
-                    m.overrideNextFlushFlag = true
-                end if
-
-                ' Speak the text using native dontRepeat parameter
-                speechId = m.audioGuide.Say(textToSpeak, shouldFlush, dontRepeat)
-
-                ' Track last speech
-                m.lastSpeech = textToSpeak
-
+            if isLongText or isMultiSentence
+                shouldFlush = true
                 #if debug
-                    ? "[TTS_SERVICE] Speaking (ID: "; speechId; "): "; textToSpeak; " (flush: "; shouldFlush; ", dontRepeat: "; dontRepeat; ")"
+                    ? "[TTS_SERVICE] Forcing flush for long/multi-sentence text (len: "; Len(textToSpeak); ", multi: "; isMultiSentence; ")"
                 #end if
             end if
+
+            ' Speak text
+            m.speakSingle(textToSpeak, shouldFlush, dontRepeat, shouldPreventNextFlush)
         end sub
 
         ' ---------------------------------------------------------------------
-        ' speak - Main TTS function called from widget.tts() decorator
+        ' speakSingle - Helper to speak a single piece of text with flush protection
         '
-        ' @param {object} config - TTS configuration object
-        '   {string|function} say - Text to speak (string or function returning string)
-        '   {boolean} flush - Interrupt current speech (default: false)
-        '   {boolean} spellOut - Spell out text character-by-character (default: false)
-        '   {boolean} overrideNextFlush - Bypass threshold AND protect from next flush (default: false)
-        '   {boolean} dontRepeat - Don't speak if same as last speech (default: false)
-        '   {object} context - Context for interpolation (optional)
+        ' @param {string} text - Text to speak
+        ' @param {boolean} shouldFlush - Whether to flush before speaking
+        ' @param {boolean} dontRepeat - Use native dontRepeat parameter
+        ' @param {boolean} setProtectionFlag - Whether to set preventNextFlushFlag after speaking
+        ' @returns {integer} Speech ID from audioGuide.Say()
+        ' @private
         '
-        public sub speak(config as object)
-            ' Check if both device AudioGuide and service are enabled
-            if not m.isEnabled or not m.getIsDeviceAudioGuideEnabled() then return
-            if config.say = invalid then return
-
-            ' Process say value (function, string interpolation, or plain string)
-            textToSpeak = m.processSayValue(config.say, config.context)
-            if textToSpeak = invalid or textToSpeak = "" then return
-            shouldFlush = config.flush = true
-            shouldSpellOut = config.spellOut = true
-            shouldOverrideNextFlush = config.overrideNextFlush = true
-            dontRepeat = config.dontRepeat = true
-
-            ' Process text based on spell out mode
-            if shouldSpellOut
-                textToSpeak = m.processSpellOutMode(textToSpeak)
-            end if
-
-            ' Check if we should skip duplicate speech
-            if dontRepeat and textToSpeak = m.lastSpeech
+        private function speakSingle(text as string, shouldFlush as boolean, dontRepeat as boolean, setProtectionFlag as boolean) as integer
+            ' Handle flush with prevention protection
+            if shouldFlush and m.preventNextFlushFlag
                 #if debug
-                    ? "[TTS_SERVICE] Skipping duplicate speech: "; textToSpeak
+                    ? "[TTS_SERVICE] Flush blocked by preventNextFlush protection"
                 #end if
-                return
+                shouldFlush = false ' Prevent flush in Say() call too!
+                m.preventNextFlushFlag = false
             end if
 
-            ' Check if current speech has overrideNextFlush=true
-            ' This means: bypass threshold immediately AND set flag to protect from next flush
-            if shouldOverrideNextFlush
-                #if debug
-                    ? "[TTS_SERVICE][OVERRIDE] Current speech bypassing threshold: "; textToSpeak
-                #end if
-                ' NOTE: Do NOT clear pending here! saySentences() may set new pending for remaining sentences
-                m.executeSpeech({
-                    textToSpeak: textToSpeak,
-                    shouldFlush: shouldFlush,
-                    shouldOverrideNextFlush: shouldOverrideNextFlush,
-                    dontRepeat: dontRepeat
-                })
-                m.overrideNextFlushFlag = true ' Set flag to protect this speech from next flush
-                return
+            ' Speak text (Say() handles flushing if shouldFlush=true)
+            speechId = m.audioGuide.Say(text, shouldFlush, dontRepeat)
+            m.lastSpeech = text
+
+            ' Set protection flag if requested
+            if setProtectionFlag
+                m.preventNextFlushFlag = true
             end if
 
-            ' Check if previous speech set overrideNextFlush flag OR if pending is already protected
-            ' This means: next call should NOT flush, but SHOULD go to threshold (pending)
-            ' This allows rapid menu navigation to filter properly (threshold replaces pending)
-            if m.overrideNextFlushFlag or m.isPendingProtected
-                #if debug
-                    ? "[TTS_SERVICE][OVERRIDE] Flush blocked, speech goes to threshold: "; textToSpeak
-                #end if
-                if m.overrideNextFlushFlag
-                    m.overrideNextFlushFlag = false ' Clear flag after first use
-                    m.isPendingProtected = true ' Mark pending as protected
-                end if
-                ' Force shouldFlush to false so it won't interrupt protected speech
-                shouldFlush = false
-                ' Continue to threshold logic below (don't return here!)
-            else
-                ' Not protected - clear flag
-                m.isPendingProtected = false
-            end if
-
-            ' Apply threshold to ALL speech (both flush=true and flush=false)
-            ' This prevents rapid interruptions from focus changes (e.g., "Home Home Home")
-            ' If new request comes within 400ms, replace pending (filter rapid changes)
             #if debug
-                if m.pendingSpeech <> invalid
-                    ? "[TTS_SERVICE][THRESHOLD] Replacing pending: '"; m.pendingSpeech.textToSpeak; "' with: '"; textToSpeak; "'"
-                else
-                    flushLabel = ""
-                    if shouldFlush then flushLabel = " (will flush)"
-                    ? "[TTS_SERVICE][THRESHOLD] Pending: '"; textToSpeak; "' ("; m.debounceDelay; "ms)"; flushLabel
-                end if
+                ? "[TTS_SERVICE] Speaking (ID: "; speechId; "): "; text; " (flush: "; shouldFlush; ", dontRepeat: "; dontRepeat; ")"
             #end if
-            m.pendingSpeech = {
-                textToSpeak: textToSpeak,
-                shouldFlush: shouldFlush,
-                shouldOverrideNextFlush: shouldOverrideNextFlush,
-                dontRepeat: dontRepeat
-            }
 
-            ' Restart timer (stop previous, start new one-shot)
-            if m.timerNode <> invalid
-                m.timerNode.control = "stop"
-                m.timerNode.control = "start"
-            end if
-        end sub
+            return speechId
+        end function
 
         ' ---------------------------------------------------------------------
         ' processSayValue - Processes the say value (function or string with interpolation)
@@ -574,7 +543,7 @@ namespace Rotor.ViewBuilder
         public sub stopSpeech()
             if not m.isEnabled or not m.getIsDeviceAudioGuideEnabled() then return
             m.audioGuide.Flush()
-            m.overrideNextFlushFlag = false
+            m.preventNextFlushFlag = false
             m.pendingSpeech = invalid
             m.isPendingProtected = false
 
@@ -598,6 +567,23 @@ namespace Rotor.ViewBuilder
         end sub
 
         ' ---------------------------------------------------------------------
+        ' removeOnceKey - Removes a key from the speak-once cache
+        '
+        ' Allows the same onceKey to be spoken again after manual removal.
+        ' Useful for resetting announcements that should repeat under certain conditions.
+        '
+        ' @param {string} key - The onceKey to remove from cache
+        '
+        public sub removeOnceKey(key as string)
+            if m.skipCache.DoesExist(key)
+                m.skipCache.Delete(key)
+                #if debug
+                    ? "[TTS_SERVICE] Removed onceKey from cache: "; key
+                #end if
+            end if
+        end sub
+
+        ' ---------------------------------------------------------------------
         ' enable - Enables TTS service and disables native AudioGuide
         '
         public sub enable()
@@ -610,9 +596,9 @@ namespace Rotor.ViewBuilder
 
             m.isEnabled = true
 
-            ' Mute native AudioGuide on root node
+            ' Mute native AudioGuide on root node if not allowing native
             rootNode = m.frameworkInstance.getRootNode()
-            if rootNode <> invalid
+            if rootNode <> invalid and not m.allowNativeAudioGuide
                 rootNode.muteAudioGuide = true
                 #if debug
                     ? "[TTS_SERVICE][INFO] Enabled TTS, muted native AudioGuide"
@@ -640,51 +626,14 @@ namespace Rotor.ViewBuilder
         end sub
 
         ' ---------------------------------------------------------------------
-        ' toggleAudioGuide - Toggles TTS service on/off or sets explicit state
+        ' clearOnceCache - Clears the "once" cache, allowing previously spoken texts to be spoken again
         '
-        ' @param {dynamic} enableState - Optional: true = enable, false = disable, invalid = toggle
-        ' @returns {boolean} New enabled state
-        '
-        public function toggleAudioGuide(enableState = invalid as dynamic) as boolean
-            ' Check device AudioGuide status dynamically
-            if not m.getIsDeviceAudioGuideEnabled()
-                #if debug
-                    ? "[TTS_SERVICE][WARNING] Cannot toggle - device AudioGuide is disabled"
-                #end if
-                return m.isEnabled
-            end if
-
-            ' Determine new state
-            if enableState = invalid
-                ' Toggle mode - switch current state
-                m.isEnabled = not m.isEnabled
-            else
-                ' Explicit set mode
-                m.isEnabled = enableState
-            end if
-
-            ' Get root node
-            rootNode = m.frameworkInstance.getRootNode()
-            if rootNode = invalid then return m.isEnabled
-
-            if m.isEnabled
-                ' Enabling TTS - mute native AudioGuide
-                rootNode.muteAudioGuide = true
-                #if debug
-                    ? "[TTS_SERVICE][INFO] TTS enabled, muted native AudioGuide"
-                #end if
-            else
-                ' Disabling TTS - stop current speech and unmute native AudioGuide
-                m.audioGuide.Flush()
-                m.overrideNextFlushFlag = false
-                rootNode.muteAudioGuide = false
-                #if debug
-                    ? "[TTS_SERVICE][INFO] TTS disabled, unmuted native AudioGuide"
-                #end if
-            end if
-
-            return m.isEnabled
-        end function
+        public sub clearOnceCache()
+            m.skipCache = {}
+            #if debug
+                ? "[TTS_SERVICE] Once cache cleared"
+            #end if
+        end sub
 
         ' ---------------------------------------------------------------------
         ' destroy - Cleans up TTS service resources
@@ -700,8 +649,11 @@ namespace Rotor.ViewBuilder
             ' Cancel pending speech
             m.pendingSpeech = invalid
 
+            ' Clear once cache
+            m.skipCache = {}
+
             ' Disable TTS and unmute native AudioGuide
-            m.toggleAudioGuide(false)
+            m.disable()
 
             m.audioGuide = invalid
             m.deviceInfo = invalid
@@ -721,4 +673,3 @@ namespace Rotor.ViewBuilder
     end sub
 
 end namespace
-

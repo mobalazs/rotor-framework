@@ -94,6 +94,7 @@ namespace Rotor
             rootNode: invalid, ' @sgNode   (optional)
             readyFieldId: invalid, ' @string   (optional)
             nodePool: invalid, ' @array    (optional)
+            allowNativeAudioGuide: true, ' @boolean    (optional)
 
 
             debug: {
@@ -172,7 +173,7 @@ namespace Rotor
             m.builder.widgetTree.setRootNode(rootNode)
 
             m.i18nService.init(m)
-            m.ttsService.init(m)
+            m.ttsService.init(m, m.config.allowNativeAudioGuide)
 
             ' Configure Node Pool
             if Rotor.Utils.isArray(m.config.nodePool)

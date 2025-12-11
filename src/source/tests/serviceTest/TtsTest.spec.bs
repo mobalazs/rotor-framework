@@ -55,13 +55,14 @@ namespace tests
             m.assertNotInvalid(ttsService.setSymbolDictionary)
         end function
 
-        @it("tts service has toggleAudioGuide method")
+        @it("tts service has enable and disable methods")
         function _()
             widget = m.fwInstance.getWidget("testLabel")
             m.assertNotInvalid(widget)
 
             ttsService = widget.tts()
-            m.assertNotInvalid(ttsService.toggleAudioGuide)
+            m.assertNotInvalid(ttsService.enable)
+            m.assertNotInvalid(ttsService.disable)
         end function
 
         @describe("speak method integration")
@@ -244,43 +245,36 @@ namespace tests
             m.assertFalse(ttsService.isEnabled)
         end function
 
-        @it("toggleAudioGuide toggles state when called without parameters")
+        @it("enable sets TTS service to enabled state")
         function _()
             widget = m.fwInstance.getWidget("testLabel")
             m.assertNotInvalid(widget)
 
             ttsService = widget.tts()
 
-            ' Get initial state
-            initialState = ttsService.isEnabled
-
-            ' Toggle state
-            newState = ttsService.toggleAudioGuide()
-
-            ' State should have changed (if device supports AudioGuide)
-            ' In test environment this depends on device
-            m.assertNotInvalid(newState)
-        end function
-
-        @it("toggleAudioGuide sets explicit state when parameter provided")
-        function _()
-            widget = m.fwInstance.getWidget("testLabel")
-            m.assertNotInvalid(widget)
-
-            ttsService = widget.tts()
-
-            ' Set explicit false
-            result = ttsService.toggleAudioGuide(false)
-
-            ' Should return false
-            m.assertFalse(result)
+            ' Disable first
+            ttsService.disable()
             m.assertFalse(ttsService.isEnabled)
 
-            ' Set explicit true
-            result = ttsService.toggleAudioGuide(true)
+            ' Enable
+            ttsService.enable()
+            m.assertTrue(ttsService.isEnabled)
+        end function
 
-            ' Should return true (if device supports AudioGuide)
-            m.assertNotInvalid(result)
+        @it("disable sets TTS service to disabled state")
+        function _()
+            widget = m.fwInstance.getWidget("testLabel")
+            m.assertNotInvalid(widget)
+
+            ttsService = widget.tts()
+
+            ' Enable first
+            ttsService.enable()
+            m.assertTrue(ttsService.isEnabled)
+
+            ' Disable
+            ttsService.disable()
+            m.assertFalse(ttsService.isEnabled)
         end function
 
         @it("stopSpeech clears pending speech and override flag")
@@ -295,7 +289,7 @@ namespace tests
 
             ' Verify flags are cleared
             m.assertInvalid(ttsService.pendingSpeech)
-            m.assertFalse(ttsService.overrideNextFlushFlag)
+            m.assertFalse(ttsService.preventNextFlushFlag)
         end function
 
         @describe("edge cases")
@@ -396,9 +390,9 @@ namespace tests
             m.assertTrue(true)
         end function
 
-        @describe("overrideNextFlush functionality")
+        @describe("preventNextFlush functionality")
 
-        @it("overrideNextFlush protects speech from being flushed")
+        @it("preventNextFlush protects speech from being flushed")
         function _()
             widget = m.fwInstance.getWidget("testLabel")
             m.assertNotInvalid(widget)
@@ -408,12 +402,12 @@ namespace tests
             ' Speak with override protection
             ttsService.speak({
                 say: "Protected message",
-                overrideNextFlush: true,
+                preventNextFlush: true,
                 flush: true
             })
 
             ' Flag should be set
-            m.assertTrue(ttsService.overrideNextFlushFlag)
+            m.assertTrue(ttsService.preventNextFlushFlag)
 
             ' Next flush should clear the flag
             ttsService.speak({
@@ -422,10 +416,10 @@ namespace tests
             })
 
             ' Flag should now be cleared
-            m.assertFalse(ttsService.overrideNextFlushFlag)
+            m.assertFalse(ttsService.preventNextFlushFlag)
         end function
 
-        @it("overrideNextFlush false does not set protection")
+        @it("preventNextFlush false does not set protection")
         function _()
             widget = m.fwInstance.getWidget("testLabel")
             m.assertNotInvalid(widget)
@@ -435,12 +429,12 @@ namespace tests
             ' Speak without override protection
             ttsService.speak({
                 say: "Unprotected message",
-                overrideNextFlush: false,
+                preventNextFlush: false,
                 flush: true
             })
 
             ' Flag should remain false
-            m.assertFalse(ttsService.overrideNextFlushFlag)
+            m.assertFalse(ttsService.preventNextFlushFlag)
         end function
 
         @describe("combination tests")
@@ -500,7 +494,7 @@ namespace tests
                 say: "Full test",
                 flush: true,
                 spellOut: true,
-                overrideNextFlush: true,
+                preventNextFlush: true,
                 dontRepeat: true
             })
 
@@ -582,6 +576,270 @@ namespace tests
 
             ' Initial lastSpeech should be empty string
             m.assertEqual(ttsService.lastSpeech, "")
+        end function
+
+        @describe("onceKey functionality")
+
+        @it("onceKey parameter caches speech and skips on repeat")
+        function _()
+            widget = m.fwInstance.getWidget("testLabel")
+            m.assertNotInvalid(widget)
+
+            ttsService = widget.tts()
+
+            ' First call with onceKey - should speak and cache
+            ttsService.speak({
+                say: "Welcome message",
+                onceKey: "welcome-test"
+            })
+
+            ' Verify key is cached
+            m.assertTrue(ttsService.skipCache.DoesExist("welcome-test"))
+
+            ' Second call with same onceKey - should skip
+            ttsService.speak({
+                say: "Welcome message",
+                onceKey: "welcome-test"
+            })
+
+            ' Key should still be cached
+            m.assertTrue(ttsService.skipCache.DoesExist("welcome-test"))
+        end function
+
+        @it("onceKey with different key allows speech")
+        function _()
+            widget = m.fwInstance.getWidget("testLabel")
+            m.assertNotInvalid(widget)
+
+            ttsService = widget.tts()
+
+            ' First call
+            ttsService.speak({
+                say: "First message",
+                onceKey: "key1"
+            })
+
+            ' Second call with different key
+            ttsService.speak({
+                say: "Second message",
+                onceKey: "key2"
+            })
+
+            ' Both keys should be cached
+            m.assertTrue(ttsService.skipCache.DoesExist("key1"))
+            m.assertTrue(ttsService.skipCache.DoesExist("key2"))
+        end function
+
+        @it("onceKey with same key but different text still skips")
+        function _()
+            widget = m.fwInstance.getWidget("testLabel")
+            m.assertNotInvalid(widget)
+
+            ttsService = widget.tts()
+
+            ' First call
+            ttsService.speak({
+                say: "English text",
+                onceKey: "welcome-message"
+            })
+
+            ' Second call - different text, same key
+            ttsService.speak({
+                say: "French text",
+                onceKey: "welcome-message"
+            })
+
+            ' Key should be cached (only once)
+            m.assertTrue(ttsService.skipCache.DoesExist("welcome-message"))
+        end function
+
+        @it("onceKey invalid or missing does not cache")
+        function _()
+            widget = m.fwInstance.getWidget("testLabel")
+            m.assertNotInvalid(widget)
+
+            ttsService = widget.tts()
+
+            ' Call without onceKey
+            ttsService.speak({
+                say: "No cache message"
+            })
+
+            ' Call with invalid onceKey
+            ttsService.speak({
+                say: "Invalid cache message",
+                onceKey: invalid
+            })
+
+            ' skipCache should be empty or not have invalid entries
+            m.assertNotInvalid(ttsService.skipCache)
+        end function
+
+        @it("removeOnceKey removes key from cache")
+        function _()
+            widget = m.fwInstance.getWidget("testLabel")
+            m.assertNotInvalid(widget)
+
+            ttsService = widget.tts()
+
+            ' Add key to cache
+            ttsService.speak({
+                say: "Cached message",
+                onceKey: "removable-key"
+            })
+
+            ' Verify cached
+            m.assertTrue(ttsService.skipCache.DoesExist("removable-key"))
+
+            ' Remove key
+            ttsService.removeOnceKey("removable-key")
+
+            ' Verify removed
+            m.assertFalse(ttsService.skipCache.DoesExist("removable-key"))
+        end function
+
+        @it("removeOnceKey on non-existent key does not crash")
+        function _()
+            widget = m.fwInstance.getWidget("testLabel")
+            m.assertNotInvalid(widget)
+
+            ttsService = widget.tts()
+
+            ' Remove non-existent key
+            ttsService.removeOnceKey("non-existent-key")
+
+            ' Test passes if no crash
+            m.assertTrue(true)
+        end function
+
+        @it("after removeOnceKey, same key can speak again")
+        function _()
+            widget = m.fwInstance.getWidget("testLabel")
+            m.assertNotInvalid(widget)
+
+            ttsService = widget.tts()
+
+            ' First call
+            ttsService.speak({
+                say: "First time",
+                onceKey: "repeat-test"
+            })
+
+            ' Verify cached
+            m.assertTrue(ttsService.skipCache.DoesExist("repeat-test"))
+
+            ' Remove key
+            ttsService.removeOnceKey("repeat-test")
+
+            ' Key should be removed
+            m.assertFalse(ttsService.skipCache.DoesExist("repeat-test"))
+
+            ' Second call with same key should cache again
+            ttsService.speak({
+                say: "Second time",
+                onceKey: "repeat-test"
+            })
+
+            ' Should be cached again
+            m.assertTrue(ttsService.skipCache.DoesExist("repeat-test"))
+        end function
+
+        @it("clearOnceCache clears all cached keys")
+        function _()
+            widget = m.fwInstance.getWidget("testLabel")
+            m.assertNotInvalid(widget)
+
+            ttsService = widget.tts()
+
+            ' Add multiple keys
+            ttsService.speak({
+                say: "Message 1",
+                onceKey: "key1"
+            })
+            ttsService.speak({
+                say: "Message 2",
+                onceKey: "key2"
+            })
+            ttsService.speak({
+                say: "Message 3",
+                onceKey: "key3"
+            })
+
+            ' Verify all cached
+            m.assertTrue(ttsService.skipCache.DoesExist("key1"))
+            m.assertTrue(ttsService.skipCache.DoesExist("key2"))
+            m.assertTrue(ttsService.skipCache.DoesExist("key3"))
+
+            ' Clear cache
+            ttsService.clearOnceCache()
+
+            ' Verify all removed
+            m.assertFalse(ttsService.skipCache.DoesExist("key1"))
+            m.assertFalse(ttsService.skipCache.DoesExist("key2"))
+            m.assertFalse(ttsService.skipCache.DoesExist("key3"))
+        end function
+
+        @it("clearOnceCache on empty cache does not crash")
+        function _()
+            widget = m.fwInstance.getWidget("testLabel")
+            m.assertNotInvalid(widget)
+
+            ttsService = widget.tts()
+
+            ' Clear empty cache
+            ttsService.clearOnceCache()
+
+            ' Test passes if no crash
+            m.assertTrue(true)
+        end function
+
+        @it("onceKey works with flush combination")
+        function _()
+            widget = m.fwInstance.getWidget("testLabel")
+            m.assertNotInvalid(widget)
+
+            ttsService = widget.tts()
+
+            ' First call with onceKey and flush
+            ttsService.speak({
+                say: "Flush once message",
+                onceKey: "flush-once",
+                flush: true
+            })
+
+            ' Key should be cached
+            m.assertTrue(ttsService.skipCache.DoesExist("flush-once"))
+
+            ' Second call should skip
+            ttsService.speak({
+                say: "Flush once message",
+                onceKey: "flush-once",
+                flush: true
+            })
+
+            ' Still cached
+            m.assertTrue(ttsService.skipCache.DoesExist("flush-once"))
+        end function
+
+        @it("onceKey works with all options combination")
+        function _()
+            widget = m.fwInstance.getWidget("testLabel")
+            m.assertNotInvalid(widget)
+
+            ttsService = widget.tts()
+
+            ' Full combination
+            ttsService.speak({
+                say: "Full combo",
+                onceKey: "combo-key",
+                flush: true,
+                spellOut: true,
+                preventNextFlush: true,
+                dontRepeat: true
+            })
+
+            ' Key should be cached
+            m.assertTrue(ttsService.skipCache.DoesExist("combo-key"))
         end function
 
     end class

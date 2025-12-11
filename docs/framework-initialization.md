@@ -35,6 +35,7 @@ framework = new Rotor.Framework({
 | `readyFieldId` | string | No | Field name to add to the root node that will be set to `true` after tasks are synced and render queue is flushed. Useful for triggering observers. |
 | `nodePool` | array | No | Array of node pool configurations for pre-instantiating SceneGraph nodes. Supports: Group, Rectangle, Poster, Label. Format: `[{ nodeType: "Label", count: 50 }]` |
 | `plugins` | array | No | List of plugin instances to register. Default plugins are automatically included. Custom plugins are not documented yet. |
+| `allowNativeAudioGuide` | boolean | No | Whether to allow native AudioGuide when TTS service is enabled. If `true`, rootNode.muteAudioGuide is **not** set. If `false` (default), native AudioGuide is muted when TTS is enabled. |
 | `debug` | object | No | Debug configuration options. |
 
 ### Debug Options

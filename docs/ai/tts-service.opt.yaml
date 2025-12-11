@@ -30,15 +30,16 @@ core:
 api:
   widgetDecorator: "Service getter injected DIRECTLY onto widget (NOT under widget.plugins)"
   access:
-    syntax: "widget.tts().speak({ say, context, flush, spellOut, overrideNextFlush, dontRepeat })"
+    syntax: "widget.tts().speak({ say, context, flush, spellOut, preventNextFlush, dontRepeat })"
     description: "widget.tts() returns TtsService instance. Main TTS function available on all widgets as decorator method."
     parameters:
       say: "Text to speak (required, string|function) - Plain string, interpolated string (@viewModelState.key or $context.property), or function returning string"
       context: "Context for interpolation (optional, object) - Widget or any object with viewModelState property"
       flush: "Interrupt current speech (optional, boolean, default: false)"
       spellOut: "Spell character-by-character (optional, boolean, default: false)"
-      overrideNextFlush: "Bypass threshold AND protect from next flush (optional, boolean, default: false)"
+      preventNextFlush: "Bypass threshold AND protect from next flush (optional, boolean, default: false)"
       dontRepeat: "Skip if same as last speech (optional, boolean, default: false)"
+      onceKey: "Cache key for speak-once mode (optional, string) - If provided, caches and skips subsequent calls with same key"
   serviceMethods:
     speak: "ttsService.speak(config) - Same as widget.tts()"
     stopSpeech: "ttsService.stopSpeech() - Stop all speech immediately and cancel pending"
@@ -46,6 +47,8 @@ api:
     disable: "ttsService.disable() - Disable TTS, re-enable native AudioGuide"
     toggleAudioGuide: "ttsService.toggleAudioGuide([enableState]) - Toggle (no arg) or set explicit state (true/false), returns new state"
     setSymbolDictionary: "ttsService.setSymbolDictionary(dict) - Update symbol pronunciation for localization"
+    removeOnceKey: "ttsService.removeOnceKey(key) - Remove specific key from speak-once cache to allow re-speaking"
+    clearOnceCache: "ttsService.clearOnceCache() - Clear entire speak-once cache"
   deviceIntegration:
     getIsDeviceAudioGuideEnabled: "Private function - dynamically checks roDeviceInfo.isAudioGuideEnabled() (no caching)"
     muteAudioGuide: "Root node property - set to true when TTS enabled, false when disabled (inherited by children)"
@@ -117,13 +120,31 @@ usage:
       say: "Loading...",
       dontRepeat: true
     })
+  speakOnce: |
+    ' Speak only once per key - use for announcements, tutorials, welcome messages
+    widget.tts().speak({
+      say: "Welcome to the app!",
+      onceKey: "welcome-message"
+    })
+    ' Second call - skipped (same key)
+    widget.tts().speak({
+      say: "Welcome to the app!",
+      onceKey: "welcome-message"  ' SKIPPED
+    })
+    ' Manual removal
+    m.framework.ttsService.removeOnceKey("welcome-message")
+    ' Now speaks again
+    widget.tts().speak({
+      say: "Welcome to the app!",
+      onceKey: "welcome-message"  ' SPEAKS
+    })
   overrideFlush: |
     ' Bypasses threshold AND protects first sentence (menu title use case)
     ttsService = widget.tts()
     ttsService.speak({
       say: "Page Menu, 5 items",
       flush: true,
-      overrideNextFlush: true
+      preventNextFlush: true
     })
     ' Bypasses 400ms threshold, speaks immediately, first sentence protected
     ttsService.speak({
@@ -203,7 +224,7 @@ patterns:
       m.tts().speak({
         say: "Loading content",
         dontRepeat: true,
-        overrideNextFlush: true  ' Let it finish
+        preventNextFlush: true  ' Let it finish
       })
     end function
   menuNavigation: |
@@ -218,7 +239,7 @@ bestPractices:
   - "Check isDeviceAudioGuideEnabled before expecting TTS to work"
   - "Use flush: true for important messages"
   - "Use dontRepeat: true for repetitive actions"
-  - "Use overrideNextFlush sparingly (critical messages only)"
+  - "Use preventNextFlush sparingly (critical messages only)"
   - "Trust sentence secure for navigation (no flush needed on focus changes)"
   - "Use spellOut for passwords, emails, codes, abbreviations"
   - "Localize symbol dictionary for native language"
@@ -235,8 +256,8 @@ rules:
   - "toggleAudioGuide() accepts optional boolean: true=enable, false=disable, invalid=toggle"
   - "Text split by periods (.) into sentences automatically"
   - "Only first sentence flush-es, remaining sentences queue naturally"
-  - "overrideNextFlush protects ONLY first sentence from next flush"
-  - "Single sentence text (no periods) protects entire text if overrideNextFlush=true"
+  - "preventNextFlush protects ONLY first sentence from next flush"
+  - "Single sentence text (no periods) protects entire text if preventNextFlush=true"
   - "Sentence secure: 200ms debounce timer, last pending speech speaks"
   - "SceneGraph Timer node polls every 200ms to execute pending speech"
   - "Each non-flush call replaces pending speech and resets timer"
@@ -249,7 +270,7 @@ pitfalls:
   - "roAudioGuide unavailable in test environment (service disables itself)"
   - "Long messages may be interrupted by user actions"
   - "Symbol dictionary must be set before speaking symbols"
-  - "overrideNextFlush only protects ONE flush operation"
+  - "preventNextFlush only protects ONE flush operation"
   - "dontRepeat uses exact string match (case sensitive)"
   - "spellOut mode adds spaces between characters (increases speech time)"
   - "Don't manually set rootNode.muteAudioGuide (service manages it)"
@@ -264,7 +285,7 @@ troubleshooting:
     - "Use spellOut: false for regular speech"
     - "Check symbol dictionary has correct mapping"
   interruptions:
-    - "Use overrideNextFlush: true for critical messages"
+    - "Use preventNextFlush: true for critical messages"
     - "Reduce flush: true usage"
     - "Keep messages shorter"
   nativeConflict:

@@ -37,6 +37,11 @@ configurationOptions:
       type: "array"
       required: false
       description: "List of plugin instances. Default plugins automatically included. Custom plugins not documented yet."
+    allowNativeAudioGuide:
+      type: "boolean"
+      required: false
+      default: false
+      description: "Allow native AudioGuide when TTS service enabled. If true, rootNode.muteAudioGuide not set. If false, native AudioGuide muted when TTS enabled."
     debug:
       type: "object"
       required: false

@@ -110,10 +110,52 @@ widget.tts({
 })
 ```
 
+### Speak Once Mode (onceKey)
+
+Speak text only once per cache key. Useful for announcements that should only play once per session (e.g., welcome messages, tutorial hints).
+
+```brightscript
+' Speak only once - uses explicit cache key
+widget.tts({
+    say: "Welcome to the application!",
+    onceKey: "welcome-message"
+})
+' Second call with same onceKey - skips (already spoken)
+widget.tts({
+    say: "Welcome to the application!",
+    onceKey: "welcome-message"  ' SKIPPED
+})
+
+' Different text, same key - still skips (key-based caching)
+widget.tts({
+    say: "Bienvenue dans l'application!",  ' French version
+    onceKey: "welcome-message"  ' SKIPPED (same key)
+})
+```
+
+**Manual cache removal:**
+
+```brightscript
+' Remove specific key to allow re-speaking
+m.framework.ttsService.removeOnceKey("welcome-message")
+
+' Now speaks again
+widget.tts({
+    say: "Welcome to the application!",
+    onceKey: "welcome-message"  ' SPEAKS (key removed)
+})
+```
+
+**Use cases:**
+- Welcome messages on first launch
+- Tutorial hints that should only play once
+- One-time announcements per session
+- Localized announcements (same key, different language text)
+
 ### Override Next Flush (Multi-Part Speech Protection)
 
-Bypasses the 400ms threshold for immediate execution AND protects **all subsequent speech** from being flushed until the pending speech executes. The protection works through two internal flags:
-- `overrideNextFlushFlag`: Set by caller, cleared after first use
+Bypasses the 300ms threshold for immediate execution AND protects **all subsequent speech** from being flushed until the pending speech executes. The protection works through two internal flags:
+- `preventNextFlushFlag`: Set by caller, cleared after first use
 - `isPendingProtected`: Inherits protection across multiple pending replacements
 
 This is essential for multi-part announcements like menu titles:
@@ -123,7 +165,7 @@ This is essential for multi-part announcements like menu titles:
 widget.tts({
     say: "Page Menu, 5 items.",
     flush: true,
-    overrideNextFlush: true
+    preventNextFlush: true
 })
 ' Speaks immediately (no threshold delay)
 ' First sentence "Page Menu, 5 items" is PROTECTED
@@ -142,7 +184,7 @@ widget.tts({
 ```brightscript
 widget.tts({
     say: "Please listen carefully. This is important. Don't skip this.",
-    overrideNextFlush: true
+    preventNextFlush: true
 })
 ' Bypasses threshold, speaks immediately
 ' First sentence "Please listen carefully" is PROTECTED
@@ -155,7 +197,7 @@ widget.tts({
 ' This call arrives while still speaking
 ' Result:
 ' - First sentence "Please listen carefully" completes (protection blocks the flush)
-' - Second sentence "This is important" becomes PENDING (goes into 400ms threshold)
+' - Second sentence "This is important" becomes PENDING (goes into 300ms threshold)
 ' - Third sentence "Don't skip this" is never spoken (replaced)
 ' - "Interrupted" becomes pending, replaces second sentence
 ' - After protection ends and threshold expires: "Interrupted" speaks
@@ -165,24 +207,24 @@ widget.tts({
 
 The mechanism uses the `isPendingProtected` flag:
 
-1. **Menu title** with `overrideNextFlush: true`:
+1. **Menu title** with `preventNextFlush: true`:
    - Bypasses threshold → speaks immediately
    - Sets `isPendingProtected = true` to block all future flushes
 
 2. **First menu item** with `flush: true`:
-   - `isPendingProtected` blocks the flush → item becomes PENDING (400ms threshold)
+   - `isPendingProtected` blocks the flush → item becomes PENDING (300ms threshold)
    - Flag remains true, continues blocking
 
 3. **Rapid menu navigation**:
    - All items have flush blocked by `isPendingProtected`
    - Each item replaces pending speech within threshold
-   - Last item speaks after 400ms of inactivity
+   - Last item speaks after 300ms of inactivity
    - When pending executes, `isPendingProtected` is cleared
 
 **Example: Menu title + rapid navigation**
 ```brightscript
 ' Menu opens - title speaks immediately and is protected
-widget.tts({ say: "Page Menu, 5 items.", overrideNextFlush: true })
+widget.tts({ say: "Page Menu, 5 items.", preventNextFlush: true })
 ' Title speaks immediately, isPendingProtected = true
 
 ' User immediately navigates (rapid focus changes)
@@ -190,29 +232,29 @@ widget.tts({ say: "Home, 1 of 5", flush: true })       ' Flush blocked by isPend
 widget.tts({ say: "Settings, 2 of 5", flush: true })   ' Flush blocked by isPendingProtected → Replaces "Home"
 widget.tts({ say: "About, 3 of 5", flush: true })      ' Flush blocked by isPendingProtected → Replaces "Settings"
 ' User stops at "About"
-' After 400ms: "About, 3 of 5" speaks, isPendingProtected cleared
+' After 300ms: "About, 3 of 5" speaks, isPendingProtected cleared
 ```
 
-**Note:** Text is automatically split by periods (`.`). The first sentence of multi-sentence text is automatically protected via `overrideNextFlush: true`. This sets `isPendingProtected = true`, which blocks ALL subsequent flush calls (both remaining sentences AND external calls like menu navigation) until the pending speech executes.
+**Note:** Text is automatically split by periods (`.`). The first sentence of multi-sentence text is automatically protected via `preventNextFlush: true`. This sets `isPendingProtected = true`, which blocks ALL subsequent flush calls (both remaining sentences AND external calls like menu navigation) until the pending speech executes.
 
 ### Sentence Secure (Rapid Navigation Protection)
 
-The TTS service automatically prevents speech pile-up during rapid navigation (e.g., fast menu scrolling) using a **400ms threshold timer**:
+The TTS service automatically prevents speech pile-up during rapid navigation (e.g., fast menu scrolling) using a **300ms threshold timer**:
 
 ```brightscript
 ' User rapidly navigates through menu items
-widget.tts({ say: "Menu item 1" })  ' Pending (400ms delay)
+widget.tts({ say: "Menu item 1" })  ' Pending (300ms delay)
 widget.tts({ say: "Menu item 2" })  ' Replaces item 1
 widget.tts({ say: "Menu item 3" })  ' Replaces item 2
 widget.tts({ say: "Menu item 4" })  ' Replaces item 3
-' After 400ms of no new calls: "Menu item 4" is spoken (the last one)
+' After 300ms of no new calls: "Menu item 4" is spoken (the last one)
 ```
 
 **How it works:**
-- ALL TTS calls (both flush=true and flush=false) store speech as "pending" and reset a 400ms timer
-- If another call comes within 400ms, it replaces the pending speech
-- After 400ms of inactivity, the last pending speech is spoken
-- `overrideNextFlush: true` bypasses threshold and speaks immediately, plus protects from next flush
+- ALL TTS calls (both flush=true and flush=false) store speech as "pending" and reset a 300ms timer
+- If another call comes within 300ms, it replaces the pending speech
+- After 300ms of inactivity, the last pending speech is spoken
+- `preventNextFlush: true` bypasses threshold and speaks immediately, plus protects from next flush
 - Uses SceneGraph Timer node for automatic execution
 
 ## API Reference
@@ -230,8 +272,9 @@ Speaks text through the TTS service.
   - `context` (object) - Context for string interpolation (optional, widget or any object with viewModelState)
   - `flush` (boolean) - Interrupt current speech (default: false)
   - `spellOut` (boolean) - Spell out character-by-character (default: false)
-  - `overrideNextFlush` (boolean) - Bypass threshold AND protect from next flush (default: false)
+  - `preventNextFlush` (boolean) - Bypass threshold AND protect from next flush (default: false)
   - `dontRepeat` (boolean) - Skip if same as last speech (default: false)
+  - `onceKey` (string) - Cache key for speak-once mode. If provided, speech is cached and skipped on subsequent calls with same key (optional)
 
 **Examples:**
 
@@ -346,6 +389,30 @@ framework.ttsService.setSymbolDictionary({
     ".": "pont",
     "-": "kötőjel"
 })
+```
+
+#### removeOnceKey(key)
+
+Removes a specific key from the speak-once cache, allowing text with that key to be spoken again.
+
+**Parameters:**
+- `key` (string) - The onceKey to remove from cache
+
+```brightscript
+' Remove specific key
+framework.ttsService.removeOnceKey("welcome-message")
+
+' Now this will speak again
+widget.tts({ say: "Welcome!", onceKey: "welcome-message" })
+```
+
+#### clearOnceCache()
+
+Clears the entire speak-once cache, allowing all previously cached speeches to be spoken again.
+
+```brightscript
+' Clear all cached keys (e.g., on app restart or user logout)
+framework.ttsService.clearOnceCache()
 ```
 
 ## Spell Out Mode Details
@@ -505,7 +572,7 @@ function showLoading()
     m.tts({
         say: "Loading content",
         dontRepeat: true,
-        overrideNextFlush: true  ' Let it finish
+        preventNextFlush: true  ' Let it finish
     })
 end function
 ```
@@ -567,7 +634,7 @@ During framework initialization:
 1. **Check device AudioGuide first** - TTS only works if user enabled AudioGuide in system settings
 2. **Use `flush: true` for important messages** - Ensures user hears critical information
 3. **Use `dontRepeat: true` for repetitive actions** - Prevents annoying duplicate speech
-4. **Use `overrideNextFlush` sparingly** - Only for critical first sentences
+4. **Use `preventNextFlush` sparingly** - Only for critical first sentences
 5. **Trust sentence secure for navigation** - No need for `flush` on every focus change; service automatically skips during rapid navigation
 6. **Use `spellOut` for:**
    - Passwords and security codes
