@@ -221,14 +221,15 @@ namespace Rotor
                             transferData = m.asyncTransferRegistry[transferId]
                             dispatcherId = transferData.dispatcherId
 
+                            ' Cleanup registry entry (Note: order is important - this make it reusable immediately)
+                            m.asyncTransferRegistry.delete(transferId)
+
                             dispatcherInstance = m.dispatcherProvider.get(dispatcherId)
                             if dispatcherInstance <> invalid
                                 ' Route to dispatcher with wrapped message
                                 dispatcherInstance.asyncReducerCallback(msg as roUrlEvent, transferData?.context as dynamic)
                             end if
 
-                            ' Cleanup registry entry
-                            m.asyncTransferRegistry.delete(transferId)
                         end if
                     end if
                 end if
