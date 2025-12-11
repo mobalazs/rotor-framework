@@ -72,12 +72,10 @@ examples:
         end if
         return state
       end function
-      override sub asyncReducerCallback(msg)
-        if msg.type = "roUrlEvent"
-          if msg.event.GetResponseCode() = 200
-            data = ParseJson(msg.event.GetString())
-            m.dispatch({ type: "COUNT_LOADED", payload: { value: data.count } })
-          end if
+      override sub asyncReducerCallback(msg as roUrlEvent, context as dynamic)
+        if msg.GetResponseCode() = 200
+          data = ParseJson(msg.GetString())
+          m.dispatch({ type: "COUNT_LOADED", payload: { value: data.count } })
         end if
       end sub
     end class
@@ -126,8 +124,8 @@ patterns:
     - "Use m.getState() helper in reducers to access current state directly without callback."
   asyncTransfers:
     - "Call m.registerAsyncTransfer(transfer, context) in middleware before AsyncGetToString()."
-    - "Framework automatically routes roUrlEvent to reducer's asyncReducerCallback()."
-    - "Access response via msg.event and context via msg.context in callback."
+    - "Framework automatically routes roUrlEvent to reducer's asyncReducerCallback(msg as roUrlEvent, context as dynamic)."
+    - "Access response directly via msg (roUrlEvent) and context parameter in callback."
     - "Dispatch new intent from asyncReducerCallback() to update state."
   renderIntegration:
     - "ViewModel onCreateView obtains dispatcher via m.getDispatcher(name)."

@@ -199,7 +199,7 @@ namespace Rotor
         '
         ' @param {object} msg - Message from async operation
         '
-        sub asyncReducerCallback(msg)
+        sub asyncReducerCallback(msg as roUrlEvent, context as dynamic)
             ' Override in subclass to handle async responses
         end sub
 

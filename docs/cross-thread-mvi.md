@@ -76,12 +76,10 @@ class CounterReducer extends Reducer
     end function
 
     ' Handle async transfer responses
-    override sub asyncReducerCallback(msg)
-        if msg.type = "roUrlEvent"
-            if msg.event.GetResponseCode() = 200
-                data = ParseJson(msg.event.GetString())
-                m.dispatch({ type: "COUNT_LOADED", payload: { value: data.count } })
-            end if
+    override sub asyncReducerCallback(msg as roUrlEvent, context as dynamic)
+        if msg.GetResponseCode() = 200
+            data = ParseJson(msg.GetString())
+            m.dispatch({ type: "COUNT_LOADED", payload: { value: data.count } })
         end if
     end sub
 end class
@@ -199,15 +197,12 @@ end function
 The framework automatically routes the `roUrlEvent` response to your reducer's `asyncReducerCallback()` method:
 
 ```brightscript
-override sub asyncReducerCallback(msg)
-    if msg.type = "roUrlEvent"
-        event = msg.event
-        context = msg.context  ' { userId: 123, requestType: "userData" }
-
-        if event.GetResponseCode() = 200
-            data = ParseJson(event.GetString())
-            m.dispatch({ type: "DATA_LOADED", payload: { data: data, userId: context.userId } })
-        end if
+override sub asyncReducerCallback(msg as roUrlEvent, context as dynamic)
+    ' context = { userId: 123, requestType: "userData" }
+    
+    if msg.GetResponseCode() = 200
+        data = ParseJson(msg.GetString())
+        m.dispatch({ type: "DATA_LOADED", payload: { data: data, userId: context.userId } })
     end if
 end sub
 ```

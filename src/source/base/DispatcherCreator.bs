@@ -162,8 +162,8 @@ namespace Rotor
         '
         ' @param {object} msg - Message from async operation
         '
-        sub asyncReducerCallback(msg)
-            m.reducerInstance.asyncReducerCallback(msg)
+        sub asyncReducerCallback(msg as roUrlEvent, context as dynamic)
+            m.reducerInstance.asyncReducerCallback(msg as roUrlEvent, context as dynamic)
         end sub
 
         ' =============================================================

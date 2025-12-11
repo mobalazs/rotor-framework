@@ -224,11 +224,7 @@ namespace Rotor
                             dispatcherInstance = m.dispatcherProvider.get(dispatcherId)
                             if dispatcherInstance <> invalid
                                 ' Route to dispatcher with wrapped message
-                                dispatcherInstance.asyncReducerCallback({
-                                    type: "roUrlEvent",
-                                    event: msg,
-                                    context: transferData.context
-                                })
+                                dispatcherInstance.asyncReducerCallback(msg as roUrlEvent, transferData?.context as dynamic)
                             end if
 
                             ' Cleanup registry entry
