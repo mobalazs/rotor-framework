@@ -85,7 +85,7 @@ namespace Rotor
                     ' Map state to props
                     if Rotor.Utils.isFunction(listener.mapStateToProps)
                         ' Custom mapping: mapStateToProps(props, state)
-                        listener.mapStateToProps(scope.props, state)
+                        Rotor.Utils.callbackScoped(listener.mapStateToProps, scope, scope.props, state)
                     else if Rotor.Utils.isAssociativeArray(scope.props)
                         ' Default: deep extend props with state
                         Rotor.Utils.deepExtendAA(scope.props, state)
