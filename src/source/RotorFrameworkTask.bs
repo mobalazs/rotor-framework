@@ -182,7 +182,7 @@ namespace Rotor
                         elapsedMs = lastTickTime.TotalMilliseconds()
                         if elapsedMs >= waitMs
                             ' Tick interval elapsed - call callback
-                            m.onTick(m.dispatcherProvider)
+                            m.onTick()
                             ' Reset tick timer
                             lastTickTime.Mark()
                         end if
