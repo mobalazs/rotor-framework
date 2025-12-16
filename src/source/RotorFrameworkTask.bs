@@ -87,6 +87,7 @@ namespace Rotor
         dispatcherProvider as object
         port as object
         asyncTransferRegistry = {} ' transferId -> { dispatcherId, context }
+        onTick as function
 
         ' ---------------------------------------------------------------------
         ' new - Initializes the FrameworkTask instance
@@ -159,14 +160,34 @@ namespace Rotor
         ' This method MUST be the last call in your task function, as it
         ' blocks execution until the framework is destroyed.
         '
-        sub sync(waitMs = 0 as integer)
+        sub sync(waitMs = 0 as integer, onTick = invalid as function)
             m.notifySyncStatus(Rotor.Const.ThreadSyncType.TASK_SYNCING)
+            m.onTick = onTick
 
             keepAlive = true
 
+            ' Initialize tick timer if waitMs > 0
+            lastTickTime = invalid
+            if waitMs > 0
+                lastTickTime = CreateObject("roTimespan")
+                lastTickTime.Mark()
+            end if
+
             while true and keepAlive = true
                 msg = wait(waitMs, m.port)
-                if msg <> invalid
+
+                if msg = invalid
+                    ' Timeout - check if tick interval elapsed
+                    if waitMs > 0 and m.onTick <> invalid and lastTickTime <> invalid
+                        elapsedMs = lastTickTime.TotalMilliseconds()
+                        if elapsedMs >= waitMs
+                            ' Tick interval elapsed - call callback
+                            m.onTick(m.dispatcherProvider)
+                            ' Reset tick timer
+                            lastTickTime.Mark()
+                        end if
+                    end if
+                else if msg <> invalid
                     msgType = type(msg)
                     if msgType = "roSGNodeEvent"
                         fieldId = msg.getField()
@@ -311,7 +332,3 @@ namespace Rotor
     end class
 
 end namespace
-
-
-
-
