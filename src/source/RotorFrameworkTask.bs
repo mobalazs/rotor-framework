@@ -205,7 +205,7 @@ namespace Rotor
 
                             if extraInfo?.dispatcherId <> invalid and m.dispatcherProvider.get(extraInfo?.dispatcherId) <> invalid
                                 ' Catch by dispatcherId
-                                m.dispatcherProvider.get(extraInfo?.dispatcherId).asyncReducerCallback(msg)
+                                m.dispatcherProvider.get(extraInfo?.dispatcherId).asyncReducerCallback(msg, extraInfo?.context as dynamic)
                             else
                                 dispatcherId = fieldId
                                 dispatcherInstance = m.dispatcherProvider.get(dispatcherId)
