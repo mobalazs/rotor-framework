@@ -159,13 +159,13 @@ namespace Rotor
         ' This method MUST be the last call in your task function, as it
         ' blocks execution until the framework is destroyed.
         '
-        sub sync()
+        sub sync(waitMs = 0 as integer)
             m.notifySyncStatus(Rotor.Const.ThreadSyncType.TASK_SYNCING)
 
             keepAlive = true
 
             while true and keepAlive = true
-                msg = wait(0, m.port)
+                msg = wait(waitMs, m.port)
                 if msg <> invalid
                     msgType = type(msg)
                     if msgType = "roSGNodeEvent"
