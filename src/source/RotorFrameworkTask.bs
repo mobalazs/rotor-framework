@@ -162,7 +162,6 @@ namespace Rotor
         '
         sub sync(waitMs = 0 as integer, onTick = invalid as function)
             m.notifySyncStatus(Rotor.Const.ThreadSyncType.TASK_SYNCING)
-            m.onTick = onTick
 
             keepAlive = true
 
@@ -178,11 +177,11 @@ namespace Rotor
 
                 if msg = invalid
                     ' Timeout - check if tick interval elapsed
-                    if waitMs > 0 and m.onTick <> invalid and lastTickTime <> invalid
+                    if waitMs > 0 and onTick <> invalid and lastTickTime <> invalid
                         elapsedMs = lastTickTime.TotalMilliseconds()
                         if elapsedMs >= waitMs
                             ' Tick interval elapsed - call callback
-                            m.onTick()
+                            Rotor.Utils.callbackScoped(onTick, GetGlobalAA())
                             ' Reset tick timer
                             lastTickTime.Mark()
                         end if
