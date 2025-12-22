@@ -99,7 +99,7 @@ documentation:
     - title: "Internationalization support"
       path: "docs/i18n-support.md"
       description: "Locale-aware interface implementation"
-license: "MIT licensed. See LICENSE file for details."
+license: "Apache License 2.0. See LICENSE file for details."
 copyright: "© 2025 Rotor Molnar Balazs"
 rules:
   - "Adopt ViewBuilder templates for declarative UI construction."
