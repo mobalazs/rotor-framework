@@ -3,7 +3,7 @@
 [![build status](https://img.shields.io/github/actions/workflow/status/mobalazs/rotor-framework/main-workflow.yml?branch=main&logo=github&label=build)](https://github.com/mobalazs/rotor-framework/actions/workflows/main-workflow.yml)
 [![Coverage Status](https://img.shields.io/coveralls/github/mobalazs/rotor-framework/main?logo=coveralls&logoColor=white&color=brightgreen)](https://coveralls.io/github/mobalazs/rotor-framework?branch=main)
 [![npm version](https://img.shields.io/npm/v/rotor-framework.svg?logo=npm)](https://www.npmjs.com/package/rotor-framework)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square&logo=scale&logoColor=white)](LICENSE)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg?style=flat-square&logo=apache&logoColor=white)](LICENSE)
 [![Slack](https://img.shields.io/badge/Slack-RokuDevelopers-4A154B?logo=slack)](https://rokudevelopers.slack.com)
 
 **Rotor** is a modular, ViewModel-first UI framework for Roku applications built with BrighterScript and SceneGraph. It is lightweight and designed to intuitively speed up development time while simplifying both the implementation and long-term maintenance process. It features a rich ViewBuilder system and a Roku-friendly implementation of the MVI (Model-View-Intent) design pattern. It helps developers structure large-scale apps with reusable components, state-driven logic, and optimized rendering.
@@ -132,10 +132,59 @@ You can find [🌱](./docs/ai/readme.opt.yaml) symbols in all documentation page
 
 ---
 
-## 📄 License
+## 📄 Licensing
 
-Rotor Framework™ is licensed under the [MIT License](LICENSE).
+Rotor Framework is available under a dual license model:
 
-© 2025 Balázs Molnár — Rotor Framework™
+### Open Source License (Apache 2.0)
+
+The source code is licensed under the [Apache License 2.0](LICENSE). This is a permissive open source license that allows you to:
+
+- Use Rotor Framework in commercial and non-commercial applications
+- Modify the source code for your own purposes
+- Distribute your applications without sharing your application source code
+- Include Rotor Framework in proprietary products
+
+The Apache 2.0 license requires you to:
+
+- Include a copy of the license in distributions
+- Provide attribution in a NOTICE file (if included) or documentation
+- State any modifications you made to the framework source files
+
+### Commercial License
+
+A separate commercial license is available for organizations that require:
+
+- Use of the "Rotor Framework" trademark in product branding or marketing
+- White-label or OEM distribution arrangements
+- Resale or redistribution of the framework as a standalone product
+- Official support, warranty, or indemnification
+
+For commercial licensing inquiries, please contact the maintainer.
+
+### Trademark
+
+"Rotor Framework" is a trademark. Use of the name is governed by our [Trademark Policy](TRADEMARK.md), which is separate from the code license. In summary:
+
+- You may state that your product is "built with Rotor Framework"
+- You may not imply official endorsement or use the name in your product branding without permission
+
+---
+
+## Attribution (Optional)
+
+Attribution is **not required** under the Apache 2.0 license for applications built with Rotor Framework. However, if you find this framework useful, we encourage you to include a voluntary attribution such as:
+
+> Built with [Rotor Framework](https://github.com/mobalazs/rotor-framework)
+
+or
+
+> Powered by Rotor Framework
+
+This helps others discover the project and supports the open source community. Thank you for considering it.
+
+---
+
+**Copyright 2025 Balazs Molnar**
 
 ---
