@@ -160,7 +160,7 @@ namespace Rotor
         ' This method MUST be the last call in your task function, as it
         ' blocks execution until the framework is destroyed.
         '
-        sub sync(waitMs = 0 as integer, onTick = invalid as function)
+        sub sync(waitMs = 0 as integer, onTick = invalid as dynamic)
             m.notifySyncStatus(Rotor.Const.ThreadSyncType.TASK_SYNCING)
 
             keepAlive = true
