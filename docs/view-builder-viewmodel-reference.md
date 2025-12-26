@@ -149,6 +149,44 @@ frameworkInstance.render({
 
 ---
 
+## Best Practices
+
+When building ViewModels, consider these guidelines for maintainable and efficient code:
+
+**Template Structure:**
+- The `template()` method must return a single top-level widget configuration object
+- The top widget in the template shares the same scope (`m`) as the ViewModel class itself
+- All child widgets within the template can access `m.props` and `m.viewModelState`
+
+**Props vs ViewModelState:**
+- Use `props` for data that comes from external sources (parent ViewModels, dispatchers, render calls)
+- Use `viewModelState` exclusively for internal ViewModel state that doesn't need to be exposed externally
+- Props should be treated as read-only within the ViewModel; use `setProps()` to update them
+
+**Handling UI Updates:**
+- Always implement UI updates for both flows:
+  - **Initial render**: Define the appearance in `template()` using props and viewModelState
+  - **Update render**: Override `onUpdateView()` to handle subsequent prop changes
+- The `setProps(newProps)` method appends new props to existing ones and automatically triggers `onUpdateView()`—useful for external modifications
+
+**Public Methods:**
+- Don't hesitate to implement public methods on your ViewModel class
+- These methods can be called from parent ViewModels or other components via widget references
+- Example: `m.children.myChildViewModel.customMethod()`
+
+**Choosing Update Strategies:**
+When updating the UI in `onUpdateView()`, you have several options:
+- **`render()`**: Re-render specific widget subtrees with new configurations
+- **`refresh()`**: Force re-evaluation of field expressions for the ViewModel
+- **Direct node manipulation**: Modify `m.node` properties directly for simple updates
+
+The choice depends on your requirements:
+- For complex updates affecting multiple widgets, use `render()`
+- For simple single-property updates, direct node manipulation is more performant
+- Balance between code readability and runtime performance based on your use case
+
+---
+
 ## 📚 Learn More
 
 **NEXT STEP: [Fields Plugin](./view-builder-fields-plugin.md)**
