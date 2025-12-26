@@ -159,13 +159,33 @@ rules:
   - "Declare lifecycle hooks with override keyword."
   - "Access props and viewModelState via m.props and m.viewModelState in child widgets."
 bestPractices:
-  - "Keep ViewModels focused on specific UI components or features."
-  - "Initialize state in onCreateView before template executes."
-  - "Use onUpdateView for manual UI updates based on prop changes."
-  - "Clean up resources in onDestroyView to prevent memory leaks."
-  - "Use props for configuration, viewModelState for internal mutable state."
-  - "Use type casting (typecast m as Rotor.ViewModel) in field functions for correct context."
-  - "Use m.dispatchTo() and m.getStateFrom() for concise dispatcher interaction."
+  templateStructure:
+    - "template() must return a single top-level widget configuration object"
+    - "The top widget in template shares the same scope (m) as the ViewModel class"
+    - "All child widgets can access m.props and m.viewModelState"
+  propsVsState:
+    - "Use props for external data (from parent ViewModels, dispatchers, render calls)"
+    - "Use viewModelState exclusively for internal ViewModel state"
+    - "Treat props as read-only; use setProps() to update them"
+  uiUpdates:
+    - "Implement UI updates for both flows: initial (template) and update (onUpdateView)"
+    - "setProps(newProps) appends props and automatically triggers onUpdateView()"
+    - "Framework does NOT auto re-render on prop changes—you must implement onUpdateView()"
+  publicMethods:
+    - "Implement public methods on ViewModel classes for external interaction"
+    - "Call via widget references: m.children.myChildViewModel.customMethod()"
+  updateStrategies:
+    - "render(): Re-render specific widget subtrees with new configurations"
+    - "refresh(): Force re-evaluation of field expressions"
+    - "Direct node manipulation: Modify m.node properties for simple updates"
+    - "Choose based on complexity: render() for complex, direct manipulation for simple"
+    - "Balance code readability vs runtime performance based on use case"
+  general:
+    - "Keep ViewModels focused on specific UI components or features"
+    - "Initialize state in onCreateView before template executes"
+    - "Clean up resources in onDestroyView to prevent memory leaks"
+    - "Use type casting (typecast m as Rotor.ViewModel) in field functions"
+    - "Use m.dispatchTo() and m.getStateFrom() for concise dispatcher interaction"
 pitfalls:
   - "Forgetting to override onUpdateView means UI won't update on prop changes."
   - "Mutating props inside template or lifecycle hooks. Props are read-only."
