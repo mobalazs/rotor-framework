@@ -130,11 +130,20 @@ m.dispatcher.getState(sub(props, state)
 end sub)
 ```
 
-**Note**: In reducers, you can use the `m.getState()` helper method to access the current state directly without a callback:
+**Note**: In reducers, you can use these helper methods to access state and dispatch intents:
 
 ```brightscript
-' In a reducer
+' In a reducer - access own dispatcher's state
 currentState = m.getState()
+
+' Dispatch to own dispatcher
+m.dispatch({ type: "SOME_ACTION" })
+
+' Dispatch to another dispatcher by ID
+m.dispatchTo("otherDispatcher", { type: "SOME_ACTION" })
+
+' Get state from another dispatcher by ID
+otherState = m.getStateFrom("otherDispatcher")
 ```
 
 #### addListener
@@ -367,7 +376,7 @@ Each dispatcher maintains one model as the single source of truth for its domain
 - **Use `m.registerAsyncTransfer()` for `roUrlTransfer` objects** to enable automatic routing
 - **Pass context data to `registerAsyncTransfer()`** to identify requests in `asyncReducerCallback()`
 - **Use `m.getState()` in reducers** to access current state directly without callback
-- **Use `m.dispatchTo()` and `m.getStateFrom()`** in widgets for concise dispatcher access
+- **Use `m.dispatchTo()` and `m.getStateFrom()`** in widgets and reducers for concise cross-dispatcher access
 - Filter listener updates with `allowUpdate` when needed
 - Remove listeners with `once: true` for one-time operations
 - Handle all state mutations in the reducer, never in middleware
