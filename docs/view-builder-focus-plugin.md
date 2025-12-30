@@ -10,7 +10,7 @@ The Focus Plugin provides advanced focus management and spatial navigation for T
 
 | Type | Description | Example |
 |------|-------------|---------|
-| Focus Item | Individual focusable widget | `focus: { isEnabled: true, onSelected: ... }` |
+| Focus Item | Individual focusable widget | `focus: { isEnabled: true, onSelect: ... }` |
 | Focus Group | Container managing navigation between items | `focus: { group: { defaultFocusId: "firstButton" } }` |
 
 **Focus Item**: Widget that can receive focus directly (buttons, cards, menu items).
@@ -63,7 +63,8 @@ This means `defaultFocusId: "deepItem"` will find "deepItem" even if it's 3+ lev
 | `up` / `down` / `left` / `right` / `back` | string/function | `""` | Static navigation directions (node ID or function returning ID) |
 | `onFocusChanged` | function | `invalid` | Called when focus state changes with `isFocused` parameter |
 | `onFocus` | function | `invalid` | Called when widget gains focus |
-| `onSelected` | function | `invalid` | Called when OK button is pressed while focused |
+| `onBlur` | function | `invalid` | Called when widget loses focus |
+| `onSelect` | function | `invalid` | Called when OK button is pressed while focused |
 | `longPressHandler` | function | `invalid` | Handle long press events with `isLongPress` and `key` parameters |
 
 ## Focus Group Configuration Properties
@@ -91,7 +92,7 @@ This means `defaultFocusId: "deepItem"` will find "deepItem" even if it's 3+ lev
 3. **Registration**: Stores instance in FocusItemStack or GroupStack
 4. **Hierarchy Tracking**: Registers parent-child relationships for bubbling
 5. **State Initialization**: Sets `viewModelState.isFocused = false` automatically
-6. **Focus Application**: When focus set, calls `onFocusChanged`, `onFocus` callbacks
+6. **Focus Application**: When focus set, calls `onFocusChanged`, `onFocus`/`onBlur` callbacks
 7. **State Update**: Updates `viewModelState.isFocused` and `node.isFocused` field
 8. **Navigation Handling**: Processes key events through static → spatial → bubbling priority
 9. **Group Notification**: Notifies ancestor groups of focus chain changes
@@ -129,7 +130,7 @@ Widgets with focus configuration automatically receive these methods via `widget
             end if
             ' Note: m.viewModelState.isFocused is automatically updated
         end sub,
-        onSelected: sub()
+        onSelect: sub()
             m.getViewModel().handleButtonClick()
         end sub
     }
@@ -153,7 +154,7 @@ Widgets with focus configuration automatically receive these methods via `widget
             id: "homeMenuItem",
             focus: {
                 right: "contentFirst", ' Explicit exit to content
-                onSelected: sub()
+                onSelect: sub()
                     m.getViewModel().navigateToHome()
                 end sub
             }
@@ -193,7 +194,7 @@ Widgets with focus configuration automatically receive these methods via `widget
         {
             id: "confirmButton",
             focus: {
-                onSelected: sub()
+                onSelect: sub()
                     m.getViewModel().handleConfirm()
                     ' Modal will be destroyed, releasing focus
                 end sub
@@ -202,7 +203,7 @@ Widgets with focus configuration automatically receive these methods via `widget
         {
             id: "cancelButton",
             focus: {
-                onSelected: sub()
+                onSelect: sub()
                     m.getViewModel().handleCancel()
                 end sub
             }
@@ -234,13 +235,13 @@ Widgets with focus configuration automatically receive these methods via `widget
             children: [
                 {
                     id: "menuItem1",
-                    focus: { onSelected: sub()
+                    focus: { onSelect: sub()
                         m.getViewModel().selectMenuItem(1)
                     end sub }
                 },
                 {
                     id: "menuItem2",
-                    focus: { onSelected: sub()
+                    focus: { onSelect: sub()
                         m.getViewModel().selectMenuItem(2)
                     end sub }
                 }
@@ -307,7 +308,7 @@ Widgets with focus configuration automatically receive these methods via `widget
                 return "normalButton"
             end if
         end function,
-        onSelected: sub()
+        onSelect: sub()
             m.getViewModel().handleSelection()
         end sub
     }
@@ -333,19 +334,19 @@ Widgets with focus configuration automatically receive these methods via `widget
     children: [
         {
             id: "item1",
-            focus: { onSelected: sub()
+            focus: { onSelect: sub()
                 m.getViewModel().selectItem(1)
             end sub }
         },
         {
             id: "centerItem",
-            focus: { onSelected: sub()
+            focus: { onSelect: sub()
                 m.getViewModel().selectItem(2)
             end sub }
         },
         {
             id: "item3",
-            focus: { onSelected: sub()
+            focus: { onSelect: sub()
                 m.getViewModel().selectItem(3)
             end sub }
         }
@@ -360,7 +361,7 @@ Widgets with focus configuration automatically receive these methods via `widget
     id: "controlButton",
     nodeType: "Rectangle",
     focus: {
-        onSelected: sub()
+        onSelect: sub()
             ' Set focus to specific widget
             m.setFocus("targetWidget")
 
@@ -398,7 +399,7 @@ focus: {
 **Avoid**: Relying solely on automatic state without visual feedback:
 ```brightscript
 focus: {
-    onSelected: sub()
+    onSelect: sub()
         ' Visual feedback missing - user can't tell what's focused
         m.handleSelection()
     end sub
