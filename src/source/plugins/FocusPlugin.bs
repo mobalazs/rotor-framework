@@ -958,7 +958,7 @@ namespace Rotor
                 result.widget = widget
                 if isSelected
                     result.isSelected = isSelected
-                    focusItem.callOnSelectedFnOnWidget()
+                    focusItem.callOnSelectFnOnWidget()
                 end if
             end if
             return result
@@ -1155,6 +1155,7 @@ namespace Rotor
                 m.onFocusChanged = config.onFocusChanged
                 m.longPressHandler = config.longPressHandler
                 m.onFocus = config.onFocus
+                m.onBlur = config.onBlur
 
                 Rotor.Utils.setCustomFields(m.node, { "isFocused": false }, true, true)
 
@@ -1173,6 +1174,7 @@ namespace Rotor
             isFocused as boolean
             onFocusChanged as dynamic
             onFocus as dynamic
+            onBlur as dynamic
             longPressHandler as dynamic
             node as object
             widget as object
@@ -1190,6 +1192,8 @@ namespace Rotor
                 Rotor.Utils.callbackScoped(m.onFocusChanged, m.widget, isFocused)
                 if true = isFocused
                     Rotor.Utils.callbackScoped(m.onFocus, m.widget)
+                else
+                    Rotor.Utils.callbackScoped(m.onBlur, m.widget)
                 end if
             end sub
 
@@ -1205,6 +1209,8 @@ namespace Rotor
                 m.widget = invalid
                 m.node = invalid
                 m.onFocusChanged = invalid
+                m.onFocus = invalid
+                m.onBlur = invalid
                 m.longPressHandler = invalid
             end sub
 
@@ -1362,7 +1368,7 @@ namespace Rotor
             sub new (config as object)
                 super(config)
 
-                m.onSelected = config.onSelected ?? ""
+                m.onSelect = config.onSelect ?? ""
                 m.enableSpatialNavigation = config.enableSpatialNavigation ?? true
                 m.enableNativeFocus = config.enableNativeFocus ?? false
             end sub
@@ -1376,7 +1382,7 @@ namespace Rotor
             isGroup = false
             enableNativeFocus as boolean
             enableSpatialNavigation as boolean
-            onSelected as dynamic
+            onSelect as dynamic
 
             private metrics = {
                 segments: {}
@@ -1454,7 +1460,7 @@ namespace Rotor
             end sub
 
             override sub destroy()
-                m.onSelected = invalid
+                m.onSelect = invalid
                 m.metrics.segments.Clear()
                 super.destroy()
             end sub
@@ -1478,8 +1484,8 @@ namespace Rotor
 
             end sub
 
-            sub callOnSelectedFnOnWidget()
-                Rotor.Utils.callbackScoped(m.onSelected, m.widget)
+            sub callOnSelectFnOnWidget()
+                Rotor.Utils.callbackScoped(m.onSelect, m.widget)
             end sub
 
         end class
