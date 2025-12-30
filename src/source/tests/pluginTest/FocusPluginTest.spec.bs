@@ -737,6 +737,239 @@ namespace tests
             m.assertFalse(result)
         end function
 
+        ' ======================================================================
+        ' TEST SUITE 11: Focus Callbacks (onFocus, onBlur, onSelect)
+        ' ======================================================================
+
+        @describe("focus callbacks")
+
+        @it("onFocus callback is called when widget gains focus")
+        function _()
+            ' Given: A widget with onFocus callback
+            onFocusCalled = { value: false }
+            template = {
+                id: "callbackTestRoot",
+                nodeType: "Group",
+                focusGroup: { defaultFocusId: "focusCallbackItem" },
+                children: [
+                    {
+                        id: "focusCallbackItem",
+                        nodeType: "Rectangle",
+                        fields: { width: 100, height: 50 },
+                        focus: {
+                            onFocus: sub()
+                                m.testMarker = "onFocus_called"
+                            end sub
+                        }
+                    }
+                ]
+            }
+
+            ' Destroy existing and create new framework with callback template
+            m.fwInstance.destroy()
+            m.fwInstance = new Rotor.Framework()
+            m.fwInstance.render(template)
+
+            ' When: Set focus on the item
+            widget = m.fwInstance.getWidget("focusCallbackItem")
+            widget.setFocus()
+
+            ' Then: onFocus should have been called
+            m.assertEqual(widget.testMarker, "onFocus_called")
+        end function
+
+        @it("onBlur callback is called when widget loses focus")
+        function _()
+            ' Given: Two widgets, one with onBlur callback
+            template = {
+                id: "blurTestRoot",
+                nodeType: "Group",
+                focusGroup: { defaultFocusId: "blurItem1" },
+                children: [
+                    {
+                        id: "blurItem1",
+                        nodeType: "Rectangle",
+                        fields: { width: 100, height: 50, translation: [0, 0] },
+                        focus: {
+                            onBlur: sub()
+                                m.testMarker = "onBlur_called"
+                            end sub
+                        }
+                    },
+                    {
+                        id: "blurItem2",
+                        nodeType: "Rectangle",
+                        fields: { width: 100, height: 50, translation: [150, 0] },
+                        focus: {}
+                    }
+                ]
+            }
+
+            ' Destroy existing and create new framework
+            m.fwInstance.destroy()
+            m.fwInstance = new Rotor.Framework()
+            m.fwInstance.render(template)
+
+            ' Set initial focus
+            widget1 = m.fwInstance.getWidget("blurItem1")
+            widget1.setFocus()
+
+            ' Verify initial state
+            m.assertInvalid(widget1.testMarker)
+
+            ' When: Move focus to second item
+            widget1.setFocus("blurItem2")
+
+            ' Then: onBlur should have been called on first widget
+            m.assertEqual(widget1.testMarker, "onBlur_called")
+        end function
+
+        @it("onSelect callback is called when OK is pressed")
+        function _()
+            ' Given: A widget with onSelect callback
+            template = {
+                id: "selectTestRoot",
+                nodeType: "Group",
+                focusGroup: { defaultFocusId: "selectItem" },
+                children: [
+                    {
+                        id: "selectItem",
+                        nodeType: "Rectangle",
+                        fields: { width: 100, height: 50 },
+                        focus: {
+                            onSelect: sub()
+                                m.testMarker = "onSelect_called"
+                            end sub
+                        }
+                    }
+                ]
+            }
+
+            ' Destroy existing and create new framework
+            m.fwInstance.destroy()
+            m.fwInstance = new Rotor.Framework()
+            m.fwInstance.render(template)
+
+            ' Set focus
+            widget = m.fwInstance.getWidget("selectItem")
+            widget.setFocus()
+
+            ' Verify initial state
+            m.assertInvalid(widget.testMarker)
+
+            ' When: Press OK key
+            widget.triggerKeyPress("OK")
+
+            ' Then: onSelect should have been called
+            m.assertEqual(widget.testMarker, "onSelect_called")
+        end function
+
+        @it("onFocusChanged callback is called with isFocused parameter")
+        function _()
+            ' Given: A widget with onFocusChanged callback
+            template = {
+                id: "focusChangedTestRoot",
+                nodeType: "Group",
+                focusGroup: { defaultFocusId: "focusChangedItem1" },
+                children: [
+                    {
+                        id: "focusChangedItem1",
+                        nodeType: "Rectangle",
+                        fields: { width: 100, height: 50, translation: [0, 0] },
+                        focus: {
+                            onFocusChanged: sub(isFocused as boolean)
+                                m.lastFocusState = isFocused
+                            end sub
+                        }
+                    },
+                    {
+                        id: "focusChangedItem2",
+                        nodeType: "Rectangle",
+                        fields: { width: 100, height: 50, translation: [150, 0] },
+                        focus: {}
+                    }
+                ]
+            }
+
+            ' Destroy existing and create new framework
+            m.fwInstance.destroy()
+            m.fwInstance = new Rotor.Framework()
+            m.fwInstance.render(template)
+
+            ' When: Set focus on first item
+            widget1 = m.fwInstance.getWidget("focusChangedItem1")
+            widget1.setFocus()
+
+            ' Then: onFocusChanged should be called with true
+            m.assertTrue(widget1.lastFocusState)
+
+            ' When: Move focus to second item
+            widget1.setFocus("focusChangedItem2")
+
+            ' Then: onFocusChanged should be called with false
+            m.assertFalse(widget1.lastFocusState)
+        end function
+
+        @it("both onFocus and onBlur are called during focus transition")
+        function _()
+            ' Given: Two widgets with onFocus and onBlur callbacks
+            template = {
+                id: "transitionTestRoot",
+                nodeType: "Group",
+                focusGroup: { defaultFocusId: "transitionItem1" },
+                children: [
+                    {
+                        id: "transitionItem1",
+                        nodeType: "Rectangle",
+                        fields: { width: 100, height: 50, translation: [0, 0] },
+                        focus: {
+                            onFocus: sub()
+                                m.focusCount = (m.focusCount ?? 0) + 1
+                            end sub,
+                            onBlur: sub()
+                                m.blurCount = (m.blurCount ?? 0) + 1
+                            end sub
+                        }
+                    },
+                    {
+                        id: "transitionItem2",
+                        nodeType: "Rectangle",
+                        fields: { width: 100, height: 50, translation: [150, 0] },
+                        focus: {
+                            onFocus: sub()
+                                m.focusCount = (m.focusCount ?? 0) + 1
+                            end sub,
+                            onBlur: sub()
+                                m.blurCount = (m.blurCount ?? 0) + 1
+                            end sub
+                        }
+                    }
+                ]
+            }
+
+            ' Destroy existing and create new framework
+            m.fwInstance.destroy()
+            m.fwInstance = new Rotor.Framework()
+            m.fwInstance.render(template)
+
+            widget1 = m.fwInstance.getWidget("transitionItem1")
+            widget2 = m.fwInstance.getWidget("transitionItem2")
+
+            ' When: Set focus on first item
+            widget1.setFocus()
+
+            ' Then: widget1 onFocus called
+            m.assertEqual(widget1.focusCount, 1)
+            m.assertInvalid(widget1.blurCount)
+
+            ' When: Move focus to second item
+            widget1.setFocus("transitionItem2")
+
+            ' Then: widget1 onBlur called, widget2 onFocus called
+            m.assertEqual(widget1.blurCount, 1)
+            m.assertEqual(widget2.focusCount, 1)
+        end function
+
         @describe("focus plugin cleanup")
 
         @it("removeFocusConfig removes focus item from stack")

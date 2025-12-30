@@ -220,9 +220,17 @@ dispatcher.dispatch({ type: "INCREMENT" })
         end function
     }],
     focus: {                         ' Focus Plugin
-        focusable: true,
-        onFocusChange: function(hasFocus)
+        onFocusChanged: function(isFocused)
             ' Handle focus change
+        end function,
+        onFocus: function()
+            ' Handle focus gained
+        end function,
+        onBlur: function()
+            ' Handle focus lost
+        end function,
+        onSelect: function()
+            ' Handle OK button press
         end function
     }
 }
