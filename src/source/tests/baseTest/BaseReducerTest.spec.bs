@@ -119,6 +119,105 @@ namespace tests
             m.assertTrue(true, "registerAsyncTransfer executed without error")
         end function
 
+        @describe("BaseReducer dispatchTo helper method")
+
+        @it("dispatches intent to another dispatcher by ID")
+        function _()
+            ' Create first dispatcher (owner)
+            model1 = new Rotor.Model()
+            model1.state = { value: "original" }
+            reducer1 = new Rotor.Reducer()
+            dispatcher1 = Rotor.createDispatcher("reducer1Dispatcher", model1, reducer1)
+
+            ' Create second dispatcher (target)
+            model2 = new Rotor.Model()
+            model2.state = { count: 0 }
+            reducer2 = new tests.CounterReducer()
+            dispatcher2 = Rotor.createDispatcher("reducer2Dispatcher", model2, reducer2)
+
+            ' Dispatch from reducer1 to reducer2
+            reducer1.dispatchTo("reducer2Dispatcher", { type: "INCREMENT" })
+
+            ' Verify state changed in target dispatcher
+            newState = reducer1.getStateFrom("reducer2Dispatcher")
+            m.assertEqual(newState.count, 1)
+        end function
+
+        @it("dispatchTo works with payload")
+        function _()
+            ' Create owner dispatcher
+            model1 = new Rotor.Model()
+            model1.state = { value: "owner" }
+            reducer1 = new Rotor.Reducer()
+            dispatcher1 = Rotor.createDispatcher("ownerDispatcher", model1, reducer1)
+
+            ' Create target dispatcher
+            model2 = new Rotor.Model()
+            model2.state = { name: "initial" }
+            reducer2 = new tests.NameReducer()
+            dispatcher2 = Rotor.createDispatcher("targetDispatcher", model2, reducer2)
+
+            ' Dispatch with payload
+            reducer1.dispatchTo("targetDispatcher", {
+                type: "SET_NAME",
+                payload: { name: "updated" }
+            })
+
+            ' Verify state changed
+            newState = reducer1.getStateFrom("targetDispatcher")
+            m.assertEqual(newState.name, "updated")
+        end function
+
+        @describe("BaseReducer getStateFrom helper method")
+
+        @it("returns state from another dispatcher by ID")
+        function _()
+            ' Create owner dispatcher
+            model1 = new Rotor.Model()
+            model1.state = { ownerValue: "test" }
+            reducer1 = new Rotor.Reducer()
+            dispatcher1 = Rotor.createDispatcher("ownerGetState", model1, reducer1)
+
+            ' Create target dispatcher with specific state
+            model2 = new Rotor.Model()
+            model2.state = { targetValue: 123, status: "active" }
+            reducer2 = new Rotor.Reducer()
+            dispatcher2 = Rotor.createDispatcher("targetGetState", model2, reducer2)
+
+            ' Get state from target dispatcher via owner reducer
+            targetState = reducer1.getStateFrom("targetGetState")
+
+            m.assertNotEqual(targetState, invalid)
+            m.assertEqual(targetState.targetValue, 123)
+            m.assertEqual(targetState.status, "active")
+        end function
+
+        @it("getStateFrom returns independent state snapshots")
+        function _()
+            ' Create owner dispatcher
+            model1 = new Rotor.Model()
+            model1.state = { value: "owner" }
+            reducer1 = new Rotor.Reducer()
+            dispatcher1 = Rotor.createDispatcher("snapshotOwner", model1, reducer1)
+
+            ' Create target dispatcher
+            model2 = new Rotor.Model()
+            model2.state = { count: 5 }
+            reducer2 = new tests.CounterReducer()
+            dispatcher2 = Rotor.createDispatcher("snapshotTarget", model2, reducer2)
+
+            ' Get initial state
+            state1 = reducer1.getStateFrom("snapshotTarget")
+            m.assertEqual(state1.count, 5)
+
+            ' Dispatch to change state
+            reducer1.dispatchTo("snapshotTarget", { type: "INCREMENT" })
+
+            ' Get new state
+            state2 = reducer1.getStateFrom("snapshotTarget")
+            m.assertEqual(state2.count, 6)
+        end function
+
         @describe("BaseReducer destroy method")
 
         @it("cleans up references")
@@ -133,4 +232,27 @@ namespace tests
         end function
 
     end class
+
+    ' Helper reducer for testing counter operations
+    class CounterReducer extends Rotor.Reducer
+        override function reducer(state as object, intent as object)
+            if intent.type = "INCREMENT"
+                state.count = state.count + 1
+            else if intent.type = "DECREMENT"
+                state.count = state.count - 1
+            end if
+            return state
+        end function
+    end class
+
+    ' Helper reducer for testing name operations
+    class NameReducer extends Rotor.Reducer
+        override function reducer(state as object, intent as object)
+            if intent.type = "SET_NAME"
+                state.name = intent.payload.name
+            end if
+            return state
+        end function
+    end class
+
 end namespace

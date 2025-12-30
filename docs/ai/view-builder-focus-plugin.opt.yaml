@@ -30,7 +30,8 @@ props:
     callbacks:
       onFocusChanged: "sub(isFocused as boolean) - called when focus state changes"
       onFocus: "sub() - called when widget gains focus"
-      onSelected: "sub() - called when OK button pressed while focused"
+      onBlur: "sub() - called when widget loses focus"
+      onSelect: "sub() - called when OK button pressed while focused"
       longPressHandler: "sub(isLongPress as boolean, key as string) - handle long press"
   focusGroup:
     defaultFocusId: "string | function - default focus target when group receives focus"
@@ -110,7 +111,7 @@ patterns:
       onFocusChanged: sub(isFocused)
         m.node.blendColor = isFocused ? "0xFF0000FF" : "0xFFFFFFFF"
       end sub
-      onSelected: sub() -> m.getViewModel().handleButtonClick()
+      onSelect: sub() -> m.getViewModel().handleButtonClick()
     }
   sidebarContent: |
     sidebar: focus.group.right=true (blocks accidental exit)
@@ -206,7 +207,7 @@ pipeline:
   3: "Registration - stores instance in FocusItemStack or GroupStack"
   4: "Hierarchy Tracking - registers parent-child relationships for bubbling"
   5: "State Initialization - sets viewModelState.isFocused = false automatically"
-  6: "Focus Application - when focus set, calls onFocusChanged, onFocus callbacks"
+  6: "Focus Application - when focus set, calls onFocusChanged, onFocus/onBlur callbacks"
   7: "State Update - updates viewModelState.isFocused and node.isFocused field"
   8: "Navigation Handling - processes key events through static → spatial → bubbling priority"
   9: "Group Notification - notifies ancestor groups of focus chain changes"
