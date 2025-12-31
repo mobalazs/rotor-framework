@@ -195,7 +195,7 @@ namespace Rotor.ViewBuilder
             if template <> invalid and template.Count() > 0
                 templateChildren = template.children
                 template.delete("children")
-                config = Rotor.Utils.deepExtendAA(config, template)
+                config = Rotor.Utils.deepExtendAA(template, config)
                 config.children = templateChildren
             end if
 
