@@ -646,7 +646,15 @@ namespace Rotor
 
         taskNode = sync.taskNode
 
-        if sync.type = Rotor.Const.ThreadSyncType.TASK_SYNCING
+        if sync.type = Rotor.Const.ThreadSyncType.DISPATCH
+            ' Cross-thread dispatch from task thread to render thread
+            dispatcherId = sync.payload.dispatcherId
+            intent = sync.payload.intent
+            dispatcherInstance = framework.dispatcherProvider.stack.LookupCI(dispatcherId)
+            if dispatcherInstance <> invalid
+                dispatcherInstance.dispatch(intent)
+            end if
+        else if sync.type = Rotor.Const.ThreadSyncType.TASK_SYNCING
             framework.handleTaskSyncing(sync)
         else if sync.type = Rotor.Const.ThreadSyncType.TASK_SYNCED
             framework.handleTaskSynced(taskNode.taskId)
