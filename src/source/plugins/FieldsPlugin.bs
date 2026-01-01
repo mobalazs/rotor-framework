@@ -12,6 +12,7 @@ namespace Rotor
     '   - Interpolates @-prefixed expressions (e.g., @viewModelState.value)
     '   - Supports dynamic field resolution from widget context
     '   - Automatically updates fields on widget lifecycle changes
+    '   - Converts \n to Chr(10) for multi-line text support
     '
     ' Expression Syntax:
     '   @key.path - Resolves from widget.viewModelState
@@ -29,6 +30,9 @@ namespace Rotor
         ' @ = viewModelState, $ = widget properties
         ' Matches: @ or $ followed by any characters except space, @, $, or comma
         configRegex = /([\@\$])([^\s\@\$\,]*)/i
+
+        ' Regex pattern for matching \n (literal backslash-n) to convert to Chr(10)
+        newlineRegex = /\\n/
 
         ' =============================================================
         ' LIFECYCLE HOOKS
@@ -158,6 +162,11 @@ namespace Rotor
 
                             nextResult:
                         end for
+                    end if
+
+                    ' Step 3: Convert \n to Chr(10) for multi-line text
+                    if Rotor.Utils.isString(value)
+                        value = m.newlineRegex.ReplaceAll(value, Chr(10))
                     end if
 
                     parsedFields[fieldId] = value
