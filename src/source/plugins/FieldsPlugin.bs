@@ -28,8 +28,8 @@ namespace Rotor
 
         ' Regex pattern for matching @ and $ prefixed expressions
         ' @ = viewModelState, $ = widget properties
-        ' Matches: @ or $ followed by any characters except space, @, $, or comma
-        configRegex = /([\@\$])([^\s\@\$\,]*)/i
+        ' Matches: @ or $ followed by valid key path characters (letters, numbers, underscore, dot)
+        configRegex = /([\@\$])([a-zA-Z0-9_\.]*)/i
 
         ' Regex pattern for matching \n (literal backslash-n) to convert to Chr(10)
         newlineRegex = /\\n/
