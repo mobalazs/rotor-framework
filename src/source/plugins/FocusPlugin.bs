@@ -1130,7 +1130,7 @@ namespace Rotor
 
         class BaseFocusConfig
 
-            autoSetIsFocusedOnContext as boolean
+            autoSetIsFocusedState as boolean
             staticDirection as object
 
             sub new (config as object)
@@ -1142,7 +1142,7 @@ namespace Rotor
                 m.node = m.widget.node
                 m.isFocused = config.isFocused ?? false
 
-                m.autoSetIsFocusedOnContext = config.autoSetIsFocusedOnContext ?? true
+                m.autoSetIsFocusedState = config.autoSetIsFocusedState ?? true
 
                 m.isEnabled = config.isEnabled ?? true
                 m.staticDirection = {}
@@ -1160,7 +1160,7 @@ namespace Rotor
                 Rotor.Utils.setCustomFields(m.node, { "isFocused": false }, true, true)
 
                 ' convenience (usually this is used on viewModelState)
-                if false = m.widget.viewModelState.DoesExist("isFocused") and true = m.autoSetIsFocusedOnContext
+                if false = m.widget.viewModelState.DoesExist("isFocused") and true = m.autoSetIsFocusedState
                     m.widget.viewModelState.isFocused = false ' as default
                 end if
 
@@ -1346,7 +1346,7 @@ namespace Rotor
 
                 m.isFocused = isFocused
 
-                if m.autoSetIsFocusedOnContext
+                if m.autoSetIsFocusedState
                     m.widget.viewModelState.isInFocusChain = isFocused
                 end if
                 m.node.setField("isFocused", isFocused)
@@ -1470,7 +1470,7 @@ namespace Rotor
 
                 m.isFocused = isFocused
 
-                if m.autoSetIsFocusedOnContext
+                if m.autoSetIsFocusedState
                     m.widget.viewModelState.isFocused = isFocused
                 end if
 
