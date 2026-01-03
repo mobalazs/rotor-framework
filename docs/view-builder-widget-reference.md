@@ -46,7 +46,6 @@ Every widget automatically receives these methods:
 | Method | Parameters | Return | Description |
 |--------|------------|--------|-------------|
 | `getFrameworkInstance` | - | object | Framework instance |
-| `getInfo` | - | object | Framework info (device, version) |
 
 ### Widget Navigation
 

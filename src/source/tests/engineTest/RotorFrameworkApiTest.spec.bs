@@ -44,13 +44,6 @@ namespace tests
             m.assertEqual(found, widget)
         end sub
 
-        @it("getInfo exposes device info")
-        sub _()
-            info = m.fwInstance.getInfo()
-            m.assertNotInvalid(info)
-            m.assertNotInvalid(info.device)
-        end sub
-
         @it("presetNodePool preallocates nodes via framework wrapper")
         sub _()
             m.fwInstance.presetNodePool({

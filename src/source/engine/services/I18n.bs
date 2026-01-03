@@ -31,8 +31,9 @@ namespace Rotor.ViewBuilder
         ' @param {Rotor.Framework} frameworkInstance - Framework instance reference
         '
         sub init(frameworkInstance as Rotor.Framework)
-            ' Set current locale from framework device info
-            currentLocale = frameworkInstance.getInfo().device.currentLocale
+            ' Set current locale from device info
+            deviceInfo = CreateObject("roDeviceInfo")
+            currentLocale = deviceInfo.GetCurrentLocale()
             ' Store current locale
             m.setLocale(currentLocale)
         end sub

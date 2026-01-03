@@ -55,10 +55,6 @@ injectedMethods:
       parameters: []
       return: "object"
       description: "Framework instance"
-    getInfo:
-      parameters: []
-      return: "object"
-      description: "Framework info (device, version)"
   widgetNavigation:
     getWidget:
       syntax: "getWidget(id)"

@@ -36,11 +36,6 @@ namespace Rotor.ViewBuilder
             return GetGlobalAA().rotor_framework_helper.frameworkInstance
         end function
 
-        ' getInfo - Returns framework info *'
-        widget.getInfo = function() as object
-            return m.getFrameworkInstance().getInfo()
-        end function
-
         ' refresh - Refreshes specific widget properties by key paths *'
         widget.refresh = sub(featureKeyPaths as object)
             iterateKeyPaths = Rotor.Utils.ensureArray(featureKeyPaths)

@@ -118,10 +118,6 @@ namespace Rotor
         ttsService as object
         dispatcherProvider as object
         animatorProvider as object
-        info = {
-            device: {}
-        }
-
         ' plugin adapter workspace
         plugins = {}
 
@@ -131,9 +127,6 @@ namespace Rotor
         taskNodes = {}
 
         enableRendering = true
-
-        ' helper vars
-        deviceInfo as object
 
         '----------------------------------------------------------------------
         ' new - Initializes the Rotor Framework instance
@@ -160,8 +153,6 @@ namespace Rotor
             }
 
             m.builder.init(m)
-
-            m.initInfo()
 
             ' set root node
             if m.config.rootNode = invalid
@@ -326,15 +317,6 @@ namespace Rotor
         end function
 
         ' ---------------------------------------------------------------------
-        ' getInfo - Gets framework and device information
-        '
-        ' @returns {object} Info object containing device details
-        '
-        public function getInfo() as object
-            return m.info
-        end function
-
-        ' ---------------------------------------------------------------------
         ' getNodePoolInfo - Gets node pool statistics
         '
         ' @returns {object} Node pool information (available nodes, usage, etc.)
@@ -364,32 +346,6 @@ namespace Rotor
         '
         sub registerPlugins(plugins as object)
             m.builder.pluginAdapter.registerPlugins(plugins)
-        end sub
-
-        ' ---------------------------------------------------------------------
-        ' initInfo - Initializes device and framework information
-        '
-        ' Collects device information (graphics platform, model, OS version, locale)
-        ' and stores it in m.info for later access.
-        '
-        sub initInfo()
-            ' Device info
-            di = CreateObject("roDeviceInfo")
-            ' Make it available on framework instance
-            m.deviceInfo = di
-            ' Generate app info
-            m.info.device.append({
-                graphicsPlatform: di.GetGraphicsPlatform(), ' ["opengl"|"directfb"]
-                modelDisplayName: di.GetModelDisplayName(),
-                OSVersion: di.GetOSVersion(),
-                currentLocale: di.GetCurrentLocale(), ' Example: "en_US"
-                countryCode: di.GetCountryCode() ' A value that indicates the Streaming Store associated with a user's Roku account.
-            })
-            #if debug
-                print `[DEVICEINFO] Graphics Platform: ${m.info.device.graphicsPlatform}`
-                print `[DEVICEINFO] modelDisplayName: ${m.info.device.modelDisplayName}`
-                print `[DEVICEINFO] OSVersion: ${m.info.device.OSVersion.major}.${m.info.device.OSVersion.minor}.${m.info.device.OSVersion.revision}.${m.info.device.OSVersion.build}`
-            #end if
         end sub
 
         ' ---------------------------------------------------------------------
@@ -618,9 +574,6 @@ namespace Rotor
                 frameworkInstance: invalid
             }
             m.config.rootNode = invalid
-
-            m.info.Clear()
-            m.deviceInfo = invalid
 
         end sub
 
