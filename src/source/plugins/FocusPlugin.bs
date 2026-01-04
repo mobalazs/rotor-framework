@@ -324,7 +324,7 @@ namespace Rotor
             end function,
 
             ' ---------------------------------------------------------------------
-            ' setGroupLastFocusedHID - Updates the lastFocusedHID of this widget's focus group
+            ' setGroupLastFocusedId - Updates the lastFocusedHID of this widget's focus group
             '
             ' If called on a focusGroup widget, updates its own lastFocusedHID.
             ' If called on a focusItem widget, finds and updates the parent group's lastFocusedHID.

@@ -104,7 +104,7 @@ api:
     widget.proceedLongPress: "widget.proceedLongPress() - manually trigger long press action"
     widget.isLongPressActive: "widget.isLongPressActive() - check if long press active"
     widget.triggerKeyPress: "widget.triggerKeyPress(key) - simulate key press for testing/programmatic nav"
-    widget.setGroupLastFocusedHID: "widget.setGroupLastFocusedHID(id) - update lastFocusedHID of widget's focus group. If called on group, updates own lastFocusedHID. If called on focus item, updates parent group's lastFocusedHID."
+    widget.setGroupLastFocusedId: "widget.setGroupLastFocusedId(id) - update lastFocusedHID of widget's focus group. If called on group, updates own lastFocusedHID. If called on focus item, updates parent group's lastFocusedHID."
 
 patterns:
   simpleButton: |

@@ -971,10 +971,10 @@ namespace tests
         end function
 
         ' ======================================================================
-        ' TEST SUITE 12: setGroupLastFocusedHID
+        ' TEST SUITE 12: setGroupLastFocusedId
         ' ======================================================================
 
-        @describe("setGroupLastFocusedHID method")
+        @describe("setGroupLastFocusedId method")
 
         @it("updates lastFocusedHID when called on a focus group")
         function _()
@@ -986,8 +986,8 @@ namespace tests
             group = focusPlugin.groupStack.get(groupL2.HID)
             m.assertNotInvalid(group)
 
-            ' When: Call setGroupLastFocusedHID with L2's id on the group widget
-            groupL2.setGroupLastFocusedHID("L2")
+            ' When: Call setGroupLastFocusedId with L2's id on the group widget
+            groupL2.setGroupLastFocusedId("L2")
 
             ' Then: The group's lastFocusedHID should be updated to L2's HID
             l2Widget = m.fwInstance.getWidget("L2")
@@ -1005,8 +1005,8 @@ namespace tests
             group = focusPlugin.groupStack.get(groupL2Widget.HID)
             m.assertNotInvalid(group)
 
-            ' When: Call setGroupLastFocusedHID with L2's id on L1 (a sibling focus item)
-            l1Widget.setGroupLastFocusedHID("L2")
+            ' When: Call setGroupLastFocusedId with L2's id on L1 (a sibling focus item)
+            l1Widget.setGroupLastFocusedId("L2")
 
             ' Then: The parent group's lastFocusedHID should be updated to L2's HID
             l2Widget = m.fwInstance.getWidget("L2")
@@ -1022,8 +1022,8 @@ namespace tests
             group = focusPlugin.groupStack.get(groupL2.HID)
             initialLastFocusedHID = group.lastFocusedHID
 
-            ' When: Call setGroupLastFocusedHID with non-existent id
-            groupL2.setGroupLastFocusedHID("nonExistentWidget")
+            ' When: Call setGroupLastFocusedId with non-existent id
+            groupL2.setGroupLastFocusedId("nonExistentWidget")
 
             ' Then: lastFocusedHID should remain unchanged
             m.assertEqual(group.lastFocusedHID, initialLastFocusedHID)
@@ -1038,8 +1038,8 @@ namespace tests
             group = focusPlugin.groupStack.get(groupL2.HID)
             m.assertNotInvalid(group)
 
-            ' When: Call setGroupLastFocusedHID with L1's id (a focus item)
-            groupL2.setGroupLastFocusedHID("L1")
+            ' When: Call setGroupLastFocusedId with L1's id (a focus item)
+            groupL2.setGroupLastFocusedId("L1")
 
             ' Then: The group's lastFocusedHID should be updated to L1's HID
             l1Widget = m.fwInstance.getWidget("L1")
@@ -1055,8 +1055,8 @@ namespace tests
             topGroup = focusPlugin.groupStack.get(topWidget.HID)
             m.assertNotInvalid(topGroup)
 
-            ' When: Call setGroupLastFocusedHID with GroupL2's id (a group)
-            topWidget.setGroupLastFocusedHID("GroupL2")
+            ' When: Call setGroupLastFocusedId with GroupL2's id (a group)
+            topWidget.setGroupLastFocusedId("GroupL2")
 
             ' Then: The top group's lastFocusedHID should be updated to GroupL2's HID
             groupL2Widget = m.fwInstance.getWidget("GroupL2")
