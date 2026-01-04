@@ -120,7 +120,9 @@ namespace Rotor
                         m.scope.animators.delete(m.animatorId)
                     end if
 
-                    m.scope.animators = {}
+                    if m.scope.animators = invalid
+                        m.scope.animators = {}
+                    end if
                     m.scope.animators[m.animatorId] = {}
 
                     parsedParams = Rotor.animatorParamsIntegrationHelper(params)
@@ -171,7 +173,9 @@ namespace Rotor
                         m.scope.animators.delete(m.animatorId)
                     end if
 
-                    m.scope.animators = {}
+                    if m.scope.animators = invalid
+                        m.scope.animators = {}
+                    end if
                     m.scope.animators[m.animatorId] = {}
 
                     return {
