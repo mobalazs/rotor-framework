@@ -111,6 +111,7 @@ Widgets with focus configuration automatically receive these methods via `widget
 | `proceedLongPress` | None | object | Manually trigger long press navigation action |
 | `isLongPressActive` | None | boolean | Check if long press is currently active |
 | `triggerKeyPress` | `key` (string) | object | Simulate key press for testing or programmatic navigation |
+| `setGroupLastFocusedHID` | `id` (string) | void | Update the lastFocusedHID of this widget's focus group. If called on a group, updates its own lastFocusedHID. If called on a focus item, finds and updates the parent group's lastFocusedHID. |
 
 ## Common Patterns
 

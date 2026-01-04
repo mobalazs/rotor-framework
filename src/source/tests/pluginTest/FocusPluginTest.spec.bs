@@ -970,6 +970,99 @@ namespace tests
             m.assertEqual(widget2.focusCount, 1)
         end function
 
+        ' ======================================================================
+        ' TEST SUITE 12: setGroupLastFocusedHID
+        ' ======================================================================
+
+        @describe("setGroupLastFocusedHID method")
+
+        @it("updates lastFocusedHID when called on a focus group")
+        function _()
+            ' Given: GroupL2 is a focus group with L1 and L2 items
+            groupL2 = m.fwInstance.getWidget("GroupL2")
+            focusPlugin = m.fwInstance.plugins.focus
+
+            ' Get the group from the stack
+            group = focusPlugin.groupStack.get(groupL2.HID)
+            m.assertNotInvalid(group)
+
+            ' When: Call setGroupLastFocusedHID with L2's id on the group widget
+            groupL2.setGroupLastFocusedHID("L2")
+
+            ' Then: The group's lastFocusedHID should be updated to L2's HID
+            l2Widget = m.fwInstance.getWidget("L2")
+            m.assertEqual(group.lastFocusedHID, l2Widget.HID)
+        end function
+
+        @it("updates parent group's lastFocusedHID when called on a focus item")
+        function _()
+            ' Given: L1 is a focus item inside GroupL2
+            l1Widget = m.fwInstance.getWidget("L1")
+            focusPlugin = m.fwInstance.plugins.focus
+
+            ' Get the parent group (GroupL2) from the stack
+            groupL2Widget = m.fwInstance.getWidget("GroupL2")
+            group = focusPlugin.groupStack.get(groupL2Widget.HID)
+            m.assertNotInvalid(group)
+
+            ' When: Call setGroupLastFocusedHID with L2's id on L1 (a sibling focus item)
+            l1Widget.setGroupLastFocusedHID("L2")
+
+            ' Then: The parent group's lastFocusedHID should be updated to L2's HID
+            l2Widget = m.fwInstance.getWidget("L2")
+            m.assertEqual(group.lastFocusedHID, l2Widget.HID)
+        end function
+
+        @it("does nothing when called with non-existent id")
+        function _()
+            ' Given: GroupL2 with initial lastFocusedHID
+            groupL2 = m.fwInstance.getWidget("GroupL2")
+            focusPlugin = m.fwInstance.plugins.focus
+
+            group = focusPlugin.groupStack.get(groupL2.HID)
+            initialLastFocusedHID = group.lastFocusedHID
+
+            ' When: Call setGroupLastFocusedHID with non-existent id
+            groupL2.setGroupLastFocusedHID("nonExistentWidget")
+
+            ' Then: lastFocusedHID should remain unchanged
+            m.assertEqual(group.lastFocusedHID, initialLastFocusedHID)
+        end function
+
+        @it("resolves id from focusItemStack")
+        function _()
+            ' Given: L1 is a focus item
+            groupL2 = m.fwInstance.getWidget("GroupL2")
+            focusPlugin = m.fwInstance.plugins.focus
+
+            group = focusPlugin.groupStack.get(groupL2.HID)
+            m.assertNotInvalid(group)
+
+            ' When: Call setGroupLastFocusedHID with L1's id (a focus item)
+            groupL2.setGroupLastFocusedHID("L1")
+
+            ' Then: The group's lastFocusedHID should be updated to L1's HID
+            l1Widget = m.fwInstance.getWidget("L1")
+            m.assertEqual(group.lastFocusedHID, l1Widget.HID)
+        end function
+
+        @it("resolves id from groupStack when not found in focusItemStack")
+        function _()
+            ' Given: GroupL2 is a group (not a focus item)
+            topWidget = m.fwInstance.getWidget("topWidget")
+            focusPlugin = m.fwInstance.plugins.focus
+
+            topGroup = focusPlugin.groupStack.get(topWidget.HID)
+            m.assertNotInvalid(topGroup)
+
+            ' When: Call setGroupLastFocusedHID with GroupL2's id (a group)
+            topWidget.setGroupLastFocusedHID("GroupL2")
+
+            ' Then: The top group's lastFocusedHID should be updated to GroupL2's HID
+            groupL2Widget = m.fwInstance.getWidget("GroupL2")
+            m.assertEqual(topGroup.lastFocusedHID, groupL2Widget.HID)
+        end function
+
         @describe("focus plugin cleanup")
 
         @it("removeFocusConfig removes focus item from stack")
