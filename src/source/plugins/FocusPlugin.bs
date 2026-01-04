@@ -331,7 +331,7 @@ namespace Rotor
             '
             ' @param {string} id - The widget id to set as lastFocusedHID
             '
-            setGroupLastFocusedHID: sub(id as string)
+            setGroupLastFocusedId: sub(id as string)
                 plugin = m.getFrameworkInstance().plugins[PRIMARY_FOCUS_PLUGIN_KEY]
 
                 ' Determine ancestorHID for search context
