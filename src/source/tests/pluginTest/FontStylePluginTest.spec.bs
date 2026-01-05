@@ -30,21 +30,60 @@ namespace tests
             m.assertEqual(m.widget.node.font.size, 26)
         end function
 
-        @it("setFontAttribute replaces @ tokens with assocarray values")
+        @it("setFontAttribute resolves @ operator in property values from viewModelState")
         function _()
             m.widget.viewModelState = {
-                themeStyle: {
-                    uri: "pkg:/fonts/Body.ttf",
-                    size: 32
-                }
+                fontUri: "pkg:/fonts/Body.ttf",
+                fontSize: 32
             }
-            m.widget.fontStyle = "@themeStyle"
+            m.widget.fontStyle = {
+                uri: "@fontUri",
+                size: "@fontSize"
+            }
 
             m.plugin.setFontAttribute(m.widget)
 
             m.assertNotEqual(m.widget.node.font, invalid)
             m.assertEqual(m.widget.node.font.uri, "pkg:/fonts/Body.ttf")
             m.assertEqual(m.widget.node.font.size, 32)
+        end function
+
+        @it("setFontAttribute resolves @l10n. prefix from viewModelState.l10n")
+        function _()
+            m.widget.viewModelState = {
+                l10n: {
+                    fonts: {
+                        regular: "pkg:/fonts/L10n-Regular.ttf"
+                    }
+                }
+            }
+            m.widget.fontStyle = {
+                uri: "@l10n.fonts.regular",
+                size: 24
+            }
+
+            m.plugin.setFontAttribute(m.widget)
+
+            m.assertNotEqual(m.widget.node.font, invalid)
+            m.assertEqual(m.widget.node.font.uri, "pkg:/fonts/L10n-Regular.ttf")
+            m.assertEqual(m.widget.node.font.size, 24)
+        end function
+
+        @it("setFontAttribute handles mixed static and @ values")
+        function _()
+            m.widget.viewModelState = {
+                dynamicSize: 28
+            }
+            m.widget.fontStyle = {
+                uri: "pkg:/fonts/Static.ttf",
+                size: "@dynamicSize"
+            }
+
+            m.plugin.setFontAttribute(m.widget)
+
+            m.assertNotEqual(m.widget.node.font, invalid)
+            m.assertEqual(m.widget.node.font.uri, "pkg:/fonts/Static.ttf")
+            m.assertEqual(m.widget.node.font.size, 28)
         end function
 
         @it("beforeUpdate stores new configuration and reapplies font style")
