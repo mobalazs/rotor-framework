@@ -4,7 +4,7 @@
 
 ## Overview
 
-The FontStyle Plugin provides declarative font management for Label nodes. It enables automatic font styling through a `fontStyle` configuration, supporting static font objects, function expressions, and dynamic values (using `@` operator for variable interpolation).
+The FontStyle Plugin provides declarative font management for Label nodes. It enables automatic font styling through a `fontStyle` configuration, supporting static font objects, function expressions, and dynamic values using `@` operator resolution within properties.
 
 **Important**: FontStyle only applies to Label nodes. Non-Label widgets will ignore fontStyle configuration.
 
@@ -13,15 +13,22 @@ The FontStyle Plugin provides declarative font management for Label nodes. It en
 | Type | Description | Example |
 |------|-------------|---------|
 | Object | Static font configuration with uri and size | `{ uri: "pkg:/fonts/Roboto-Bold.ttf", size: 32 }` |
+| Object with @ | Font config with @ operator in properties | `{ uri: "@l10n.fonts.regular", size: "@fontSize" }` |
 | Function Expression | Dynamic expression computed from state | `function() as object` |
-| Variable Reference | String with `@` operator referencing viewModelState | `"@currentFontStyle"` |
 
 ### Font Object Properties
 
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
-| `uri` | string | Yes | Path to font file (e.g., "pkg:/fonts/Roboto-Regular.ttf") |
-| `size` | integer | Yes | Font size in pixels |
+| `uri` | string or @ expression | Yes | Path to font file or @ expression resolving to path |
+| `size` | integer or @ expression | Yes | Font size in pixels or @ expression resolving to integer |
+
+### Expression Syntax
+
+| Syntax | Resolution Source | Example |
+|--------|-------------------|---------|
+| `@l10n.key.path` | `widget.viewModelState.l10n` | `@l10n.fonts.regular` |
+| `@key.path` | `widget.viewModelState` | `@fontUri` |
 
 ### Font Value Examples
 
@@ -35,8 +42,17 @@ The FontStyle Plugin provides declarative font management for Label nodes. It en
         size: 32
     },
 
-    ' Variable reference - from viewModelState
-    fontStyle: "@headerFontStyle",
+    ' @ operator in properties - from viewModelState.l10n
+    fontStyle: {
+        uri: "@l10n.fonts.regular",
+        size: 24
+    },
+
+    ' @ operator in properties - from viewModelState
+    fontStyle: {
+        uri: "@fontUri",
+        size: "@fontSize"
+    },
 
     ' Function expression - dynamic based on state
     fontStyle: function() as object typecast m as Rotor.Widget
@@ -72,9 +88,9 @@ The FontStyle Plugin operates automatically through widget lifecycle:
 ### Font Application Process
 
 1. **Node Type Check**: Plugin verifies widget is a Label node
-2. **Value Resolution**: Determines if value is Object, Function Expression, or Variable Reference
+2. **Value Resolution**: Determines if value is Object or Function Expression
 3. **Expression Execution**: Function expressions executed in widget scope with access to `m`
-4. **Variable Interpolation**: `@` operator patterns resolved from `viewModelState`
+4. **@ Operator Resolution**: Property values starting with `@l10n.` resolve from `viewModelState.l10n`, others from `viewModelState`
 5. **Font Application**: Creates SceneGraph Font node and applies to Label
 6. **Update Handling**: Font reapplied when fontStyle updates
 
@@ -135,20 +151,50 @@ UI.fontStyles = {
 }
 ```
 
-### Variable Reference from ViewModel
+### @ Operator Resolution from ViewModel
 
 ```brightscript
-' In ViewModel
+' In ViewModel - setup viewModelState with font properties
 override sub onCreateView()
-    m.viewModelState.currentFontStyle = UI.fontStyles.H2_aa
+    m.viewModelState.fontUri = "pkg:/fonts/Roboto-Bold.ttf"
+    m.viewModelState.fontSize = 32
 end sub
 
-' In widget template
+' In widget template - @ resolves from viewModelState
 {
     nodeType: "Label",
-    fontStyle: "@currentFontStyle",
+    fontStyle: {
+        uri: "@fontUri",
+        size: "@fontSize"
+    },
     fields: {
         text: "Dynamic Font"
+    }
+}
+```
+
+### Localized Font Resolution with @l10n
+
+```brightscript
+' In ViewModel - setup l10n with font paths
+override sub onCreateView()
+    m.viewModelState.l10n = {
+        fonts: {
+            regular: "pkg:/fonts/Roboto-Regular.ttf",
+            bold: "pkg:/fonts/Roboto-Bold.ttf"
+        }
+    }
+end sub
+
+' In widget template - @l10n. resolves from viewModelState.l10n
+{
+    nodeType: "Label",
+    fontStyle: {
+        uri: "@l10n.fonts.regular",
+        size: 24
+    },
+    fields: {
+        text: "Localized Font"
     }
 }
 ```
@@ -274,12 +320,13 @@ sub debugFontStyle(widget as object)
 end sub
 ```
 
-### Variable Interpolation Issues
+### @ Operator Resolution Issues
 
-- **Check variable exists**: Ensure variable is in `viewModelState`
-- **Verify syntax**: Use `@variableName` format correctly
-- **Check scope**: Variables resolve from widget's `viewModelState`
-- **Debug resolution**: Print `viewModelState` to verify structure
+- **For @l10n.key**: Ensure `viewModelState.l10n.key` exists
+- **For @key**: Ensure `viewModelState.key` exists
+- **Verify syntax**: Use `{ uri: "@fontUri", size: "@fontSize" }` format
+- **Check types**: Resolved values must be correct type (string for uri, integer for size)
+- **Debug resolution**: Print `viewModelState` and `viewModelState.l10n` to verify structure
 
 ### Performance Issues
 

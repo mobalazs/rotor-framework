@@ -3,33 +3,44 @@ ctx: ViewBuilder FontStyle Plugin
 type: typography / label-styling
 scope:
   nodeType: Label widgets only
-  usage: "Declarative font management for Label nodes. Apply font styles via fontStyle property, supports static objects, @ operator references, function expressions for conditional typography."
+  usage: "Declarative font management for Label nodes. Apply font styles via fontStyle property, supports static objects, @ operator resolution within properties, function expressions for conditional typography."
 
 core:
   valueTypes:
     staticObject: "{ uri: 'pkg:/fonts/Roboto.ttf', size: 32 } - Direct font definition"
-    atOperator: "@fontStyleVar - Reference viewModelState font object"
+    atOperatorInProps: "{ uri: '@l10n.fonts.regular', size: '@fontSize' } - @ resolution within properties"
     functionExpression: "function() as object - Dynamic font selection based on state/props"
   features:
     - "Automatic font node creation and application during lifecycle"
+    - "@ operator resolution within object properties (uri, size)"
+    - "@l10n. prefix resolves from viewModelState.l10n"
+    - "@ prefix resolves from viewModelState"
     - "Supports typecast m as Rotor.Widget for IDE tooling"
     - "Reusable typography systems via shared UI.fontStyles"
-    - "Conditional font switching based on state"
 
 props:
   fontObject:
-    uri: "string - Font file path (pkg:/fonts/...). Must be TTF format."
-    size: "integer - Font size in pixels"
+    uri: "string - Font file path or @ expression. Must resolve to TTF path."
+    size: "integer or @ expression - Font size in pixels"
   contextAccess:
-    viewModelState: "Source for @ operator variables"
+    viewModelState: "Source for @ operator resolution"
+    viewModelState.l10n: "Source for @l10n. prefix resolution"
     props: "Conditional font selection based on widget properties"
+
+expressionSyntax:
+  atL10nPrefix: "@l10n.key.path - Resolves from widget.viewModelState.l10n"
+  atPrefix: "@key.path - Resolves from widget.viewModelState"
 
 valueTypes:
   staticFont: |
     fontStyle: { uri: "pkg:/fonts/Roboto-Bold.ttf", size: 48 }
-  atOperator: |
-    m.viewModelState.titleFont = { uri: "pkg:/fonts/Roboto-Bold.ttf", size: 48 }
-    fontStyle: "@titleFont"  (references viewModelState.titleFont)
+  atOperatorInProps: |
+    ' @l10n. resolves from viewModelState.l10n
+    fontStyle: { uri: "@l10n.fonts.regular", size: 24 }
+    ' @ resolves from viewModelState
+    m.viewModelState.fontUri = "pkg:/fonts/Roboto.ttf"
+    m.viewModelState.fontSize = 32
+    fontStyle: { uri: "@fontUri", size: "@fontSize" }
   functionExpression: |
     fontStyle: function() as object typecast m as Rotor.Widget
       if m.viewModelState.isHighlighted
@@ -59,6 +70,20 @@ pipeline:
   6: "Reapply on updates when fontStyle changes"
 
 patterns:
+  l10nFontResolution: |
+    ' Localized font resolution from viewModelState.l10n
+    m.viewModelState.l10n = {
+      fonts: {
+        regular: "pkg:/fonts/Roboto-Regular.ttf",
+        bold: "pkg:/fonts/Roboto-Bold.ttf"
+      }
+    }
+    fontStyle: { uri: "@l10n.fonts.regular", size: 24 }
+  viewModelStateResolution: |
+    ' Font properties from viewModelState
+    m.viewModelState.fontUri = "pkg:/fonts/Roboto-Bold.ttf"
+    m.viewModelState.fontSize = 32
+    fontStyle: { uri: "@fontUri", size: "@fontSize" }
   typographySystem: |
     UI.fontStyles = {
       h1: { uri: "pkg:/fonts/Roboto-Bold.ttf", size: 48 }
@@ -66,8 +91,7 @@ patterns:
       body: { uri: "pkg:/fonts/Roboto-Regular.ttf", size: 24 }
       caption: { uri: "pkg:/fonts/Roboto-Light.ttf", size: 18 }
     }
-    m.viewModelState.headerFont = UI.fontStyles.h1
-    fontStyle: "@headerFont"
+    fontStyle: UI.fontStyles.h1
   dynamicStateSelection: |
     fontStyle: function() as object
       if m.viewModelState.isSelected
@@ -109,6 +133,7 @@ pitfalls:
   unsupportedFormats: "Non-TTF formats fail to load. Solution: Use TTF format only."
   unnecessaryFontCreation: "Creating new font objects on every render. Solution: Cache font objects in viewModelState or UI.fontStyles."
   functionScopeIssues: "Function expressions lacking widget scope. Solution: Add typecast m as Rotor.Widget if needed."
+  atOperatorInWrongContext: "Using @l10n. when l10n not set in viewModelState. Solution: Ensure viewModelState.l10n exists."
 
 troubleshooting:
   fontNotApplying:
@@ -128,10 +153,10 @@ troubleshooting:
         else
           print "ERROR: No font applied to node"
   atOperatorNotWorking:
-    - "Check viewModelState property exists: m.viewModelState.fontVar set in ViewModel"
-    - "Verify syntax: @fontVar (no quotes, no prefix)"
-    - "Ensure font object has uri and size properties"
-    - "Test with function expression: Compare @ vs function() -> return m.viewModelState.fontVar"
+    - "For @l10n.key: Check viewModelState.l10n.key exists"
+    - "For @key: Check viewModelState.key exists"
+    - "Verify @ is inside property value: { uri: '@fontUri', size: '@fontSize' }"
+    - "Ensure resolved value is correct type (string for uri, integer for size)"
   performanceIssues:
     - "Profile font loading: Measure font file load times"
     - "Preload essential fonts: Load in app initialization"
