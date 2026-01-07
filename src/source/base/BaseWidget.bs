@@ -87,22 +87,23 @@ namespace Rotor
         ' These are optionally injected by plugins
 
         ' Focus Plugin Methods (from FocusPlugin.bs)
-        optional enableFocusNavigation as function   ' Enable focus navigation
+        optional enableFocusNavigation as function    ' Enable focus navigation
         optional isFocusNavigationEnabled as function ' Check if focus enabled
-        optional setFocus as function                ' Set focus on widget
-        optional getFocusedWidget as function        ' Get currently focused widget
-        optional proceedLongPress as function        ' Trigger long press
-        optional isLongPressActive as function       ' Check if long press active
+        optional setFocus as function                 ' Set focus on widget
+        optional getFocusedWidget as function         ' Get currently focused widget
+        optional proceedLongPress as function         ' Trigger long press
+        optional isLongPressActive as function        ' Check if long press active
+        optional triggerKeyPress as function          ' Trigger key press event
 
         ' =============================================================
         ' PRIVATE PROPERTIES (Engine Use Only)
         ' =============================================================
 
-        private HID as string           ' Hierarchical ID (e.g., "0.header.logo")
-        private vmHID as string         ' Owning ViewModel's HID
-        private isRootChild as boolean  ' True if direct child of root
+        private HID as string             ' Hierarchical ID (e.g., "0.header.logo")
+        private vmHID as string           ' Owning ViewModel's HID
+        private isRootChild as boolean    ' True if direct child of root
         private childrenHIDhash as object ' Hash of child HIDs for fast lookup
-        private parentHID as string     ' Parent's HID
+        private parentHID as string       ' Parent's HID
 
     end class
 
