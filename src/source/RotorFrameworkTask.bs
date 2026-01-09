@@ -4,7 +4,7 @@
 ' ▐▛▀▚▖▐▌ ▐▌ █ ▐▌ ▐▌▐▛▀▚▖    ▐▛▀▀▘▐▛▀▚▖▐▛▀▜▌▐▌  ▐▌▐▛▀▀▘▐▌ ▐▌▐▌ ▐▌▐▛▀▚▖▐▛▚▖
 ' ▐▌ ▐▌▝▚▄▞▘ █ ▝▚▄▞▘▐▌ ▐▌    ▐▌   ▐▌ ▐▌▐▌ ▐▌▐▌  ▐▌▐▙▄▄▖▐▙█▟▌▝▚▄▞▘▐▌ ▐▌▐▌ ▐▌
 ' Rotor Framework™
-' Version 0.7.2
+' Version 0.7.3
 ' © 2025 Balázs Molnár — Apache License 2.0
 ' =========================================================================
 
@@ -70,7 +70,7 @@ namespace Rotor
     class FrameworkTask
 
         name = "Rotor Framework"
-        version = "0.7.2"
+        version = "0.7.3"
 
         config = {
             tasks: invalid, ' optional
