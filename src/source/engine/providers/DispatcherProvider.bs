@@ -6,7 +6,7 @@ namespace Rotor
     '
     ' Manages a collection of dispatcher instances and provides facade access
     ' to dispatchers. Extends BaseStack to store and organize dispatchers by ID.
-    ' Handles both internal and external dispatcher registration/deregistration.
+    ' Handles both local and cross-thread dispatcher registration/deregistration.
     ' =====================================================================
     class DispatcherProvider extends Rotor.BaseStack
 
@@ -59,15 +59,15 @@ namespace Rotor
         end sub
 
         ' ---------------------------------------------------------------------
-        ' registerExternalDispatchers - Registers external dispatchers from another thread
+        ' registerCrossThreadDispatchers - Registers cross-thread dispatchers from another thread
         '
         ' @param {dynamic} dispatcherIds - Single ID string or array of dispatcher IDs
-        ' @param {object} taskNode - The task node for cross-thread communication
+        ' @param {object} stateNode - The node for cross-thread state communication
         '
-        sub registerExternalDispatchers(dispatcherIds as dynamic, taskNode as object)
+        sub registerCrossThreadDispatchers(dispatcherIds as dynamic, stateNode as object)
             dispatcherIds = Rotor.Utils.ensureArray(dispatcherIds)
             for each dispatcherId in dispatcherIds
-                dispatcherInstance = new Rotor.DispatcherExternal(dispatcherId, taskNode, m.threadType)
+                dispatcherInstance = new Rotor.DispatcherCrossThread(dispatcherId, stateNode, m.threadType)
                 m.set(dispatcherId, dispatcherInstance)
             end for
         end sub

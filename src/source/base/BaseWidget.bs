@@ -94,6 +94,7 @@ namespace Rotor
         optional proceedLongPress as function         ' Trigger long press
         optional isLongPressActive as function        ' Check if long press active
         optional triggerKeyPress as function          ' Trigger key press event
+        optional setGroupLastFocusedId as function    ' Set the last focused widget ID within the current focus group (used to restore focus when re-entering the group)
 
         ' =============================================================
         ' PRIVATE PROPERTIES (Engine Use Only)

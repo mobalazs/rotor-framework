@@ -1,10 +1,10 @@
-import "pkg:/source/base/DispatcherExternal.bs"
+import "pkg:/source/base/DispatcherCrossThread.bs"
 import "pkg:/source/engine/Constants.bs"
 
 namespace tests
 
-    @suite("DispatcherExternal behaviour")
-    class DispatcherExternalSuite extends rooibos.BaseTestSuite
+    @suite("DispatcherCrossThread behaviour")
+    class DispatcherCrossThreadSuite extends rooibos.BaseTestSuite
 
         frameworkStub as object
         deregisteredId as string
@@ -48,7 +48,7 @@ namespace tests
         function dispatch_sets_rotor_sync_payload()
             node = CreateObject("roSGNode", "ContentNode")
             node.addField("rotorSync", "assocarray", true)
-            dispatcher = new Rotor.DispatcherExternal("renderDispatch", node, Rotor.Const.ThreadType.RENDER)
+            dispatcher = new Rotor.DispatcherCrossThread("renderDispatch", node, Rotor.Const.ThreadType.RENDER)
 
             dispatcher.dispatch({ type: "PING", payload: {} } as Intent)
 
@@ -61,7 +61,7 @@ namespace tests
         function render_thread_add_remove_listener_updates_observer_state()
             node = CreateObject("roSGNode", "ContentNode")
             node.addField("rotorSync", "assocarray", true)
-            dispatcher = new Rotor.DispatcherExternal("renderListener", node, Rotor.Const.ThreadType.RENDER)
+            dispatcher = new Rotor.DispatcherCrossThread("renderListener", node, Rotor.Const.ThreadType.RENDER)
 
             dispatcher.addListener({}, "listener-1", { props: {} })
             m.assertTrue(dispatcher.isStateObserved)
@@ -74,7 +74,7 @@ namespace tests
         function task_thread_add_remove_listener_delegates_to_framework()
             node = CreateObject("roSGNode", "ContentNode")
             node.addField("rotorSync", "assocarray", true)
-            dispatcher = new Rotor.DispatcherExternal("taskListener", node, Rotor.Const.ThreadType.TASK)
+            dispatcher = new Rotor.DispatcherCrossThread("taskListener", node, Rotor.Const.ThreadType.TASK)
 
             dispatcher.addListener({}, "listener-2", { props: {} })
             m.assertEqual(m.addedObservers.Count(), 1)
@@ -90,7 +90,7 @@ namespace tests
             node = CreateObject("roSGNode", "ContentNode")
             node.addField("taskDispatcher", "assocarray", true)
             node.setField("taskDispatcher", { count: 5 })
-            dispatcher = new Rotor.DispatcherExternal("taskDispatcher", node, Rotor.Const.ThreadType.RENDER)
+            dispatcher = new Rotor.DispatcherCrossThread("taskDispatcher", node, Rotor.Const.ThreadType.RENDER)
             scope = { props: { count: 0 } }
 
             state = dispatcher.getState(sub(props, newState)
@@ -105,14 +105,14 @@ namespace tests
         function destroy_cleans_up_and_deregisters()
             node = CreateObject("roSGNode", "ContentNode")
             node.addField("rotorSync", "assocarray", true)
-            dispatcher = new Rotor.DispatcherExternal("toDestroy", node, Rotor.Const.ThreadType.TASK)
+            dispatcher = new Rotor.DispatcherCrossThread("toDestroy", node, Rotor.Const.ThreadType.TASK)
 
             dispatcher.addListener({}, "listener-3", { props: {} })
             dispatcher.destroy()
 
             m.assertEqual(m.deregisteredId, "toDestroy")
             m.assertEqual(m.removedObservers.Count(), 1)
-            m.assertInvalid(dispatcher.taskNode)
+            m.assertInvalid(dispatcher.stateNode)
         end function
 
     end class

@@ -2,7 +2,7 @@
 namespace Rotor
 
     ' =====================================================================
-    ' Dispatcher - Dispatcher Facade that provides a simplified interface for state management
+    ' Dispatcher FACADE - Dispatcher Facade that provides an interface for state management
     '
     ' Acts as a proxy to the underlying dispatcher instance, managing intents,
     ' listeners, and state access. The facade pattern allows for clean separation
@@ -12,11 +12,12 @@ namespace Rotor
     class Dispatcher
 
         dispatcherId as string
-        listenerId as string
-        listenerScope as object
-        dispatcherInstance as object
 
-        sub new(dispatcherInstance as dynamic, dispatcherId as string, listenerId = "" as string, listenerScope = invalid as object)
+        private listenerId as string
+        private listenerScope as object
+        private dispatcherInstance as object
+
+        private sub new(dispatcherInstance as dynamic, dispatcherId as string, listenerId = "" as string, listenerScope = invalid as object)
             m.dispatcherId = dispatcherId
             m.listenerScope = listenerScope
             m.listenerId = listenerId
@@ -28,7 +29,7 @@ namespace Rotor
         '
         ' @param {Intent} intent - The intent object containing action type and payload
         '
-        sub dispatch(intent)
+        public sub dispatch(intent)
             m.dispatcherInstance.dispatch(intent)
         end sub
 
@@ -37,15 +38,8 @@ namespace Rotor
         '
         ' @param {Dynamic} listenerConfig - Configuration object for the listener (can be a function or object with mapStateToProps)
         '
-        sub addListener(listenerConfig as dynamic)
+        public sub addListener(listenerConfig as dynamic)
             m.dispatcherInstance.addListener(listenerConfig, m.listenerId, m.listenerScope)
-        end sub
-
-        ' ---------------------------------------------------------------------
-        ' removeAllListenersByListenerId - Removes all listeners associated with this dispatcher's listener ID
-        '
-        sub removeAllListenersByListenerId()
-            m.dispatcherInstance.removeAllListenersByListenerId(m.listenerId)
         end sub
 
         ' ---------------------------------------------------------------------
@@ -54,14 +48,21 @@ namespace Rotor
         ' @param {Dynamic} mapStateToProps - Optional function to map/select specific parts of the state
         ' @returns {Object} The current state object (mapped if selector provided)
         '
-        function getState(mapStateToProps = invalid as Dynamic) as object
+        public function getState(mapStateToProps = invalid as Dynamic) as object
             return m.dispatcherInstance.getState(mapStateToProps, m.listenerScope)
         end function
 
         ' ---------------------------------------------------------------------
+        ' removeAllListenersByListenerId - Removes all listeners associated with this dispatcher's listener ID
+        '
+        private sub removeAllListenersByListenerId()
+            m.dispatcherInstance.removeAllListenersByListenerId(m.listenerId)
+        end sub
+
+        ' ---------------------------------------------------------------------
         ' destroy - Cleans up the dispatcher facade by removing all listeners and clearing references
         '
-        sub destroy()
+        public sub destroy()
             m.removeAllListenersByListenerId()
             m.listenerScope = invalid
             m.dispatcherInstance = invalid

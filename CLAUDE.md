@@ -63,8 +63,8 @@ npm run update-version     # Update version across framework files
 - `BaseModel.bs`: State container base
 - `BaseReducer.bs`: State transformation base with middleware support
 - `BaseStack.bs`: Navigation stack implementation
-- `DispatcherCreator.bs`: Creates dispatcher instances
-- `DispatcherExternal.bs`: External dispatcher interface
+- `DispatcherOriginal.bs`: Creates dispatcher instances
+- `DispatcherCrossThread.bs`: Cross-thread dispatcher interface
 - `BasePlugin.bs`: Plugin lifecycle base (beforeMount, beforeUpdate, beforeDestroy)
 
 **5. Plugin System** (`src/source/plugins/`)

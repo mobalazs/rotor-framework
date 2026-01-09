@@ -1,9 +1,9 @@
-import "ListenerForDispatchers.bs"
+import "DispatcherCore.bs"
 
 namespace Rotor
 
     ' =====================================================================
-    ' DispatcherExternal - External dispatcher for cross-thread MVI state management
+    ' DispatcherCrossThread - Cross-thread dispatcher for MVI state management
     '
     ' This dispatcher is used when accessing dispatchers from a different thread
     ' than where they were created (render thread accessing task thread dispatcher
@@ -11,25 +11,22 @@ namespace Rotor
     '
     ' Responsibilities:
     '   - Dispatches intents across thread boundaries via rotorSync field
-    '   - Observes state changes on task node field
+    '   - Observes state changes on state node field
     '   - Manages cross-thread listener notifications
     '   - Lazy observer setup (only when listeners are added)
     '   - Auto cleanup when last listener is removed
     '
     ' MVI Cross-Thread Flow:
     '   Render Thread: dispatch(intent) → rotorSync field → Task Thread
-    '   Task Thread: reduce state → task node field → Render Thread observer callback
+    '   Task Thread: reduce state → state node field → Render Thread observer callback
     ' =====================================================================
-    class DispatcherExternal extends ListenerForDispatchers
+    class DispatcherCrossThread extends DispatcherCore
 
         ' =============================================================
         ' MEMBER VARIABLES
         ' =============================================================
 
-        dispatcherId as string          ' Dispatcher identifier
-        taskNode as object              ' Task node for cross-thread communication
         threadType as string            ' Current thread type (RENDER or TASK)
-        isExternal = true               ' True for external dispatchers
         isStateObserved = false         ' Tracks if observer is active
 
         ' =============================================================
@@ -37,18 +34,18 @@ namespace Rotor
         ' =============================================================
 
         ' ---------------------------------------------------------------------
-        ' Constructor - Initializes external dispatcher
+        ' Constructor - Initializes cross-thread dispatcher
         '
         ' @param {string} dispatcherId - Dispatcher identifier
-        ' @param {object} taskNode - Task node for cross-thread communication
+        ' @param {object} stateNode - Node for cross-thread state communication
         ' @param {string} threadType - Current thread type (RENDER or TASK)
         '
-        sub new(dispatcherId as string, taskNode as object, threadType as string)
+        sub new(dispatcherId as string, stateNode as object, threadType as string)
             super()
 
             ' Store dispatcher configuration
             m.dispatcherId = dispatcherId
-            m.taskNode = taskNode
+            m.stateNode = stateNode
             m.threadType = threadType
         end sub
 
@@ -73,7 +70,7 @@ namespace Rotor
             end if
 
             ' Send intent to task thread via rotorSync field
-            m.taskNode.setField("rotorSync", {
+            m.stateNode.setField("rotorSync", {
                 type: Rotor.Const.ThreadSyncType.DISPATCH,
                 payload: {
                     dispatcherId: m.dispatcherId,
@@ -87,17 +84,17 @@ namespace Rotor
         ' =============================================================
 
         ' ---------------------------------------------------------------------
-        ' getState - Returns current state from task node field (optionally mapped)
+        ' getState - Returns current state from state node field (optionally mapped)
         '
-        ' Reads state from task node field set by internal dispatcher.
+        ' Reads state from state node field set by internal dispatcher.
         '
         ' @param {dynamic} mapStateToProps - Optional mapping function
         ' @param {object} callerScope - Caller scope for mapping function
         ' @returns {object} Current state
         '
         function getState(mapStateToProps = invalid as Dynamic, callerScope = invalid as object) as object
-            ' Read state from task node field
-            state = m.taskNode.getField(m.dispatcherId)
+            ' Read state from state node field
+            state = m.stateNode.getField(m.dispatcherId)
 
             ' Apply optional state mapping
             m.runMapStateToProps(state, mapStateToProps, callerScope)
@@ -150,7 +147,7 @@ namespace Rotor
         ' =============================================================
 
         ' ---------------------------------------------------------------------
-        ' setupObserver - Sets up observer for state changes on task node field
+        ' setupObserver - Sets up observer for state changes on state node field
         '
         ' Thread-specific observer setup:
         '   - RENDER thread: Uses observeFieldScoped with callback name
@@ -159,12 +156,12 @@ namespace Rotor
         sub setupObserver()
             if m.threadType = Rotor.Const.ThreadType.RENDER
                 ' Render thread: use native SceneGraph observer
-                m.taskNode.observeFieldScoped(m.dispatcherId, "Rotor_dispatcherStateCallback")
+                m.stateNode.observeFieldScoped(m.dispatcherId, "Rotor_dispatcherStateCallback")
             else
                 ' Task thread: use framework observer system
                 fieldId = m.dispatcherId
                 frameworkInstance = GetGlobalAA().rotor_framework_helper.frameworkInstance
-                frameworkInstance.addObserver(fieldId, m.taskNode)
+                frameworkInstance.addObserver(fieldId, m.stateNode)
             end if
 
             m.isStateObserved = true
@@ -178,12 +175,12 @@ namespace Rotor
         sub removeObserver()
             if m.threadType = Rotor.Const.ThreadType.RENDER
                 ' Render thread: unobserve SceneGraph field
-                m.taskNode.unobserveFieldScoped(m.dispatcherId)
+                m.stateNode.unobserveFieldScoped(m.dispatcherId)
             else
                 ' Task thread: remove framework observer
                 fieldId = m.dispatcherId
                 frameworkInstance = GetGlobalAA().rotor_framework_helper.frameworkInstance
-                frameworkInstance.removeObserver(fieldId, m.taskNode)
+                frameworkInstance.removeObserver(fieldId, m.stateNode)
             end if
 
             m.isStateObserved = false
@@ -194,7 +191,7 @@ namespace Rotor
         ' =============================================================
 
         ' ---------------------------------------------------------------------
-        ' destroy - Cleans up external dispatcher resources
+        ' destroy - Cleans up cross-thread dispatcher resources
         '
         ' Cleanup steps:
         '   1. Call parent cleanup
@@ -210,16 +207,16 @@ namespace Rotor
             ' Remove observer if active
             if m.isStateObserved = true
                 if m.threadType = Rotor.Const.ThreadType.RENDER
-                    m.taskNode.unobserveFieldScoped(m.dispatcherId)
+                    m.stateNode.unobserveFieldScoped(m.dispatcherId)
                 else
                     fieldId = m.dispatcherId
-                    frameworkInstance.removeObserver(fieldId, m.taskNode)
+                    frameworkInstance.removeObserver(fieldId, m.stateNode)
                 end if
             end if
 
             ' Clear all references
             m.listeners.Clear()
-            m.taskNode = invalid
+            m.stateNode = invalid
 
             ' Deregister from provider
             frameworkInstance.dispatcherProvider.deregisterDispatcher(m.dispatcherId)
@@ -235,7 +232,7 @@ namespace Rotor
     ' dispatcherStateCallback - Global callback function for dispatcher state changes on render thread
     '
     ' This function is called by SceneGraph's observeFieldScoped when a dispatcher's
-    ' state field changes on the task node. It routes the state change to the
+    ' state field changes on the state node. It routes the state change to the
     ' appropriate dispatcher instance for listener notification.
     '
     ' Process flow:

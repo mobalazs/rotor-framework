@@ -114,13 +114,15 @@ namespace Rotor.ViewBuilder
             m.audioGuide = CreateObject("roAudioGuide")
             m.debounceTimer = CreateObject("roTimespan")
 
-            if m.audioGuide = invalid
-                #if debug
-                    ? "[TTS_SERVICE][ERROR] Failed to create roAudioGuide instance"
-                #end if
-                m.isEnabled = false
-                return
-            end if
+            #if not unittest
+                if m.audioGuide = invalid
+                    #if debug
+                        ? "[TTS_SERVICE][ERROR] Failed to create roAudioGuide instance"
+                    #end if
+                    m.isEnabled = false
+                    return
+                end if
+            #end if
 
             ' Create timer node for threshold (one-shot, started on demand)
             rootNode = m.frameworkInstance.getRootNode()
@@ -377,7 +379,10 @@ namespace Rotor.ViewBuilder
             end if
 
             ' Speak text (Say() handles flushing if shouldFlush=true)
-            speechId = m.audioGuide.Say(text, shouldFlush, dontRepeat)
+            speechId = 0
+            if m.audioGuide <> invalid
+                speechId = m.audioGuide.Say(text, shouldFlush, dontRepeat)
+            end if
             m.lastSpeech = text
 
             ' Set protection flag if requested
@@ -542,7 +547,9 @@ namespace Rotor.ViewBuilder
         '
         public sub stopSpeech()
             if not m.isEnabled or not m.getIsDeviceAudioGuideEnabled() then return
-            m.audioGuide.Flush()
+            if m.audioGuide <> invalid
+                m.audioGuide.Flush()
+            end if
             m.preventNextFlushFlag = false
             m.pendingSpeech = invalid
             m.isPendingProtected = false

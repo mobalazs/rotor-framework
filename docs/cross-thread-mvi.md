@@ -169,7 +169,7 @@ m.dispatcher.addListener({
     end sub,
 
     ' Optional: CallbackWithState when state changes
-    callback: sub(state)
+    callbackWithState: sub(state)
         return state.count > 0
     end sub,
 

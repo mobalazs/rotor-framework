@@ -21,8 +21,8 @@ import "engine/animator/Animator.bs"
 
 ' base classes
 import "base/BaseWidget.bs"
-import "base/DispatcherCreator.bs"
-import "base/DispatcherExternal.bs"
+import "base/DispatcherOriginal.bs"
+import "base/DispatcherCrossThread.bs"
 import "base/BaseReducer.bs"
 import "base/BaseModel.bs"
 import "base/BaseStack.bs"
@@ -121,10 +121,8 @@ namespace Rotor
         ' plugin adapter workspace
         plugins = {}
 
-        ' sync
-        taskOperationalFlag = {}
-        taskSyncReadyFlag = {}
-        taskNodes = {}
+        ' sync - task tracking with phase: pending → operational → synced
+        tasks = {}                      ' taskId -> { node, phase, dispatchers[] }
 
         enableRendering = true
 
@@ -360,15 +358,17 @@ namespace Rotor
             taskNode = rootNode.createChild(taskName)
             taskId = Rotor.Utils.getUUIDHex(16)
 
-            m.taskNodes[taskId] = taskNode ' collection for later usage
-            m.taskOperationalFlag[taskId] = false ' collection for later usage
+            m.tasks[taskId] = {
+                node: taskNode,
+                phase: "pending",
+                dispatchers: []
+            }
 
             Rotor.Utils.setCustomFields(taskNode, {
                 taskId: taskId,
                 rootNode: rootNode
             })
 
-            ' taskNode.observeFieldScoped("rotorSync", "Rotor_syncCallback")
             taskNode.control = "RUN"
         end sub
 
@@ -378,136 +378,108 @@ namespace Rotor
         ' @param {object} taskList - Array of task names to set up
         '
         sub setupAdditionalTasks(taskList as object)
-            ' check additional tasks
             if taskList = invalid then return
-
-            taskNames = Rotor.Utils.ensureArray(taskList)
-            for each taskName in taskNames
+            for each taskName in Rotor.Utils.ensureArray(taskList)
                 m.setupTaskForSyncing(taskName)
             end for
         end sub
 
         ' ---------------------------------------------------------------------
-        ' areAllTasksOperational - Checks if all task threads are operational
+        ' allTasksInPhase - Checks if all tasks are in given phase
         '
-        ' @returns {boolean} True if all tasks have signaled operational status
+        ' @param {string} phase - Phase to check ("pending", "operational", "synced")
+        ' @returns {boolean} True if all tasks are in the given phase
         '
-        function areAllTasksOperational() as boolean
-            ' Check if all nodes ready (very basic logic (< future improvement)
-            if m.taskOperationalFlag.Count() = 0 then return false
-
-            for each flag in m.taskOperationalFlag.Items()
-                if flag.value <> true then return false
+        function allTasksInPhase(phase as string) as boolean
+            if m.tasks.Count() = 0 then return false
+            for each taskId in m.tasks
+                if m.tasks[taskId].phase <> phase then return false
             end for
-
             return true
         end function
 
         ' ---------------------------------------------------------------------
-        ' collectExternalDispatcherRegistrations - Collects external dispatcher info for tasks
+        ' getDispatchersNotOnTask - Gets dispatchers that are NOT on given task
         '
-        ' Creates a map of which external dispatchers need to be registered in which tasks.
+        ' @param {object} taskNode - Task node to exclude
+        ' @returns {object} Array of { dispatcherId, stateNode } for foreign dispatchers
         '
-        ' @returns {object} AA mapping taskId to array of dispatcher registration configs
-        '
-        function collectExternalDispatcherRegistrations() as object
-            registrations = {}
-            dispatcherIds = m.dispatcherProvider.getAll().keys()
-
-            for each taskEntry in m.taskNodes.Items()
-                taskNode = taskEntry.value
-
-                for each dispatcherId in dispatcherIds
-                    dispatcherInstance = m.dispatcherProvider.get(dispatcherId)
-                    externalTaskNode = dispatcherInstance.taskNode
-
-                    if not taskNode.isSameNode(externalTaskNode)
-                        m.taskSyncReadyFlag[taskNode.taskId] = false ' collection for later usage
-                        if registrations[taskNode.taskId] = invalid then registrations[taskNode.taskId] = []
-                        registrations[taskNode.taskId].push({
-                            dispatcherId: dispatcherId,
-                            externalTaskNode: externalTaskNode
-                        })
-                    end if
-                end for
+        function getDispatchersNotOnTask(taskNode as object) as object
+            result = []
+            for each dispatcherId in m.dispatcherProvider.getAll().keys()
+                stateNode = m.dispatcherProvider.get(dispatcherId).stateNode
+                if not taskNode.isSameNode(stateNode)
+                    result.push({ dispatcherId: dispatcherId, stateNode: stateNode })
+                end if
             end for
-
-            return registrations
+            return result
         end function
 
         ' ---------------------------------------------------------------------
-        ' dispatchExternalDispatcherRegistrations - Sends dispatcher registration to tasks
+        ' broadcastDispatchersToTasks - Sends foreign dispatchers to each task
         '
-        ' @param {object} registrations - Map of taskId to dispatcher registration configs
+        ' For each task, sends list of dispatchers that exist on other threads.
         '
-        sub dispatchExternalDispatcherRegistrations(registrations as object)
-            for each taskId in registrations
-                taskNode = m.taskNodes[taskId]
-                taskNode.setField("rotorSync", {
-                    type: Rotor.Const.ThreadSyncType.REGISTER_EXTERNAL_DISPATCHER,
-                    externalDispatcherList: registrations[taskId]
-                })
-            end for
-        end sub
+        sub broadcastDispatchersToTasks()
+            for each taskId in m.tasks
+                task = m.tasks[taskId]
+                foreignDispatchers = m.getDispatchersNotOnTask(task.node)
 
-        ' ---------------------------------------------------------------------
-        ' haveAllTasksSynced - Checks if all tasks have completed syncing
-        '
-        ' @returns {boolean} True if all tasks have synced successfully
-        '
-        function haveAllTasksSynced() as boolean
-            ' Check if all nodes ready (very basic logic (< future improvement)
-            if m.taskSyncReadyFlag.Count() = 0 then return false
-
-            for each flag in m.taskSyncReadyFlag.Items()
-                if flag.value <> true then return false
+                if foreignDispatchers.Count() > 0
+                    task.node.setField("rotorSync", {
+                        type: Rotor.Const.ThreadSyncType.REGISTER_CROSS_THREAD_DISPATCHER,
+                        crossThreadDispatcherList: foreignDispatchers
+                    })
+                else
+                    task.phase = "synced"
+                end if
             end for
 
-            return true
-        end function
-
-        ' ---------------------------------------------------------------------
-        ' handleTaskSyncing - Handles task syncing phase
-        '
-        ' Registers external dispatchers and sets up cross-thread communication.
-        '
-        ' @param {object} sync - Sync payload from task thread
-        '
-        sub handleTaskSyncing(sync as object)
-            taskNode = sync.taskNode
-
-            m.setupAdditionalTasks(sync.tasks)
-
-            ' register incoming dispatchers
-            dispatcherIds = sync.dispatcherIds
-            if dispatcherIds <> invalid
-                m.dispatcherProvider.registerExternalDispatchers(dispatcherIds, taskNode)
-            end if
-
-            ' update task status
-            m.taskOperationalFlag[taskNode.taskId] = true
-
-            if not m.areAllTasksOperational() then return
-
-            ' if allTasksRunning then create external dispatchers in all tasks
-            registrations = m.collectExternalDispatcherRegistrations()
-            if registrations.Count() > 0
-                m.dispatchExternalDispatcherRegistrations(registrations)
-            else
+            ' If no tasks needed dispatchers, we're done
+            if m.allTasksInPhase("synced")
                 m.isReady()
             end if
         end sub
 
         ' ---------------------------------------------------------------------
-        ' handleTaskSynced - Handles task synced confirmation
+        ' handleTaskSyncing - Handles task syncing phase
         '
-        ' Marks task as synced and checks if all tasks are ready.
+        ' Called when a task reports its dispatchers. Registers cross-thread
+        ' dispatchers and broadcasts dispatcher map when all tasks are ready.
+        '
+        ' @param {object} sync - Sync payload { taskNode, dispatcherIds, tasks }
+        '
+        sub handleTaskSyncing(sync as object)
+            taskNode = sync.taskNode
+            taskId = taskNode.taskId
+
+            ' Setup any additional tasks this task declared
+            m.setupAdditionalTasks(sync.tasks)
+
+            ' Store dispatcher IDs for this task
+            m.tasks[taskId].dispatchers = sync.dispatcherIds ?? []
+            m.tasks[taskId].phase = "operational"
+
+            ' Register cross-thread dispatchers on render thread
+            if sync.dispatcherIds <> invalid
+                m.dispatcherProvider.registerCrossThreadDispatchers(sync.dispatcherIds, taskNode)
+            end if
+
+            ' Wait for all tasks to be operational
+            if not m.allTasksInPhase("operational") then return
+
+            ' All tasks ready - broadcast dispatcher map
+            m.broadcastDispatchersToTasks()
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' handleTaskSynced - Handles task synced confirmation
         '
         ' @param {string} taskId - ID of the task that has synced
         '
         sub handleTaskSynced(taskId as string)
-            m.taskSyncReadyFlag[taskId] = true
-            if m.haveAllTasksSynced()
+            m.tasks[taskId].phase = "synced"
+            if m.allTasksInPhase("synced")
                 m.isReady()
             end if
         end sub
@@ -549,15 +521,15 @@ namespace Rotor
         public sub destroy()
 
             rootNode = m.getRootNode()
-            for each taskId in m.taskNodes
-                taskNode = m.taskNodes[taskId]
-                taskNode.setField("rotorSync", {
+            for each taskId in m.tasks
+                task = m.tasks[taskId]
+                task.node.setField("rotorSync", {
                     type: Rotor.Const.ThreadSyncType.DESTROY
                 })
-                rootNode.removeChild(taskNode)
+                rootNode.removeChild(task.node)
             end for
 
-            m.taskNodes.Clear()
+            m.tasks.Clear()
 
             rootNode.unobserveFieldScoped("rotorSync")
 

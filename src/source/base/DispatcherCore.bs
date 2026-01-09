@@ -16,10 +16,15 @@ end interface
 namespace Rotor
 
     ' =====================================================================
-    ' ListenerForDispatchers - Base class for dispatcher state change listener management
+    ' DispatcherCore - Core base class for dispatcher implementations
     '
-    ' Provides listener registration, notification, and lifecycle management
-    ' for both internal and external dispatchers.
+    ' Provides shared properties and listener management for both
+    ' DispatcherOriginal and DispatcherCrossThread.
+    '
+    ' Shared Properties:
+    '   - dispatcherId: Unique identifier for this dispatcher
+    '   - stateNode: SceneGraph node for state exposure
+    '   - listeners: Array of registered state change listeners
     '
     ' Listener Features:
     '   - State mapping: mapStateToProps for updating widget props
@@ -33,11 +38,14 @@ namespace Rotor
     '   3. Invoke callback functions
     '   4. Remove 'once' listeners
     ' =====================================================================
-    class ListenerForDispatchers
+    class DispatcherCore
 
         ' =============================================================
         ' MEMBER VARIABLES
         ' =============================================================
+
+        dispatcherId as string          ' Dispatcher identifier
+        stateNode as object             ' Node for cross-thread state exposure
 
         listeners = []                  ' Array of listener configurations
 
