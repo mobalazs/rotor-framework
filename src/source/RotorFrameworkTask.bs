@@ -87,6 +87,7 @@ namespace Rotor
         dispatcherProvider as object
         port as object
         asyncTransferRegistry = {} ' transferId -> { dispatcherId, context }
+        deviceInfoRegistry = {} ' deviceInfoId -> { dispatcherId, context, deviceInfo }
         onTick as function
 
         ' ---------------------------------------------------------------------
@@ -144,6 +145,27 @@ namespace Rotor
         public sub registerAsyncTransfer(transferId as string, dispatcherId as string, context = invalid as dynamic)
             m.asyncTransferRegistry[transferId] = {
                 dispatcherId: dispatcherId,
+                context: context
+            }
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' registerDeviceInfo - Registers a roDeviceInfo for event listening
+        '
+        ' This method associates a roDeviceInfo object with a dispatcher ID.
+        ' When device info events occur (linkStatus, etc.), the framework will
+        ' route them to the correct dispatcher's asyncReducerCallback.
+        '
+        ' @param {string} deviceInfoId - Unique identifier for this registration
+        ' @param {string} dispatcherId - Dispatcher ID that will handle events
+        ' @param {object} deviceInfo - The roDeviceInfo object (must have SetMessagePort called)
+        ' @param {object} context - Optional user data to pass back in callback
+        '
+        public sub registerDeviceInfo(deviceInfoId as string, dispatcherId as string, deviceInfo as object, context = invalid as dynamic)
+            deviceInfo.SetMessagePort(m.port)
+            m.deviceInfoRegistry[deviceInfoId] = {
+                dispatcherId: dispatcherId,
+                deviceInfo: deviceInfo,
                 context: context
             }
         end sub
@@ -251,6 +273,22 @@ namespace Rotor
                             end if
 
                         end if
+                    else if msgType = "roDeviceInfoEvent"
+                        ' Handle device info events (ignore appFocused, etc.)
+                        if m.deviceInfoRegistry.count() > 0
+                            eventInfo = msg.GetInfo()
+                            ' Only process linkStatus events, ignore appFocused and other events
+                            if eventInfo?.linkStatus <> invalid
+                                ' Route to all registered device info dispatchers
+                                for each deviceInfoId in m.deviceInfoRegistry
+                                    registryEntry = m.deviceInfoRegistry[deviceInfoId]
+                                    dispatcherInstance = m.dispatcherProvider.get(registryEntry.dispatcherId)
+                                    if dispatcherInstance <> invalid
+                                        dispatcherInstance.asyncReducerCallback(eventInfo, registryEntry?.context as dynamic)
+                                    end if
+                                end for
+                            end if
+                        end if
                     end if
                 end if
             end while
@@ -317,6 +355,7 @@ namespace Rotor
         '
         public sub destroy()
             m.asyncTransferRegistry.clear()
+            m.deviceInfoRegistry.clear()
             m.dispatcherProvider.destroy()
 
             globalScope = GetGlobalAA()
