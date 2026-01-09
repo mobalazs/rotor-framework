@@ -39,6 +39,9 @@ namespace Rotor
         ' MEMBER VARIABLES
         ' =============================================================
 
+        dispatcherId as string          ' Dispatcher identifier
+        stateNode as object             ' Node for cross-thread state exposure
+
         listeners = []                  ' Array of listener configurations
 
         ' =============================================================

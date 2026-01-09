@@ -230,7 +230,7 @@ namespace Rotor
                             else if sync.type = Rotor.Const.ThreadSyncType.REGISTER_CROSS_THREAD_DISPATCHER
 
                                 for each item in sync.crossThreadDispatcherList
-                                    m.dispatcherProvider.registerCrossThreadDispatchers(item.dispatcherId, item.crossThreadTaskNode)
+                                    m.dispatcherProvider.registerCrossThreadDispatchers(item.dispatcherId, item.crossThreadStateNode)
                                 end for
 
                                 m.notifySyncStatus(Rotor.Const.ThreadSyncType.TASK_SYNCED)

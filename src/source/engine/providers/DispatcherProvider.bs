@@ -62,12 +62,12 @@ namespace Rotor
         ' registerCrossThreadDispatchers - Registers cross-thread dispatchers from another thread
         '
         ' @param {dynamic} dispatcherIds - Single ID string or array of dispatcher IDs
-        ' @param {object} taskNode - The task node for cross-thread communication
+        ' @param {object} stateNode - The node for cross-thread state communication
         '
-        sub registerCrossThreadDispatchers(dispatcherIds as dynamic, taskNode as object)
+        sub registerCrossThreadDispatchers(dispatcherIds as dynamic, stateNode as object)
             dispatcherIds = Rotor.Utils.ensureArray(dispatcherIds)
             for each dispatcherId in dispatcherIds
-                dispatcherInstance = new Rotor.DispatcherCrossThread(dispatcherId, taskNode, m.threadType)
+                dispatcherInstance = new Rotor.DispatcherCrossThread(dispatcherId, stateNode, m.threadType)
                 m.set(dispatcherId, dispatcherInstance)
             end for
         end sub

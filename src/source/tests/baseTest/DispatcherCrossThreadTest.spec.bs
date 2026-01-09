@@ -112,7 +112,7 @@ namespace tests
 
             m.assertEqual(m.deregisteredId, "toDestroy")
             m.assertEqual(m.removedObservers.Count(), 1)
-            m.assertInvalid(dispatcher.taskNode)
+            m.assertInvalid(dispatcher.stateNode)
         end function
 
     end class

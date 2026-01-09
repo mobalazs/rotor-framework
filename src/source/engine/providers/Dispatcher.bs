@@ -2,7 +2,7 @@
 namespace Rotor
 
     ' =====================================================================
-    ' Dispatcher - Dispatcher Facade that provides a simplified interface for state management
+    ' Dispatcher FACADE - Dispatcher Facade that provides a temporary interface for state management
     '
     ' Acts as a proxy to the underlying dispatcher instance, managing intents,
     ' listeners, and state access. The facade pattern allows for clean separation

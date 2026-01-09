@@ -38,11 +38,8 @@ namespace Rotor
         middlewares = []                ' Middleware array (unused, handled by Reducer)
         isDispatchingInProgress = false ' Prevents reentrant dispatch
         dispatchQueue = []              ' Queue for intents during active dispatch
-        dispatcherId as string          ' Dispatcher identifier
-        taskNode as object              ' Task node for cross-thread state exposure
         reducerInstance as object       ' Reducer instance
         modelInstance as object         ' Model instance holding state
-        listeners = []                  ' State change listeners
 
         ' =============================================================
         ' CONSTRUCTOR
@@ -61,7 +58,7 @@ namespace Rotor
             m.dispatcherId = dispatcherId
 
             globalScope = GetGlobalAA()
-            m.taskNode = globalScope.top
+            m.stateNode = globalScope.top
 
             ' Link reducer to this dispatcher
             m.reducerInstance = reducerInstance
@@ -70,7 +67,7 @@ namespace Rotor
             m.modelInstance = modelInstance
 
             ' Create field on task node for render thread communication
-            m.taskNode.addField(m.dispatcherId, "node", true)
+            m.stateNode.addField(m.dispatcherId, "node", true)
 
             ' Expose initial state
             m.exposeState()
@@ -93,7 +90,7 @@ namespace Rotor
         sub exposeState()
             newState = CreateObject("roSGNode", "ContentNode")
             newState.addFields(m.modelInstance.state)
-            m.taskNode.setField(m.dispatcherId, newState)
+            m.stateNode.setField(m.dispatcherId, newState)
         end sub
 
         ' ---------------------------------------------------------------------
@@ -130,6 +127,7 @@ namespace Rotor
             end if
 
             if m.isDispatchingInProgress = false
+
                 ' Execute reducer
                 currentState = m.modelInstance.state
                 newState = m.reducerInstance.reduce(currentState, intent)
@@ -147,7 +145,7 @@ namespace Rotor
                     m.dispatch(intent)
                 end if
             else
-                ' Queue intent to prevent reentrancy
+                ' Queue intent for later processing
                 m.dispatchQueue.push(intent)
             end if
         end sub
@@ -182,7 +180,7 @@ namespace Rotor
             frameworkInstance = GetGlobalAA().rotor_framework_helper.frameworkInstance
             frameworkInstance.dispatcherProvider.deregisterDispatcher(m.dispatcherId)
 
-            m.taskNode = invalid
+            m.stateNode = invalid
             m.modelInstance = invalid
             m.reducerInstance = invalid
         end sub
