@@ -62,7 +62,7 @@ namespace Rotor
         ' ---------------------------------------------------------------------
         ' destroy - Cleans up the dispatcher facade by removing all listeners and clearing references
         '
-        private sub destroy()
+        public sub destroy()
             m.removeAllListenersByListenerId()
             m.listenerScope = invalid
             m.dispatcherInstance = invalid

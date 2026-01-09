@@ -124,7 +124,7 @@ namespace tests
                 ctx.fwInstance.destroy()
 
                 ' Validate proper destroy
-                ctx.assertEqual(ctx.fwInstance.taskNodes.Count(), 0)
+                ctx.assertEqual(ctx.fwInstance.tasks.Count(), 0)
                 ctx.assertEqual(ctx.fwInstance.getRootWidget().children.Count(), 0)
 
                 ctx.done()

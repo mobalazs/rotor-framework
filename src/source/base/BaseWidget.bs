@@ -94,6 +94,7 @@ namespace Rotor
         optional proceedLongPress as function         ' Trigger long press
         optional isLongPressActive as function        ' Check if long press active
         optional triggerKeyPress as function          ' Trigger key press event
+        optional setGroupLastFocusedId as function    ' Set group last focused ID
 
         ' =============================================================
         ' PRIVATE PROPERTIES (Engine Use Only)
