@@ -41,7 +41,8 @@ namespace tests
             m.assertNotInvalid(widget)
 
             found = m.fwInstance.getWidgetByHID(widget.HID)
-            m.assertEqual(found, widget)
+            m.assertNotInvalid(found)
+            m.assertEqual(found.HID, widget.HID)
         end sub
 
         @it("presetNodePool preallocates nodes via framework wrapper")

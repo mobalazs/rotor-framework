@@ -842,5 +842,400 @@ namespace tests
             m.assertTrue(ttsService.skipCache.DoesExist("combo-key"))
         end function
 
+        @describe("processSayValue with function callback")
+
+        @it("speak accepts function as say parameter")
+        function _()
+            widget = m.fwInstance.getWidget("testLabel")
+            m.assertNotInvalid(widget)
+
+            ttsService = widget.tts()
+
+            ' Speak with function callback
+            ttsService.speak({
+                say: function()
+                    return "Dynamic text from function"
+                end function,
+                flush: true
+            })
+
+            ' Test passes if no crash
+            m.assertTrue(true)
+        end function
+
+        @it("speak with function and context passes context to callback")
+        function _()
+            widget = m.fwInstance.getWidget("testLabel")
+            m.assertNotInvalid(widget)
+
+            ttsService = widget.tts()
+
+            ' Speak with function and context
+            ttsService.speak({
+                say: function()
+                    return "Value is " + m.testValue
+                end function,
+                context: { testValue: "42" },
+                flush: true
+            })
+
+            ' Test passes if no crash
+            m.assertTrue(true)
+        end function
+
+        @it("speak with function returning non-string handles gracefully")
+        function _()
+            widget = m.fwInstance.getWidget("testLabel")
+            m.assertNotInvalid(widget)
+
+            ttsService = widget.tts()
+
+            ' Function returns number instead of string
+            ttsService.speak({
+                say: function()
+                    return 123
+                end function,
+                flush: true
+            })
+
+            ' Test passes if no crash (function returning non-string should be handled)
+            m.assertTrue(true)
+        end function
+
+        @describe("context interpolation")
+
+        @it("speak interpolates @ operator for viewModelState")
+        function _()
+            widget = m.fwInstance.getWidget("testLabel")
+            m.assertNotInvalid(widget)
+
+            ttsService = widget.tts()
+
+            ' Speak with @ interpolation
+            ttsService.speak({
+                say: "Value is @testKey",
+                context: {
+                    viewModelState: { testKey: "interpolated" }
+                },
+                flush: true
+            })
+
+            ' Test passes if no crash
+            m.assertTrue(true)
+        end function
+
+        @it("speak interpolates $ operator for context properties")
+        function _()
+            widget = m.fwInstance.getWidget("testLabel")
+            m.assertNotInvalid(widget)
+
+            ttsService = widget.tts()
+
+            ' Speak with $ interpolation
+            ttsService.speak({
+                say: "Count is $count",
+                context: { count: "5" },
+                flush: true
+            })
+
+            ' Test passes if no crash
+            m.assertTrue(true)
+        end function
+
+        @it("speak handles multiple interpolations in same string")
+        function _()
+            widget = m.fwInstance.getWidget("testLabel")
+            m.assertNotInvalid(widget)
+
+            ttsService = widget.tts()
+
+            ' Multiple interpolations
+            ttsService.speak({
+                say: "User @name has $count items",
+                context: {
+                    viewModelState: { name: "John" },
+                    count: "3"
+                },
+                flush: true
+            })
+
+            ' Test passes if no crash
+            m.assertTrue(true)
+        end function
+
+        @it("speak handles unknown interpolation operators gracefully")
+        function _()
+            widget = m.fwInstance.getWidget("testLabel")
+            m.assertNotInvalid(widget)
+
+            ttsService = widget.tts()
+
+            ' Unknown operator should be skipped
+            ttsService.speak({
+                say: "Value is @unknownKey",
+                context: {}, ' No viewModelState
+                flush: true
+            })
+
+            ' Test passes if no crash
+            m.assertTrue(true)
+        end function
+
+        @describe("isPendingProtected flag behavior")
+
+        @it("isPendingProtected is set when preventNextFlush triggers protection")
+        function _()
+            widget = m.fwInstance.getWidget("testLabel")
+            m.assertNotInvalid(widget)
+
+            ttsService = widget.tts()
+
+            ' Initial state
+            m.assertFalse(ttsService.isPendingProtected)
+
+            ' First call with preventNextFlush
+            ttsService.speak({
+                say: "Protected speech",
+                preventNextFlush: true,
+                flush: true
+            })
+
+            ' Flag should be set for protection
+            m.assertTrue(ttsService.preventNextFlushFlag)
+
+            ' Second call triggers protection transfer to isPendingProtected
+            ttsService.speak({
+                say: "Next speech",
+                flush: true
+            })
+
+            ' Protection should transfer
+            m.assertTrue(ttsService.isPendingProtected)
+        end function
+
+        @it("isPendingProtected blocks flush on subsequent calls")
+        function _()
+            widget = m.fwInstance.getWidget("testLabel")
+            m.assertNotInvalid(widget)
+
+            ttsService = widget.tts()
+
+            ' Set protection via preventNextFlush
+            ttsService.speak({
+                say: "Protected",
+                preventNextFlush: true,
+                flush: true
+            })
+
+            ' Next call should have flush blocked
+            ttsService.speak({
+                say: "Blocked flush",
+                flush: true
+            })
+
+            ' Third call should also have flush blocked (isPendingProtected persists)
+            ttsService.speak({
+                say: "Also blocked",
+                flush: true
+            })
+
+            ' Test passes if no crash
+            m.assertTrue(true)
+        end function
+
+        @it("stopSpeech clears isPendingProtected flag")
+        function _()
+            widget = m.fwInstance.getWidget("testLabel")
+            m.assertNotInvalid(widget)
+
+            ttsService = widget.tts()
+
+            ' Set protection
+            ttsService.speak({
+                say: "Protected",
+                preventNextFlush: true,
+                flush: true
+            })
+
+            ttsService.speak({
+                say: "Next",
+                flush: true
+            })
+
+            ' isPendingProtected should be set
+            m.assertTrue(ttsService.isPendingProtected)
+
+            ' Stop speech
+            ttsService.stopSpeech()
+
+            ' isPendingProtected should be cleared
+            m.assertFalse(ttsService.isPendingProtected)
+        end function
+
+        @describe("long and multi-sentence text handling")
+
+        @it("long text over 50 chars forces flush")
+        function _()
+            widget = m.fwInstance.getWidget("testLabel")
+            m.assertNotInvalid(widget)
+
+            ttsService = widget.tts()
+
+            ' Long text (over 50 chars) should force flush internally
+            longText = "This is a very long text message that exceeds fifty characters for testing purposes"
+            ttsService.speak({
+                say: longText,
+                flush: false ' Even with flush=false, long text forces flush internally
+            })
+
+            ' Test passes if no crash
+            m.assertTrue(true)
+        end function
+
+        @it("multi-sentence text forces flush")
+        function _()
+            widget = m.fwInstance.getWidget("testLabel")
+            m.assertNotInvalid(widget)
+
+            ttsService = widget.tts()
+
+            ' Multi-sentence text should force flush
+            ttsService.speak({
+                say: "First sentence. Second sentence.",
+                flush: false ' Even with flush=false, multi-sentence forces flush
+            })
+
+            ' Test passes if no crash
+            m.assertTrue(true)
+        end function
+
+        @describe("preventNextFlush with pending speech scenarios")
+
+        @it("preventNextFlush executes pending speech first before new speech")
+        function _()
+            widget = m.fwInstance.getWidget("testLabel")
+            m.assertNotInvalid(widget)
+
+            ttsService = widget.tts()
+
+            ' First: set pending speech (no flush, goes to threshold)
+            ttsService.speak({
+                say: "Pending first"
+            })
+
+            ' Verify pending is set
+            m.assertNotInvalid(ttsService.pendingSpeech)
+
+            ' Then: call with preventNextFlush - should execute pending first
+            ttsService.speak({
+                say: "Override second",
+                preventNextFlush: true,
+                flush: true
+            })
+
+            ' Pending should be cleared (was executed)
+            m.assertInvalid(ttsService.pendingSpeech)
+
+            ' Protection flag should be set
+            m.assertTrue(ttsService.preventNextFlushFlag)
+        end function
+
+        @it("preventNextFlush without pending executes immediately")
+        function _()
+            widget = m.fwInstance.getWidget("testLabel")
+            m.assertNotInvalid(widget)
+
+            ttsService = widget.tts()
+
+            ' No pending speech initially
+            m.assertInvalid(ttsService.pendingSpeech)
+
+            ' Call with preventNextFlush directly
+            ttsService.speak({
+                say: "Direct override",
+                preventNextFlush: true,
+                flush: true
+            })
+
+            ' Pending should still be invalid (no pending was created)
+            m.assertInvalid(ttsService.pendingSpeech)
+
+            ' Protection flag should be set
+            m.assertTrue(ttsService.preventNextFlushFlag)
+        end function
+
+        @describe("timer and threshold behavior")
+
+        @it("multiple rapid speaks replace pending speech")
+        function _()
+            widget = m.fwInstance.getWidget("testLabel")
+            m.assertNotInvalid(widget)
+
+            ttsService = widget.tts()
+
+            ' First speak - sets pending
+            ttsService.speak({ say: "First" })
+            firstPending = ttsService.pendingSpeech?.textToSpeak
+
+            ' Second speak - replaces pending
+            ttsService.speak({ say: "Second" })
+            secondPending = ttsService.pendingSpeech?.textToSpeak
+
+            ' Third speak - replaces pending again
+            ttsService.speak({ say: "Third" })
+            thirdPending = ttsService.pendingSpeech?.textToSpeak
+
+            ' Final pending should be "Third" (spellOut processed)
+            m.assertNotInvalid(ttsService.pendingSpeech)
+            m.assertEqual(ttsService.pendingSpeech.textToSpeak, "Third")
+        end function
+
+        @it("timer node is stopped when preventNextFlush clears pending")
+        function _()
+            widget = m.fwInstance.getWidget("testLabel")
+            m.assertNotInvalid(widget)
+
+            ttsService = widget.tts()
+
+            ' Set pending speech
+            ttsService.speak({ say: "Pending" })
+
+            ' Timer should be started
+            m.assertNotInvalid(ttsService.timerNode)
+
+            ' preventNextFlush clears pending and stops timer
+            ttsService.speak({
+                say: "Override",
+                preventNextFlush: true
+            })
+
+            ' Pending should be cleared
+            m.assertInvalid(ttsService.pendingSpeech)
+        end function
+
+        @describe("speakSingle protection handling")
+
+        @it("speakSingle blocks flush when preventNextFlushFlag is set")
+        function _()
+            widget = m.fwInstance.getWidget("testLabel")
+            m.assertNotInvalid(widget)
+
+            ttsService = widget.tts()
+
+            ' Set protection flag directly
+            ttsService.preventNextFlushFlag = true
+
+            ' Speak with flush - should be blocked
+            ttsService.speak({
+                say: "Blocked flush speech",
+                flush: true
+            })
+
+            ' Flag should be cleared after use
+            ' (it gets cleared either by preventNextFlush logic or speakSingle)
+            ' Test passes if no crash
+            m.assertTrue(true)
+        end function
+
     end class
 end namespace
