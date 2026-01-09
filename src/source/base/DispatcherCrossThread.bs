@@ -3,7 +3,7 @@ import "ListenerForDispatchers.bs"
 namespace Rotor
 
     ' =====================================================================
-    ' DispatcherExternal - External dispatcher for cross-thread MVI state management
+    ' DispatcherCrossThread - Cross-thread dispatcher for MVI state management
     '
     ' This dispatcher is used when accessing dispatchers from a different thread
     ' than where they were created (render thread accessing task thread dispatcher
@@ -20,7 +20,7 @@ namespace Rotor
     '   Render Thread: dispatch(intent) → rotorSync field → Task Thread
     '   Task Thread: reduce state → task node field → Render Thread observer callback
     ' =====================================================================
-    class DispatcherExternal extends ListenerForDispatchers
+    class DispatcherCrossThread extends ListenerForDispatchers
 
         ' =============================================================
         ' MEMBER VARIABLES
@@ -29,7 +29,6 @@ namespace Rotor
         dispatcherId as string          ' Dispatcher identifier
         taskNode as object              ' Task node for cross-thread communication
         threadType as string            ' Current thread type (RENDER or TASK)
-        isExternal = true               ' True for external dispatchers
         isStateObserved = false         ' Tracks if observer is active
 
         ' =============================================================
@@ -37,7 +36,7 @@ namespace Rotor
         ' =============================================================
 
         ' ---------------------------------------------------------------------
-        ' Constructor - Initializes external dispatcher
+        ' Constructor - Initializes cross-thread dispatcher
         '
         ' @param {string} dispatcherId - Dispatcher identifier
         ' @param {object} taskNode - Task node for cross-thread communication
@@ -194,7 +193,7 @@ namespace Rotor
         ' =============================================================
 
         ' ---------------------------------------------------------------------
-        ' destroy - Cleans up external dispatcher resources
+        ' destroy - Cleans up cross-thread dispatcher resources
         '
         ' Cleanup steps:
         '   1. Call parent cleanup

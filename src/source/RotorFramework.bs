@@ -22,7 +22,7 @@ import "engine/animator/Animator.bs"
 ' base classes
 import "base/BaseWidget.bs"
 import "base/DispatcherCreator.bs"
-import "base/DispatcherExternal.bs"
+import "base/DispatcherCrossThread.bs"
 import "base/BaseReducer.bs"
 import "base/BaseModel.bs"
 import "base/BaseStack.bs"
@@ -404,13 +404,13 @@ namespace Rotor
         end function
 
         ' ---------------------------------------------------------------------
-        ' collectExternalDispatcherRegistrations - Collects external dispatcher info for tasks
+        ' collectCrossThreadDispatcherRegistrations - Collects cross-thread dispatcher info for tasks
         '
-        ' Creates a map of which external dispatchers need to be registered in which tasks.
+        ' Creates a map of which cross-thread dispatchers need to be registered in which tasks.
         '
         ' @returns {object} AA mapping taskId to array of dispatcher registration configs
         '
-        function collectExternalDispatcherRegistrations() as object
+        function collectCrossThreadDispatcherRegistrations() as object
             registrations = {}
             dispatcherIds = m.dispatcherProvider.getAll().keys()
 
@@ -419,14 +419,14 @@ namespace Rotor
 
                 for each dispatcherId in dispatcherIds
                     dispatcherInstance = m.dispatcherProvider.get(dispatcherId)
-                    externalTaskNode = dispatcherInstance.taskNode
+                    crossThreadTaskNode = dispatcherInstance.taskNode
 
-                    if not taskNode.isSameNode(externalTaskNode)
+                    if not taskNode.isSameNode(crossThreadTaskNode)
                         m.taskSyncReadyFlag[taskNode.taskId] = false ' collection for later usage
                         if registrations[taskNode.taskId] = invalid then registrations[taskNode.taskId] = []
                         registrations[taskNode.taskId].push({
                             dispatcherId: dispatcherId,
-                            externalTaskNode: externalTaskNode
+                            crossThreadTaskNode: crossThreadTaskNode
                         })
                     end if
                 end for
@@ -436,16 +436,16 @@ namespace Rotor
         end function
 
         ' ---------------------------------------------------------------------
-        ' dispatchExternalDispatcherRegistrations - Sends dispatcher registration to tasks
+        ' dispatchCrossThreadDispatcherRegistrations - Sends dispatcher registration to tasks
         '
         ' @param {object} registrations - Map of taskId to dispatcher registration configs
         '
-        sub dispatchExternalDispatcherRegistrations(registrations as object)
+        sub dispatchCrossThreadDispatcherRegistrations(registrations as object)
             for each taskId in registrations
                 taskNode = m.taskNodes[taskId]
                 taskNode.setField("rotorSync", {
-                    type: Rotor.Const.ThreadSyncType.REGISTER_EXTERNAL_DISPATCHER,
-                    externalDispatcherList: registrations[taskId]
+                    type: Rotor.Const.ThreadSyncType.REGISTER_CROSS_THREAD_DISPATCHER,
+                    crossThreadDispatcherList: registrations[taskId]
                 })
             end for
         end sub
@@ -469,7 +469,7 @@ namespace Rotor
         ' ---------------------------------------------------------------------
         ' handleTaskSyncing - Handles task syncing phase
         '
-        ' Registers external dispatchers and sets up cross-thread communication.
+        ' Registers cross-thread dispatchers and sets up cross-thread communication.
         '
         ' @param {object} sync - Sync payload from task thread
         '
@@ -481,7 +481,7 @@ namespace Rotor
             ' register incoming dispatchers
             dispatcherIds = sync.dispatcherIds
             if dispatcherIds <> invalid
-                m.dispatcherProvider.registerExternalDispatchers(dispatcherIds, taskNode)
+                m.dispatcherProvider.registerCrossThreadDispatchers(dispatcherIds, taskNode)
             end if
 
             ' update task status
@@ -489,10 +489,10 @@ namespace Rotor
 
             if not m.areAllTasksOperational() then return
 
-            ' if allTasksRunning then create external dispatchers in all tasks
-            registrations = m.collectExternalDispatcherRegistrations()
+            ' if allTasksRunning then create cross-thread dispatchers in all tasks
+            registrations = m.collectCrossThreadDispatcherRegistrations()
             if registrations.Count() > 0
-                m.dispatchExternalDispatcherRegistrations(registrations)
+                m.dispatchCrossThreadDispatcherRegistrations(registrations)
             else
                 m.isReady()
             end if

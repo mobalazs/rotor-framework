@@ -36,7 +36,6 @@ namespace Rotor
         ' =============================================================
 
         middlewares = []                ' Middleware array (unused, handled by Reducer)
-        isExternal = false              ' False for internal dispatchers
         isDispatchingInProgress = false ' Prevents reentrant dispatch
         dispatchQueue = []              ' Queue for intents during active dispatch
         dispatcherId as string          ' Dispatcher identifier

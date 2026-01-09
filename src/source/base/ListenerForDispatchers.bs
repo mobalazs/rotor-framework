@@ -19,7 +19,7 @@ namespace Rotor
     ' ListenerForDispatchers - Base class for dispatcher state change listener management
     '
     ' Provides listener registration, notification, and lifecycle management
-    ' for both internal and external dispatchers.
+    ' for both local and cross-thread dispatchers.
     '
     ' Listener Features:
     '   - State mapping: mapStateToProps for updating widget props
