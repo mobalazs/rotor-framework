@@ -14,7 +14,7 @@ The Cross-Thread MVI pattern enables thread-safe state management across render 
 
 The Model holds application state. It extends the `Model` base class and defines the initial state structure.
 
-```BrighterScript
+```brightscript
 class CounterModel extends Model
     state = {
         count: 0,
