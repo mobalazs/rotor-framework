@@ -12,11 +12,12 @@ namespace Rotor
     class Dispatcher
 
         dispatcherId as string
-        listenerId as string
-        listenerScope as object
-        dispatcherInstance as object
 
-        sub new(dispatcherInstance as dynamic, dispatcherId as string, listenerId = "" as string, listenerScope = invalid as object)
+        private listenerId as string
+        private listenerScope as object
+        private dispatcherInstance as object
+
+        private sub new(dispatcherInstance as dynamic, dispatcherId as string, listenerId = "" as string, listenerScope = invalid as object)
             m.dispatcherId = dispatcherId
             m.listenerScope = listenerScope
             m.listenerId = listenerId
@@ -54,14 +55,14 @@ namespace Rotor
         ' ---------------------------------------------------------------------
         ' removeAllListenersByListenerId - Removes all listeners associated with this dispatcher's listener ID
         '
-        sub removeAllListenersByListenerId()
+        private sub removeAllListenersByListenerId()
             m.dispatcherInstance.removeAllListenersByListenerId(m.listenerId)
         end sub
 
         ' ---------------------------------------------------------------------
         ' destroy - Cleans up the dispatcher facade by removing all listeners and clearing references
         '
-        sub destroy()
+        private sub destroy()
             m.removeAllListenersByListenerId()
             m.listenerScope = invalid
             m.dispatcherInstance = invalid

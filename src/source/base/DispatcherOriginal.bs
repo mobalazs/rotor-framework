@@ -1,4 +1,4 @@
-import "ListenerForDispatchers.bs"
+import "DispatcherCore.bs"
 
 namespace Rotor
 
@@ -29,7 +29,7 @@ namespace Rotor
     ' MVI Flow:
     '   dispatch(intent) → reducer.reduce() → update state → notify listeners
     ' =====================================================================
-    class DispatcherOriginal extends ListenerForDispatchers
+    class DispatcherOriginal extends DispatcherCore
 
         ' =============================================================
         ' MEMBER VARIABLES

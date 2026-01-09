@@ -1,4 +1,4 @@
-import "ListenerForDispatchers.bs"
+import "DispatcherCore.bs"
 
 namespace Rotor
 
@@ -20,7 +20,7 @@ namespace Rotor
     '   Render Thread: dispatch(intent) → rotorSync field → Task Thread
     '   Task Thread: reduce state → state node field → Render Thread observer callback
     ' =====================================================================
-    class DispatcherCrossThread extends ListenerForDispatchers
+    class DispatcherCrossThread extends DispatcherCore
 
         ' =============================================================
         ' MEMBER VARIABLES
