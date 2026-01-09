@@ -13,11 +13,11 @@ namespace Rotor
     ' @returns {Dispatcher} Dispatcher facade instance
     ' =====================================================================
     sub createDispatcher(customDispatcherId as string, modelInstance as Model, reducerInstance as Reducer)
-        m.dispatcherInstance = new Rotor.DispatcherCreator(customDispatcherId, modelInstance, reducerInstance)
+        m.dispatcherInstance = new Rotor.DispatcherOriginal(customDispatcherId, modelInstance, reducerInstance)
     end sub
 
     ' =====================================================================
-    ' DispatcherCreator - Internal dispatcher implementation for MVI pattern state management
+    ' DispatcherOriginal - Internal dispatcher implementation for MVI pattern state management
     '
     ' Responsibilities:
     '   - Dispatches intents to reducer
@@ -29,7 +29,7 @@ namespace Rotor
     ' MVI Flow:
     '   dispatch(intent) → reducer.reduce() → update state → notify listeners
     ' =====================================================================
-    class DispatcherCreator extends ListenerForDispatchers
+    class DispatcherOriginal extends ListenerForDispatchers
 
         ' =============================================================
         ' MEMBER VARIABLES

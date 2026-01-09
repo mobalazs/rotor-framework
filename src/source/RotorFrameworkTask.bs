@@ -16,7 +16,7 @@ import "engine/providers/DispatcherProvider.bs"
 import "engine/providers/Dispatcher.bs"
 
 ' base classes
-import "base/DispatcherCreator.bs"
+import "base/DispatcherOriginal.bs"
 import "base/DispatcherCrossThread.bs"
 import "base/BaseReducer.bs"
 import "base/BaseModel.bs"
