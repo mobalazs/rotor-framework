@@ -290,10 +290,18 @@ namespace Rotor.ViewBuilder
                 index = rootChildCount - 1
 
                 while index >= 0 and inserted = false
-                    siblingNodeHID = siblingNodes[index].HID
-                    siblingWidget = siblingNodeHID <> invalid ? m.frameworkInstance.builder.widgetTree.get(siblingNodeHID) : invalid
-                    if Rotor.Utils.isInteger(siblingWidget?.zIndex) and siblingWidget?.zIndex <= zIndex
-                        inserted = true ' loop
+                    siblingNode = siblingNodes[index]
+                    ' Find matching widget by node reference
+                    matchingWidget = invalid
+                    for each childId in widget.parent.children
+                        child = widget.parent.children[childId]
+                        if child.node <> invalid and child.node.isSameNode(siblingNode)
+                            matchingWidget = child
+                            exit for
+                        end if
+                    end for
+                    if Rotor.Utils.isInteger(matchingWidget?.zIndex) and matchingWidget?.zIndex <= zIndex
+                        inserted = true
                     else
                         index--
                     end if
@@ -324,8 +332,5 @@ namespace Rotor.ViewBuilder
         end sub
 
     end class
-
-
-
 
 end namespace
