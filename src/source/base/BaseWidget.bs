@@ -24,6 +24,7 @@ namespace Rotor
         ' =============================================================
 
         id as string                    ' Widget identifier
+        HID as string                   ' Hierarchical unique ID
         children as object              ' Child widgets collection
 
         ' =============================================================
@@ -100,7 +101,6 @@ namespace Rotor
         ' PRIVATE PROPERTIES (Engine Use Only)
         ' =============================================================
 
-        private HID as string             ' Hierarchical ID (e.g., "0.header.logo")
         private vmHID as string           ' Owning ViewModel's HID
         private isRootChild as boolean    ' True if direct child of root
         private childrenHIDhash as object ' Hash of child HIDs for fast lookup
