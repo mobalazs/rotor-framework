@@ -1063,6 +1063,348 @@ namespace tests
             m.assertEqual(topGroup.lastFocusedHID, groupL2Widget.HID)
         end function
 
+        ' ======================================================================
+        ' TEST SUITE 13: trackDescendantFocus (Deep Focus Memory)
+        ' ======================================================================
+
+        @describe("trackDescendantFocus - deep focus memory")
+
+        @it("ancestor group with trackDescendantFocus stores deeply nested focus item HID")
+        function _()
+            ' Given: A template with trackDescendantFocus: true on the outer group
+            template = {
+                id: "rememberTestRoot",
+                nodeType: "Group",
+                focusGroup: {
+                    defaultFocusId: "outerGroup"
+                },
+                children: [
+                    {
+                        id: "outerGroup",
+                        nodeType: "Group",
+                        fields: { translation: [0, 0] },
+                        focusGroup: {
+                            defaultFocusId: "innerGroup",
+                            trackDescendantFocus: true
+                        },
+                        children: [
+                            {
+                                id: "innerGroup",
+                                nodeType: "Group",
+                                fields: { translation: [0, 0] },
+                                focusGroup: {
+                                    defaultFocusId: "deepItem1"
+                                },
+                                children: [
+                                    {
+                                        id: "deepItem1",
+                                        nodeType: "Rectangle",
+                                        fields: { width: 100, height: 50, translation: [0, 0] },
+                                        focus: {}
+                                    },
+                                    {
+                                        id: "deepItem2",
+                                        nodeType: "Rectangle",
+                                        fields: { width: 100, height: 50, translation: [150, 0] },
+                                        focus: {}
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        id: "otherItem",
+                        nodeType: "Rectangle",
+                        fields: { width: 100, height: 50, translation: [0, 200] },
+                        focus: {}
+                    }
+                ]
+            }
+
+            ' Destroy existing and create new framework
+            m.fwInstance.destroy()
+            m.fwInstance = new Rotor.Framework()
+            m.fwInstance.render(template)
+
+            focusPlugin = m.fwInstance.plugins.focus
+
+            ' Step 1: Focus deepItem2 (nested 2 levels deep)
+            deepItem2 = m.fwInstance.getWidget("deepItem2")
+            deepItem2.setFocus()
+
+            ' Step 2: Move focus away to trigger blur (lastFocusedHID is set on blur)
+            otherItem = m.fwInstance.getWidget("otherItem")
+            otherItem.setFocus()
+
+            ' Get the outer group
+            outerGroupWidget = m.fwInstance.getWidget("outerGroup")
+            outerGroup = focusPlugin.groupStack.get(outerGroupWidget.HID)
+
+            ' Then: outer group should remember deepItem2's HID (because trackDescendantFocus: true)
+            m.assertEqual(outerGroup.lastFocusedHID, deepItem2.HID)
+        end function
+
+        @it("returns to deeply remembered focus item when re-entering group")
+        function _()
+            ' Given: Template with trackDescendantFocus on outer group
+            template = {
+                id: "returnTestRoot",
+                nodeType: "Group",
+                focusGroup: {
+                    defaultFocusId: "outerGroup"
+                },
+                children: [
+                    {
+                        id: "outerGroup",
+                        nodeType: "Group",
+                        fields: { translation: [0, 0] },
+                        focusGroup: {
+                            defaultFocusId: "innerGroup",
+                            trackDescendantFocus: true,
+                            down: "exitGroup"
+                        },
+                        children: [
+                            {
+                                id: "innerGroup",
+                                nodeType: "Group",
+                                fields: { translation: [0, 0] },
+                                focusGroup: {
+                                    defaultFocusId: "nestedItem1"
+                                },
+                                children: [
+                                    {
+                                        id: "nestedItem1",
+                                        nodeType: "Rectangle",
+                                        fields: { width: 100, height: 50, translation: [0, 0] },
+                                        focus: {}
+                                    },
+                                    {
+                                        id: "nestedItem2",
+                                        nodeType: "Rectangle",
+                                        fields: { width: 100, height: 50, translation: [150, 0] },
+                                        focus: {}
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        id: "exitGroup",
+                        nodeType: "Group",
+                        fields: { translation: [0, 200] },
+                        focusGroup: {
+                            defaultFocusId: "exitItem",
+                            up: "outerGroup"
+                        },
+                        children: [
+                            {
+                                id: "exitItem",
+                                nodeType: "Rectangle",
+                                fields: { width: 100, height: 50, translation: [0, 0] },
+                                focus: {}
+                            }
+                        ]
+                    }
+                ]
+            }
+
+            m.fwInstance.destroy()
+            m.fwInstance = new Rotor.Framework()
+            m.fwInstance.render(template)
+
+            ' Step 1: Focus nestedItem2 (deep in hierarchy)
+            nestedItem2 = m.fwInstance.getWidget("nestedItem2")
+            nestedItem2.setFocus()
+
+            ' Step 2: Navigate away (exit to exitGroup -> exitItem)
+            nestedItem2.triggerKeyPress("down")
+
+            ' Verify we're now on exitItem
+            focusedWidget = m.fwInstance.plugins.focus.getFocusedWidget()
+            m.assertEqual(focusedWidget.id, "exitItem")
+
+            ' Step 3: Navigate back up to outerGroup
+            exitItem = m.fwInstance.getWidget("exitItem")
+            exitItem.triggerKeyPress("up")
+
+            ' Then: Focus should return to nestedItem2 (deeply remembered)
+            focusedWidget = m.fwInstance.plugins.focus.getFocusedWidget()
+            m.assertEqual(focusedWidget.id, "nestedItem2")
+        end function
+
+        @it("immediate parent always stores lastFocusedHID regardless of trackDescendantFocus")
+        function _()
+            ' Given: Template where immediate parent does NOT have trackDescendantFocus
+            template = {
+                id: "immediateParentTestRoot",
+                nodeType: "Group",
+                focusGroup: {
+                    defaultFocusId: "parentGroup"
+                },
+                children: [
+                    {
+                        id: "parentGroup",
+                        nodeType: "Group",
+                        fields: { translation: [0, 0] },
+                        focusGroup: {
+                            defaultFocusId: "childItem1"
+                            ' Note: NO trackDescendantFocus here
+                        },
+                        children: [
+                            {
+                                id: "childItem1",
+                                nodeType: "Rectangle",
+                                fields: { width: 100, height: 50, translation: [0, 0] },
+                                focus: {}
+                            },
+                            {
+                                id: "childItem2",
+                                nodeType: "Rectangle",
+                                fields: { width: 100, height: 50, translation: [150, 0] },
+                                focus: {}
+                            }
+                        ]
+                    },
+                    {
+                        id: "outsideItem",
+                        nodeType: "Rectangle",
+                        fields: { width: 100, height: 50, translation: [0, 200] },
+                        focus: {}
+                    }
+                ]
+            }
+
+            m.fwInstance.destroy()
+            m.fwInstance = new Rotor.Framework()
+            m.fwInstance.render(template)
+
+            focusPlugin = m.fwInstance.plugins.focus
+
+            ' Step 1: Focus childItem2
+            childItem2 = m.fwInstance.getWidget("childItem2")
+            childItem2.setFocus()
+
+            ' Step 2: Move focus away to trigger blur (lastFocusedHID is set on blur)
+            outsideItem = m.fwInstance.getWidget("outsideItem")
+            outsideItem.setFocus()
+
+            ' Then: Immediate parent should still store lastFocusedHID (default behavior)
+            parentGroupWidget = m.fwInstance.getWidget("parentGroup")
+            parentGroup = focusPlugin.groupStack.get(parentGroupWidget.HID)
+            m.assertEqual(parentGroup.lastFocusedHID, childItem2.HID)
+        end function
+
+        @it("ancestor without trackDescendantFocus does NOT store deeply nested HID")
+        function _()
+            ' Given: Outer group without trackDescendantFocus, inner group with items
+            template = {
+                id: "noRememberTestRoot",
+                nodeType: "Group",
+                focusGroup: {
+                    defaultFocusId: "outerGroup"
+                    ' Note: NO trackDescendantFocus
+                },
+                children: [
+                    {
+                        id: "outerGroup",
+                        nodeType: "Group",
+                        fields: { translation: [0, 0] },
+                        focusGroup: {
+                            defaultFocusId: "innerGroup"
+                            ' Note: NO trackDescendantFocus
+                        },
+                        children: [
+                            {
+                                id: "innerGroup",
+                                nodeType: "Group",
+                                fields: { translation: [0, 0] },
+                                focusGroup: {
+                                    defaultFocusId: "item1"
+                                },
+                                children: [
+                                    {
+                                        id: "item1",
+                                        nodeType: "Rectangle",
+                                        fields: { width: 100, height: 50, translation: [0, 0] },
+                                        focus: {}
+                                    },
+                                    {
+                                        id: "item2",
+                                        nodeType: "Rectangle",
+                                        fields: { width: 100, height: 50, translation: [150, 0] },
+                                        focus: {}
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        id: "outsideItem",
+                        nodeType: "Rectangle",
+                        fields: { width: 100, height: 50, translation: [0, 200] },
+                        focus: {}
+                    }
+                ]
+            }
+
+            m.fwInstance.destroy()
+            m.fwInstance = new Rotor.Framework()
+            m.fwInstance.render(template)
+
+            focusPlugin = m.fwInstance.plugins.focus
+
+            ' Step 1: Focus item2 (nested inside innerGroup)
+            item2 = m.fwInstance.getWidget("item2")
+            item2.setFocus()
+
+            ' Step 2: Move focus away to trigger blur (lastFocusedHID is set on blur)
+            outsideItem = m.fwInstance.getWidget("outsideItem")
+            outsideItem.setFocus()
+
+            ' Then: outerGroup should NOT remember item2 (no trackDescendantFocus)
+            outerGroupWidget = m.fwInstance.getWidget("outerGroup")
+            outerGroup = focusPlugin.groupStack.get(outerGroupWidget.HID)
+            m.assertEqual(outerGroup.lastFocusedHID, "")
+
+            ' But innerGroup (immediate parent) SHOULD remember
+            innerGroupWidget = m.fwInstance.getWidget("innerGroup")
+            innerGroup = focusPlugin.groupStack.get(innerGroupWidget.HID)
+            m.assertEqual(innerGroup.lastFocusedHID, item2.HID)
+        end function
+
+        @it("trackDescendantFocus defaults to false")
+        function _()
+            ' Given: A group without explicit trackDescendantFocus setting
+            template = {
+                id: "defaultTestRoot",
+                nodeType: "Group",
+                focusGroup: {
+                    defaultFocusId: "testItem"
+                },
+                children: [
+                    {
+                        id: "testItem",
+                        nodeType: "Rectangle",
+                        fields: { width: 100, height: 50 },
+                        focus: {}
+                    }
+                ]
+            }
+
+            m.fwInstance.destroy()
+            m.fwInstance = new Rotor.Framework()
+            m.fwInstance.render(template)
+
+            focusPlugin = m.fwInstance.plugins.focus
+
+            ' When: Get the group from stack
+            rootWidget = m.fwInstance.getWidget("defaultTestRoot")
+            group = focusPlugin.groupStack.get(rootWidget.HID)
+
+            ' Then: trackDescendantFocus should default to false
+            m.assertFalse(group.trackDescendantFocus)
+        end function
+
         @describe("focus plugin cleanup")
 
         @it("removeFocusConfig removes focus item from stack")

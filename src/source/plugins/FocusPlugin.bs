@@ -121,6 +121,13 @@ namespace Rotor
     '   2. group.defaultFocusId [CONFIGURED]
     '   3. Deep search (if defaultFocusId not found immediately)
     '
+    ' RULE #11b: Deep Focus Tracking (trackDescendantFocus: true)
+    '   When a FocusGroup has trackDescendantFocus: true, it stores lastFocusedHID
+    '   for ANY descendant FocusItem (not just direct children).
+    '   - Immediate parent ALWAYS stores lastFocusedHID (default behavior)
+    '   - Ancestor groups with trackDescendantFocus: true ALSO store it
+    '   - Enables "deep focus memory" - returning to deeply nested items
+    '
     ' RULE #12: DefaultFocusId Targets
     '   - FocusItem node ID → Focus goes directly to it
     '   - Group node ID → Capturing continues on that group
@@ -636,6 +643,7 @@ namespace Rotor
                     ' Record the last focused item within its parent group for potential future use (e.g., returning focus)
                     lastFocusChainingGroups = m.findAncestorGroups(m.globalFocusHID)
                     if lastFocusChainingGroups.Count() > 0
+                        ' Always set on immediate parent (index 0)
                         parentGroupHID = lastFocusChainingGroups[0]
                         if parentGroupHID <> invalid and parentGroupHID <> ""
                             group = m.groupStack.get(parentGroupHID)
@@ -652,9 +660,20 @@ namespace Rotor
             for each groupHID in focusChainGroups
                 allAffectedGroups.unshift(groupHID) ' Add in reverse order (highest ancestor first)
             end for
-            for each groupHID in lastFocusChainingGroups
+            for i = 0 to lastFocusChainingGroups.Count() - 1
+                groupHID = lastFocusChainingGroups[i]
+
+                ' Add to allAffectedGroups if not present
                 if -1 = Rotor.Utils.findInArray(allAffectedGroups, groupHID)
-                    allAffectedGroups.unshift(groupHID) ' Add in reverse order if not already present
+                    allAffectedGroups.unshift(groupHID)
+                end if
+
+                ' Deep remember (skip index 0 - immediate parent is handled separately)
+                if i > 0 and lastFocused <> invalid
+                    ancestorGroup = m.groupStack.get(groupHID)
+                    if ancestorGroup <> invalid and ancestorGroup.trackDescendantFocus = true
+                        ancestorGroup.setLastFocusedHID(m.globalFocusHID)
+                    end if
                 end if
             end for
 
@@ -1279,11 +1298,13 @@ namespace Rotor
                 m.defaultFocusId = config.defaultFocusId ?? ""
                 m.lastFocusedHID = config.lastFocusedHID ?? ""
                 m.enableSpatialEnter = config.enableSpatialEnter ?? false
+                m.trackDescendantFocus = config.trackDescendantFocus ?? false
             end sub
 
             defaultFocusId as string
             lastFocusedHID as string
             enableSpatialEnter as boolean
+            trackDescendantFocus as boolean
             focusItemsRef as object
             groupsRef as object
 

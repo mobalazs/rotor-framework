@@ -60,22 +60,23 @@ This means `defaultFocusId: "deepItem"` will find "deepItem" even if it's 3+ lev
 | `isEnabled` | boolean | `true` | Enable/disable focus capability |
 | `enableNativeFocus` | boolean | `false` | Allow native SceneGraph focus |
 | `enableSpatialNavigation` | boolean | `true` | Enable automatic spatial navigation |
-| `up` / `down` / `left` / `right` / `back` | string/function | `""` | Static navigation directions (node ID or function returning ID) |
-| `onFocusChanged` | function | `invalid` | Called when focus state changes with `isFocused` parameter |
-| `onFocus` | function | `invalid` | Called when widget gains focus |
-| `onBlur` | function | `invalid` | Called when widget loses focus |
-| `onSelect` | function | `invalid` | Called when OK button is pressed while focused |
-| `longPressHandler` | function | `invalid` | Handle long press events with `isLongPress` and `key` parameters |
+| `up` / `down` / `left` / `right` / `back` | string / `function() as string` | `""` | Static navigation directions (node ID or function returning ID) |
+| `onFocusChanged` | `sub(isFocused as boolean)` | `invalid` | Called when focus state changes |
+| `onFocus` | `sub()` | `invalid` | Called when widget gains focus |
+| `onBlur` | `sub()` | `invalid` | Called when widget loses focus |
+| `onSelect` | `sub()` | `invalid` | Called when OK button is pressed while focused |
+| `longPressHandler` | `function(isLongPress as boolean, key as string) as boolean` | `invalid` | Handle long press events, return true if handled |
 
 ## Focus Group Configuration Properties
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `group.defaultFocusId` | string/function | `""` | Default focus target when group receives focus |
-| `group.lastFocusedHID` | string | `""` | Automatically remembers last focused item in group |
+| `group.defaultFocusId` | string / `function() as string` | `""` | Default focus target when group receives focus |
+| `group.lastFocusedHID` | string | `""` | Automatically remembers last focused item in group (direct children only) |
+| `group.trackDescendantFocus` | boolean | `false` | When true, remembers last focused item from ANY descendant depth (not just direct children) |
 | `group.enableSpatialEnter` | boolean | `false` | Enable spatial navigation when entering group from direction |
-| `group.up` / `down` / `left` / `right` / `back` | string/function | `""` | Navigation directions to other groups/items |
-| `group.onFocusChanged` | function | `invalid` | Called when group focus chain state changes |
+| `group.up` / `down` / `left` / `right` / `back` | string / `function() as string` / boolean | `""` | Navigation directions to other groups/items |
+| `group.onFocusChanged` | `sub(isFocused as boolean)` | `invalid` | Called when group focus chain state changes |
 
 ## Lifecycle Integration
 
@@ -102,16 +103,16 @@ This means `defaultFocusId: "deepItem"` will find "deepItem" even if it's 3+ lev
 
 Widgets with focus configuration automatically receive these methods via `widget.plugins.focus`:
 
-| Method | Parameters | Return | Description |
-|--------|------------|--------|-------------|
-| `setFocus` | `isFocused` (boolean/string), `enableNativeFocus` (boolean) | boolean | Set focus on current widget (boolean) or target widget (string ID) |
-| `getFocusedWidget` | None | object | Returns currently focused widget instance |
-| `enableFocusNavigation` | `enabled` (boolean) | void | Globally enable/disable focus navigation |
-| `isFocusNavigationEnabled` | None | boolean | Check if focus navigation is enabled |
-| `proceedLongPress` | None | object | Manually trigger long press navigation action |
-| `isLongPressActive` | None | boolean | Check if long press is currently active |
-| `triggerKeyPress` | `key` (string) | object | Simulate key press for testing or programmatic navigation |
-| `setGroupLastFocusedId` | `id` (string) | void | Update the lastFocusedHID of this widget's focus group. If called on a group, updates its own lastFocusedHID. If called on a focus item, finds and updates the parent group's lastFocusedHID. |
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `setFocus` | `function(id as string \| isFocused as boolean, enableNativeFocus = false as boolean) as boolean` | Set focus on current widget (boolean) or target widget (string ID) |
+| `getFocusedWidget` | `function() as object` | Returns currently focused widget instance |
+| `enableFocusNavigation` | `sub(enabled = true as boolean)` | Globally enable/disable focus navigation |
+| `isFocusNavigationEnabled` | `function() as boolean` | Check if focus navigation is enabled |
+| `proceedLongPress` | `function() as object` | Manually trigger long press navigation action |
+| `isLongPressActive` | `function() as boolean` | Check if long press is currently active |
+| `triggerKeyPress` | `function(key as string) as object` | Simulate key press for testing or programmatic navigation |
+| `setGroupLastFocusedId` | `sub(id as string)` | Update the lastFocusedHID of this widget's focus group |
 
 ## Common Patterns
 
@@ -378,6 +379,54 @@ Widgets with focus configuration automatically receive these methods via `widget
 }
 ```
 
+### Deep Focus Memory with trackDescendantFocus
+
+```brightscript
+' Main navigation that remembers deeply nested focus
+{
+    id: "mainNavigation",
+    nodeType: "Group",
+    focus: {
+        group: {
+            defaultFocusId: "categoriesMenu",
+            trackDescendantFocus: true, ' Remember focus at ANY depth
+            right: "contentArea"
+        }
+    },
+    children: [
+        {
+            id: "categoriesMenu",
+            nodeType: "Group",
+            focus: {
+                group: {
+                    defaultFocusId: "category1"
+                }
+            },
+            children: [
+                {
+                    id: "category1",
+                    nodeType: "Group",
+                    focus: {
+                        group: {
+                            defaultFocusId: "subItem1"
+                        }
+                    },
+                    children: [
+                        { id: "subItem1", focus: { onSelect: sub() ... end sub } },
+                        { id: "subItem2", focus: { onSelect: sub() ... end sub } },
+                        { id: "subItem3", focus: { onSelect: sub() ... end sub } }
+                    ]
+                }
+            ]
+        }
+    ]
+}
+
+' When user focuses subItem3, then navigates to contentArea and back,
+' focus returns directly to subItem3 (not category1 or subItem1)
+' because mainNavigation has trackDescendantFocus: true
+```
+
 ## Best Practices
 
 ### 1. Always Handle Focus State Visually
@@ -558,6 +607,17 @@ FocusItem (no direction) → Spatial nav (nothing) → Group.direction?
 1. `group.lastFocusedHID` (if exists) [AUTO-SAVED]
 2. `group.defaultFocusId` [CONFIGURED]
 3. Deep search (if defaultFocusId not found immediately)
+
+### RULE #11b: Deep Focus Tracking (trackDescendantFocus)
+
+By default, a focus group only remembers the last focused item among its **direct children**. When `trackDescendantFocus: true` is set on a group:
+
+- The group stores `lastFocusedHID` for **ANY descendant** FocusItem (not just direct children)
+- This enables "deep focus memory" - returning to deeply nested items when re-entering the group
+- The immediate parent group **always** stores `lastFocusedHID` (default behavior)
+- Ancestor groups with `trackDescendantFocus: true` **also** store it
+
+**Use case**: When you have nested groups (e.g., `mainMenu > subMenu > menuItem`) and want the outer `mainMenu` to remember which deeply nested `menuItem` was last focused, set `trackDescendantFocus: true` on `mainMenu`.
 
 ### RULE #12: DefaultFocusId Targets
 
