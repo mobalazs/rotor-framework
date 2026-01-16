@@ -1076,8 +1076,7 @@ namespace tests
                 id: "rememberTestRoot",
                 nodeType: "Group",
                 focusGroup: {
-                    defaultFocusId: "outerGroup",
-                    trackDescendantFocus: true
+                    defaultFocusId: "outerGroup"
                 },
                 children: [
                     {
@@ -1129,9 +1128,13 @@ namespace tests
 
             focusPlugin = m.fwInstance.plugins.focus
 
-            ' When: Focus deepItem2 (nested 2 levels deep)
+            ' Step 1: Focus deepItem2 (nested 2 levels deep)
             deepItem2 = m.fwInstance.getWidget("deepItem2")
             deepItem2.setFocus()
+
+            ' Step 2: Move focus away to trigger blur (lastFocusedHID is set on blur)
+            otherItem = m.fwInstance.getWidget("otherItem")
+            otherItem.setFocus()
 
             ' Get the outer group
             outerGroupWidget = m.fwInstance.getWidget("outerGroup")
@@ -1158,7 +1161,7 @@ namespace tests
                         focusGroup: {
                             defaultFocusId: "innerGroup",
                             trackDescendantFocus: true,
-                            down: "exitItem"
+                            down: "exitGroup"
                         },
                         children: [
                             {
@@ -1186,12 +1189,21 @@ namespace tests
                         ]
                     },
                     {
-                        id: "exitItem",
-                        nodeType: "Rectangle",
-                        fields: { width: 100, height: 50, translation: [0, 200] },
-                        focus: {
+                        id: "exitGroup",
+                        nodeType: "Group",
+                        fields: { translation: [0, 200] },
+                        focusGroup: {
+                            defaultFocusId: "exitItem",
                             up: "outerGroup"
-                        }
+                        },
+                        children: [
+                            {
+                                id: "exitItem",
+                                nodeType: "Rectangle",
+                                fields: { width: 100, height: 50, translation: [0, 0] },
+                                focus: {}
+                            }
+                        ]
                     }
                 ]
             }
@@ -1204,7 +1216,7 @@ namespace tests
             nestedItem2 = m.fwInstance.getWidget("nestedItem2")
             nestedItem2.setFocus()
 
-            ' Step 2: Navigate away (exit to exitItem)
+            ' Step 2: Navigate away (exit to exitGroup -> exitItem)
             nestedItem2.triggerKeyPress("down")
 
             ' Verify we're now on exitItem
@@ -1252,6 +1264,12 @@ namespace tests
                                 focus: {}
                             }
                         ]
+                    },
+                    {
+                        id: "outsideItem",
+                        nodeType: "Rectangle",
+                        fields: { width: 100, height: 50, translation: [0, 200] },
+                        focus: {}
                     }
                 ]
             }
@@ -1262,9 +1280,13 @@ namespace tests
 
             focusPlugin = m.fwInstance.plugins.focus
 
-            ' When: Focus childItem2
+            ' Step 1: Focus childItem2
             childItem2 = m.fwInstance.getWidget("childItem2")
             childItem2.setFocus()
+
+            ' Step 2: Move focus away to trigger blur (lastFocusedHID is set on blur)
+            outsideItem = m.fwInstance.getWidget("outsideItem")
+            outsideItem.setFocus()
 
             ' Then: Immediate parent should still store lastFocusedHID (default behavior)
             parentGroupWidget = m.fwInstance.getWidget("parentGroup")
@@ -1315,6 +1337,12 @@ namespace tests
                                 ]
                             }
                         ]
+                    },
+                    {
+                        id: "outsideItem",
+                        nodeType: "Rectangle",
+                        fields: { width: 100, height: 50, translation: [0, 200] },
+                        focus: {}
                     }
                 ]
             }
@@ -1325,9 +1353,13 @@ namespace tests
 
             focusPlugin = m.fwInstance.plugins.focus
 
-            ' When: Focus item2 (nested inside innerGroup)
+            ' Step 1: Focus item2 (nested inside innerGroup)
             item2 = m.fwInstance.getWidget("item2")
             item2.setFocus()
+
+            ' Step 2: Move focus away to trigger blur (lastFocusedHID is set on blur)
+            outsideItem = m.fwInstance.getWidget("outsideItem")
+            outsideItem.setFocus()
 
             ' Then: outerGroup should NOT remember item2 (no trackDescendantFocus)
             outerGroupWidget = m.fwInstance.getWidget("outerGroup")
