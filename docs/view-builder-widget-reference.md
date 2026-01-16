@@ -43,44 +43,59 @@ Every widget automatically receives these methods:
 
 ### Framework Access
 
-| Method | Parameters | Return | Description |
-|--------|------------|--------|-------------|
-| `getFrameworkInstance` | - | object | Framework instance |
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `getFrameworkInstance` | `function() as object` | Framework instance |
 
 ### Widget Navigation
 
-| Method | Parameters | Return | Description |
-|--------|------------|--------|-------------|
-| `getWidget` | `id` (string) | object | Find widget by ID (any depth) or path |
-| `getSiblingWidget` | `id` (string) | object | Get direct sibling by ID |
-| `getViewModel` | - | object | Get widget's ViewModel |
-| `getParentViewModel` | - | object | Get parent ViewModel |
-| `getRootWidget` | - | object | Get root widget |
-| `findWidgets` | `pattern` (string) | array | Find widgets by pattern |
-| `getChildrenWidgets` | `matchingPattern` (string, optional) | array | Get direct children, optionally filtered by ID pattern |
-| `getSubtreeClone` | `pattern` (optional), `keyPaths` | object | Clone widget subtree (current widget if no pattern) |
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `getWidget` | `function(id as string) as object` | Find widget by ID (any depth) or path |
+| `getSiblingWidget` | `function(id as string) as object` | Get direct sibling by ID |
+| `getViewModel` | `function() as object` | Get widget's ViewModel |
+| `getParentViewModel` | `function() as object` | Get parent ViewModel |
+| `getRootWidget` | `function() as object` | Get root widget |
+| `findWidgets` | `function(pattern as string) as object` | Find widgets by pattern |
+| `getChildrenWidgets` | `function(matchingPattern = "" as string) as object` | Get direct children, optionally filtered by ID pattern |
+| `getSubtreeClone` | `function(pattern = "" as string, keyPaths = [] as object) as object` | Clone widget subtree (current widget if no pattern) |
 
 ### Rendering
 
-| Method | Parameters | Return | Description |
-|--------|------------|--------|-------------|
-| `render` | `payloads`, `params` | - | Render or update widgets |
-| `refresh` | `keyPaths` | - | Refresh specific features |
-| `erase` | `payloads`, `skipPool` | - | Destroy widgets |
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `render` | `sub(payloads as dynamic, params = {} as object)` | Render or update widgets |
+| `refresh` | `sub(keyPaths as object)` | Refresh specific features |
+| `erase` | `sub(payloads as dynamic, skipPool = false as boolean)` | Destroy widgets |
 
 ### State Management
 
-| Method | Parameters | Return | Description |
-|--------|------------|--------|-------------|
-| `getDispatcher` | `id` (string) | object | Get dispatcher by ID |
-| `dispatchTo` | `id` (string), `intent` (object) | - | Dispatch intent to dispatcher by ID |
-| `getStateFrom` | `id` (string), `mapStateToProps` (function, optional) | object | Get state from dispatcher by ID |
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `getDispatcher` | `function(id as string) as object` | Get dispatcher by ID |
+| `dispatchTo` | `sub(id as string, intent as object)` | Dispatch intent to dispatcher by ID |
+| `getStateFrom` | `function(id as string, mapStateToProps = invalid as dynamic) as object` | Get state from dispatcher by ID |
 
 ### Animation
 
-| Method | Parameters | Return | Description |
-|--------|------------|--------|-------------|
-| `animator` | `id` (string) | object | Get animator factory |
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `animator` | `function(id as string) as object` | Get animator factory |
+
+### Focus Plugin Methods
+
+Widgets with focus configuration automatically receive these methods (see [Focus Plugin](./view-builder-focus-plugin.md) for details):
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `setFocus` | `function(id as string \| isFocused as boolean, enableNativeFocus = false as boolean) as boolean` | Set focus on current widget (boolean) or target widget (string ID) |
+| `getFocusedWidget` | `function() as object` | Returns currently focused widget instance |
+| `enableFocusNavigation` | `sub(enabled = true as boolean)` | Globally enable/disable focus navigation |
+| `isFocusNavigationEnabled` | `function() as boolean` | Check if focus navigation is enabled |
+| `proceedLongPress` | `function() as object` | Manually trigger long press navigation action |
+| `isLongPressActive` | `function() as boolean` | Check if long press is currently active |
+| `triggerKeyPress` | `function(key as string) as object` | Simulate key press for testing or programmatic navigation |
+| `setGroupLastFocusedId` | `sub(id as string)` | Update the lastFocusedHID of this widget's focus group |
 
 ## Basic Usage
 

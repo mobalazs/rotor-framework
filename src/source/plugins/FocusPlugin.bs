@@ -121,12 +121,12 @@ namespace Rotor
     '   2. group.defaultFocusId [CONFIGURED]
     '   3. Deep search (if defaultFocusId not found immediately)
     '
-    ' RULE #11b: Deep Remember Focus (trackDescendantFocus: true)
+    ' RULE #11b: Deep Focus Tracking (trackDescendantFocus: true)
     '   When a FocusGroup has trackDescendantFocus: true, it stores lastFocusedHID
     '   for ANY descendant FocusItem (not just direct children).
     '   - Immediate parent ALWAYS stores lastFocusedHID (default behavior)
-    '   - Ancestor groups with rememberFocus: true ALSO store it
-    '   - Enables "deep last focus" - returning to deeply nested items
+    '   - Ancestor groups with trackDescendantFocus: true ALSO store it
+    '   - Enables "deep focus memory" - returning to deeply nested items
     '
     ' RULE #12: DefaultFocusId Targets
     '   - FocusItem node ID → Focus goes directly to it

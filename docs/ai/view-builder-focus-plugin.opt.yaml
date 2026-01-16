@@ -27,17 +27,17 @@ props:
     enableNativeFocus: "boolean (default: false) - allow native SceneGraph focus"
     enableSpatialNavigation: "boolean (default: true) - automatic spatial nav"
     up/down/left/right/back: "string (nodeId) | function() as string | false | true - static directions"
-    callbacks:
-      onFocusChanged: "sub(isFocused as boolean) - called when focus state changes"
-      onFocus: "sub() - called when widget gains focus"
-      onBlur: "sub() - called when widget loses focus"
-      onSelect: "sub() - called when OK button pressed while focused"
-      longPressHandler: "sub(isLongPress as boolean, key as string) - handle long press"
+    onFocusChanged: "sub(isFocused as boolean) - called when focus state changes"
+    onFocus: "sub() - called when widget gains focus"
+    onBlur: "sub() - called when widget loses focus"
+    onSelect: "sub() - called when OK button pressed while focused"
+    longPressHandler: "function(isLongPress as boolean, key as string) as boolean - handle long press, return true if handled"
   focusGroup:
-    defaultFocusId: "string | function - default focus target when group receives focus"
-    lastFocusedHID: "string (auto-managed) - remembers last focused item"
+    defaultFocusId: "string | function() as string - default focus target when group receives focus"
+    lastFocusedHID: "string (auto-managed) - remembers last focused item (direct children only)"
+    trackDescendantFocus: "boolean (default: false) - when true, remembers last focused item from ANY descendant depth (not just direct children)"
     enableSpatialEnter: "boolean (default: false) - spatial nav when entering from direction"
-    up/down/left/right/back: "string | function | boolean - group-level navigation"
+    up/down/left/right/back: "string | function() as string | boolean - group-level navigation"
     onFocusChanged: "sub(isFocused as boolean) - group focus-chain callback"
 
 resolution:
@@ -74,6 +74,13 @@ rules:
     1: "group.lastFocusedHID (if exists) [AUTO-SAVED]"
     2: "group.defaultFocusId [CONFIGURED]"
     3: "Deep search (if defaultFocusId not found immediately)"
+  RULE_11b_trackDescendantFocus:
+    default: "Group only remembers lastFocusedHID for direct children"
+    withFlag: "trackDescendantFocus: true → remembers lastFocusedHID for ANY descendant depth"
+    behavior:
+      - "Immediate parent ALWAYS stores lastFocusedHID (default)"
+      - "Ancestor groups with trackDescendantFocus: true ALSO store it"
+    useCase: "Nested groups (mainMenu > subMenu > item) where outer group should remember deeply nested item"
   RULE_12_defaultFocusIdTargets:
     focusItemId: "Focus goes directly to it"
     groupId: "Capturing continues on that group"
@@ -144,6 +151,15 @@ patterns:
     m.setFocus("targetWidget")
     m.enableFocusNavigation(false) - during animation
     m.enableFocusNavigation(true) - re-enable after
+  deepFocusMemory: |
+    mainNav: focus.group: {
+      defaultFocusId: "subMenu",
+      trackDescendantFocus: true,  (remembers ANY depth)
+      right: "content"
+    }
+    subMenu > category > item1, item2, item3
+    When user focuses item3, navigates to content and back,
+    focus returns to item3 (not subMenu or category default)
 
 bestPractices:
   visualFeedback: "Always handle focus state visually via onFocusChanged. Use blendColor/opacity changes."
