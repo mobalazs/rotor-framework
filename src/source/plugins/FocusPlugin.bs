@@ -121,8 +121,8 @@ namespace Rotor
     '   2. group.defaultFocusId [CONFIGURED]
     '   3. Deep search (if defaultFocusId not found immediately)
     '
-    ' RULE #11b: Deep Remember Focus (rememberLastFocus: true)
-    '   When a FocusGroup has rememberLastFocus: true, it stores lastFocusedHID
+    ' RULE #11b: Deep Remember Focus (trackDescendantFocus: true)
+    '   When a FocusGroup has trackDescendantFocus: true, it stores lastFocusedHID
     '   for ANY descendant FocusItem (not just direct children).
     '   - Immediate parent ALWAYS stores lastFocusedHID (default behavior)
     '   - Ancestor groups with rememberFocus: true ALSO store it
@@ -671,7 +671,7 @@ namespace Rotor
                 ' Deep remember (skip index 0 - immediate parent is handled separately)
                 if i > 0 and lastFocused <> invalid
                     ancestorGroup = m.groupStack.get(groupHID)
-                    if ancestorGroup <> invalid and ancestorGroup.rememberLastFocus = true
+                    if ancestorGroup <> invalid and ancestorGroup.trackDescendantFocus = true
                         ancestorGroup.setLastFocusedHID(m.globalFocusHID)
                     end if
                 end if
@@ -1298,13 +1298,13 @@ namespace Rotor
                 m.defaultFocusId = config.defaultFocusId ?? ""
                 m.lastFocusedHID = config.lastFocusedHID ?? ""
                 m.enableSpatialEnter = config.enableSpatialEnter ?? false
-                m.rememberLastFocus = config.rememberLastFocus ?? false
+                m.trackDescendantFocus = config.trackDescendantFocus ?? false
             end sub
 
             defaultFocusId as string
             lastFocusedHID as string
             enableSpatialEnter as boolean
-            rememberLastFocus as boolean
+            trackDescendantFocus as boolean
             focusItemsRef as object
             groupsRef as object
 
