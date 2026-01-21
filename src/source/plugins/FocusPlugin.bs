@@ -973,9 +973,13 @@ namespace Rotor
                     ' (2) Try static direction, defined on the focusItem, among possible focusItems
                     nodeId = focused.getStaticNodeIdInDirection(direction) ' Note that this is a nodeId
 
-                    if Rotor.Utils.isBoolean(nodeId) and nodeId = true
-                        ' It means that focus is handled, and no need further action by plugin.
-                        return m.parseOnKeyEventResult(key, true, false)
+                    if Rotor.Utils.isBoolean(nodeId)
+                        if nodeId
+                            ' It means that focus is handled, and no need further action by plugin.
+                            return m.parseOnKeyEventResult(key, true, false)
+                        else
+                            nodeId = "" ' Clear to continue other navigation attempts
+                        end if
                     end if
 
                     if nodeId <> ""
