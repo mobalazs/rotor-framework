@@ -797,17 +797,12 @@ namespace Rotor
             if group = invalid then return ""
 
             ' Get fallback identifier for this group
-            newHID = group.getFallbackIdentifier()
+            ' (enableSpatialEnter groups return the spatially closest member here)
+            newHID = group.getFallbackIdentifier(m.globalFocusHID)
 
             ' Check if we found a FocusItem
             if m.focusItemStack.has(newHID)
-                ' Apply spatial enter feature if enabled
-                if group.enableSpatialEnter = true and direction <> ""
-                    focused = m.focusItemStack.get(m.globalFocusHID)
-                    newSpatialHID = m.spatialNavigation(focused, direction, group.getGroupMembersHIDs())
-                    if newSpatialHID <> "" then newHID = newSpatialHID
-                end if
-
+                ' noop — direct focusItem resolved
             else if newHID <> ""
                 ' Try to find as group first, then deep search
                 newHID = m.capturingFocus_recursively(newHID, direction, group.HID)
@@ -819,7 +814,8 @@ namespace Rotor
             end if
 
             ' Prevent capturing by fallback in the same group where original focus was
-            if newHID <> "" and m.globalFocusHID <> ""
+            ' Skip this guard for enableSpatialEnter groups (spatial enter explicitly targets a sibling group's member)
+            if not group.enableSpatialEnter and newHID <> "" and m.globalFocusHID <> ""
                 currentAncestors = m.findAncestorGroups(m.globalFocusHID)
                 newAncestors = m.findAncestorGroups(newHID)
                 if currentAncestors.Count() > 0 and newAncestors.Count() > 0
@@ -923,7 +919,6 @@ namespace Rotor
             end if
             ' Prevent any navigation if it is disabled
             #if debug
-                if m.enableFocusNavigation = false and press = true then print "[PLUGIN][FOCUS][INFO] Focus navigation is disabled. Call enableFocusNavigation(true) to make it enabled"
             #end if
             if m.enableFocusNavigation = false then return m.parseOnKeyEventResult(key, false, false)
             ' Execute action according to key press
@@ -1307,7 +1302,6 @@ namespace Rotor
             trackDescendantFocus as boolean
             focusItemsRef as object
             groupsRef as object
-
             isFocusItem = false
             isGroup = true
 
@@ -1368,34 +1362,66 @@ namespace Rotor
                 end if
             end function
 
-            function getFallbackIdentifier() as string
+            function getFallbackIdentifier(globalFocusHID = "" as string) as string
                 HID = ""
-                if m.lastFocusedHID <> ""
+                ' enableSpatialEnter takes priority over lastFocusedHID
+                ' (lastFocusedHID may be stale from slot recycling)
+                if not m.enableSpatialEnter and m.lastFocusedHID <> ""
                     return m.lastFocusedHID
-                else
-                    if Rotor.Utils.isFunction(m.defaultFocusId)
-                        defaultFocusId = Rotor.Utils.callbackScoped(m.defaultFocusId, m.widget) ?? ""
-                    else
-                        defaultFocusId = m.defaultFocusId
-                    end if
+                end if
 
-                    if defaultFocusId <> ""
-                        focusItemsHIDlist = m.getGroupMembersHIDs()
-                        if focusItemsHIDlist.Count() > 0
-
-                            ' Try find valid HID in focusItems by node id
-                            focusItemHID = m.findHIDinFocusItemsByNodeId(defaultFocusId, focusItemsHIDlist)
-                            if focusItemHID <> ""
-                                HID = focusItemHID
+                ' enableSpatialEnter: return the spatially closest member to the current focus
+                if m.enableSpatialEnter = true and globalFocusHID <> ""
+                    prevFocused = m.focusItemsRef.get(globalFocusHID)
+                    if prevFocused <> invalid
+                        prevFocused.refreshBounding()
+                        refPoint = prevFocused.metrics.middlePoint
+                        members = m.getGroupMembersHIDs()
+                        minDist = 2147483647
+                        closestHID = ""
+                        for each memberHID in members
+                            if memberHID <> globalFocusHID
+                                member = m.focusItemsRef.get(memberHID)
+                                if member <> invalid
+                                    member.refreshBounding()
+                                    dx = member.metrics.middlePoint.x - refPoint.x
+                                    dy = member.metrics.middlePoint.y - refPoint.y
+                                    dist = dx * dx + dy * dy
+                                    if dist < minDist
+                                        minDist = dist
+                                        closestHID = memberHID
+                                    end if
+                                end if
                             end if
-
-                        else
-
-                            return defaultFocusId
-
+                        end for
+                        if closestHID <> ""
+                            return closestHID
                         end if
                     end if
+                end if
 
+                ' Default: use defaultFocusId expression
+                if Rotor.Utils.isFunction(m.defaultFocusId)
+                    defaultFocusId = Rotor.Utils.callbackScoped(m.defaultFocusId, m.widget) ?? ""
+                else
+                    defaultFocusId = m.defaultFocusId
+                end if
+
+                if defaultFocusId <> ""
+                    focusItemsHIDlist = m.getGroupMembersHIDs()
+                    if focusItemsHIDlist.Count() > 0
+
+                        ' Try find valid HID in focusItems by node id
+                        focusItemHID = m.findHIDinFocusItemsByNodeId(defaultFocusId, focusItemsHIDlist)
+                        if focusItemHID <> ""
+                            HID = focusItemHID
+                        end if
+
+                    else
+
+                        return defaultFocusId
+
+                    end if
                 end if
 
                 return HID
