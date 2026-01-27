@@ -495,7 +495,6 @@ namespace Rotor
             newGroup = new Rotor.FocusPluginHelper.GroupClass(config)
             newGroup.focusItemsRef = m.focusItemStack ' Provide reference to focus items
             newGroup.groupsRef = m.groupStack ' Provide reference to other groups
-            newGroup.pluginRef = m ' Provide reference to plugin for spatial enter
             m.groupStack.set(config.HID, newGroup) ' Register the new group
         end sub
 
@@ -799,7 +798,7 @@ namespace Rotor
 
             ' Get fallback identifier for this group
             ' (enableSpatialEnter groups return the spatially closest member here)
-            newHID = group.getFallbackIdentifier()
+            newHID = group.getFallbackIdentifier(m.globalFocusHID)
 
             ' Check if we found a FocusItem
             if m.focusItemStack.has(newHID)
@@ -1303,8 +1302,6 @@ namespace Rotor
             trackDescendantFocus as boolean
             focusItemsRef as object
             groupsRef as object
-            pluginRef as object
-
             isFocusItem = false
             isGroup = true
 
@@ -1365,7 +1362,7 @@ namespace Rotor
                 end if
             end function
 
-            function getFallbackIdentifier() as string
+            function getFallbackIdentifier(globalFocusHID = "" as string) as string
                 HID = ""
                 ' enableSpatialEnter takes priority over lastFocusedHID
                 ' (lastFocusedHID may be stale from slot recycling)
@@ -1374,8 +1371,8 @@ namespace Rotor
                 end if
 
                 ' enableSpatialEnter: return the spatially closest member to the current focus
-                if m.enableSpatialEnter = true and m.pluginRef <> invalid and m.pluginRef.globalFocusHID <> ""
-                    prevFocused = m.focusItemsRef.get(m.pluginRef.globalFocusHID)
+                if m.enableSpatialEnter = true and globalFocusHID <> ""
+                    prevFocused = m.focusItemsRef.get(globalFocusHID)
                     if prevFocused <> invalid
                         prevFocused.refreshBounding()
                         refPoint = prevFocused.metrics.middlePoint
@@ -1383,7 +1380,7 @@ namespace Rotor
                         minDist = 2147483647
                         closestHID = ""
                         for each memberHID in members
-                            if memberHID <> m.pluginRef.globalFocusHID
+                            if memberHID <> globalFocusHID
                                 member = m.focusItemsRef.get(memberHID)
                                 if member <> invalid
                                     member.refreshBounding()
@@ -1398,15 +1395,9 @@ namespace Rotor
                             end if
                         end for
                         if closestHID <> ""
-                            closestItem = m.focusItemsRef.get(closestHID)
                             return closestHID
-                        else
                         end if
-                    else
                     end if
-                else if m.enableSpatialEnter
-                    hasPluginRef = m.pluginRef <> invalid
-                    globalHID = hasPluginRef ? m.pluginRef.globalFocusHID : "N/A"
                 end if
 
                 ' Default: use defaultFocusId expression
@@ -1464,7 +1455,6 @@ namespace Rotor
                 super.destroy()
                 m.focusItemsRef = invalid
                 m.groupsRef = invalid
-                m.pluginRef = invalid
             end sub
 
 

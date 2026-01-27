@@ -1405,6 +1405,487 @@ namespace tests
             m.assertFalse(group.trackDescendantFocus)
         end function
 
+        ' ======================================================================
+        ' TEST SUITE 14: enableSpatialEnter
+        ' ======================================================================
+
+        @describe("enableSpatialEnter - spatial group entry")
+
+        @it("enters group at geometrically closest item instead of defaultFocusId")
+        function _()
+            ' Given: Two groups side by side
+            '   sourceGroup on the left with sourceTop (y=0) and sourceBottom (y=200)
+            '   targetGroup on the right with enableSpatialEnter: true,
+            '     defaultFocusId: "targetTop", targetTop (y=0), targetBottom (y=200)
+            '
+            ' When focus is on sourceBottom and we navigate right,
+            ' enableSpatialEnter should pick targetBottom (closest) instead of targetTop (default)
+            template = {
+                id: "spatialEnterRoot",
+                nodeType: "Group",
+                focusGroup: {
+                    defaultFocusId: "sourceGroup"
+                },
+                children: [
+                    {
+                        id: "sourceGroup",
+                        nodeType: "Group",
+                        fields: { translation: [0, 0] },
+                        focusGroup: {
+                            defaultFocusId: "sourceTop",
+                            right: "targetGroup"
+                        },
+                        children: [
+                            {
+                                id: "sourceTop",
+                                nodeType: "Rectangle",
+                                fields: { width: 100, height: 80, translation: [0, 0] },
+                                focus: {}
+                            },
+                            {
+                                id: "sourceBottom",
+                                nodeType: "Rectangle",
+                                fields: { width: 100, height: 80, translation: [0, 200] },
+                                focus: {}
+                            }
+                        ]
+                    },
+                    {
+                        id: "targetGroup",
+                        nodeType: "Group",
+                        fields: { translation: [300, 0] },
+                        focusGroup: {
+                            defaultFocusId: "targetTop",
+                            enableSpatialEnter: true,
+                            left: "sourceGroup"
+                        },
+                        children: [
+                            {
+                                id: "targetTop",
+                                nodeType: "Rectangle",
+                                fields: { width: 100, height: 80, translation: [0, 0] },
+                                focus: {}
+                            },
+                            {
+                                id: "targetBottom",
+                                nodeType: "Rectangle",
+                                fields: { width: 100, height: 80, translation: [0, 200] },
+                                focus: {}
+                            }
+                        ]
+                    }
+                ]
+            }
+
+            m.fwInstance.destroy()
+            m.fwInstance = new Rotor.Framework()
+            m.fwInstance.render(template)
+
+            ' Focus sourceBottom
+            sourceBottom = m.fwInstance.getWidget("sourceBottom")
+            sourceBottom.setFocus()
+
+            ' When: Press right to enter targetGroup
+            sourceBottom.triggerKeyPress("right")
+
+            ' Then: Focus should be on targetBottom (spatially closest), not targetTop (default)
+            focusedWidget = m.fwInstance.plugins.focus.getFocusedWidget()
+            m.assertNotInvalid(focusedWidget)
+            m.assertEqual(focusedWidget.id, "targetBottom")
+        end function
+
+        @it("enters group at default item when focus is closest to it")
+        function _()
+            ' Given: Same layout, but focus is on sourceTop (y=0)
+            ' targetTop is at y=0, targetBottom at y=200
+            ' So targetTop (the default) is also the closest
+            template = {
+                id: "spatialEnterDefaultRoot",
+                nodeType: "Group",
+                focusGroup: {
+                    defaultFocusId: "sourceGroup"
+                },
+                children: [
+                    {
+                        id: "sourceGroup",
+                        nodeType: "Group",
+                        fields: { translation: [0, 0] },
+                        focusGroup: {
+                            defaultFocusId: "sourceTop",
+                            right: "targetGroup"
+                        },
+                        children: [
+                            {
+                                id: "sourceTop",
+                                nodeType: "Rectangle",
+                                fields: { width: 100, height: 80, translation: [0, 0] },
+                                focus: {}
+                            },
+                            {
+                                id: "sourceBottom",
+                                nodeType: "Rectangle",
+                                fields: { width: 100, height: 80, translation: [0, 200] },
+                                focus: {}
+                            }
+                        ]
+                    },
+                    {
+                        id: "targetGroup",
+                        nodeType: "Group",
+                        fields: { translation: [300, 0] },
+                        focusGroup: {
+                            defaultFocusId: "targetTop",
+                            enableSpatialEnter: true,
+                            left: "sourceGroup"
+                        },
+                        children: [
+                            {
+                                id: "targetTop",
+                                nodeType: "Rectangle",
+                                fields: { width: 100, height: 80, translation: [0, 0] },
+                                focus: {}
+                            },
+                            {
+                                id: "targetBottom",
+                                nodeType: "Rectangle",
+                                fields: { width: 100, height: 80, translation: [0, 200] },
+                                focus: {}
+                            }
+                        ]
+                    }
+                ]
+            }
+
+            m.fwInstance.destroy()
+            m.fwInstance = new Rotor.Framework()
+            m.fwInstance.render(template)
+
+            ' Focus sourceTop
+            sourceTop = m.fwInstance.getWidget("sourceTop")
+            sourceTop.setFocus()
+
+            ' When: Press right to enter targetGroup
+            sourceTop.triggerKeyPress("right")
+
+            ' Then: Focus should be on targetTop (both default and spatially closest)
+            focusedWidget = m.fwInstance.plugins.focus.getFocusedWidget()
+            m.assertNotInvalid(focusedWidget)
+            m.assertEqual(focusedWidget.id, "targetTop")
+        end function
+
+        @it("without enableSpatialEnter uses defaultFocusId regardless of position")
+        function _()
+            ' Given: targetGroup does NOT have enableSpatialEnter
+            ' Focus is on sourceBottom (y=200), targetTop is defaultFocusId at y=0
+            template = {
+                id: "noSpatialEnterRoot",
+                nodeType: "Group",
+                focusGroup: {
+                    defaultFocusId: "sourceGroup"
+                },
+                children: [
+                    {
+                        id: "sourceGroup",
+                        nodeType: "Group",
+                        fields: { translation: [0, 0] },
+                        focusGroup: {
+                            defaultFocusId: "sourceTop",
+                            right: "targetGroup"
+                        },
+                        children: [
+                            {
+                                id: "sourceTop",
+                                nodeType: "Rectangle",
+                                fields: { width: 100, height: 80, translation: [0, 0] },
+                                focus: {}
+                            },
+                            {
+                                id: "sourceBottom",
+                                nodeType: "Rectangle",
+                                fields: { width: 100, height: 80, translation: [0, 200] },
+                                focus: {}
+                            }
+                        ]
+                    },
+                    {
+                        id: "targetGroup",
+                        nodeType: "Group",
+                        fields: { translation: [300, 0] },
+                        focusGroup: {
+                            defaultFocusId: "targetTop",
+                            left: "sourceGroup"
+                        },
+                        children: [
+                            {
+                                id: "targetTop",
+                                nodeType: "Rectangle",
+                                fields: { width: 100, height: 80, translation: [0, 0] },
+                                focus: {}
+                            },
+                            {
+                                id: "targetBottom",
+                                nodeType: "Rectangle",
+                                fields: { width: 100, height: 80, translation: [0, 200] },
+                                focus: {}
+                            }
+                        ]
+                    }
+                ]
+            }
+
+            m.fwInstance.destroy()
+            m.fwInstance = new Rotor.Framework()
+            m.fwInstance.render(template)
+
+            ' Focus sourceBottom
+            sourceBottom = m.fwInstance.getWidget("sourceBottom")
+            sourceBottom.setFocus()
+
+            ' When: Press right to enter targetGroup
+            sourceBottom.triggerKeyPress("right")
+
+            ' Then: Focus should be on targetTop (defaultFocusId), NOT spatially closest
+            focusedWidget = m.fwInstance.plugins.focus.getFocusedWidget()
+            m.assertNotInvalid(focusedWidget)
+            m.assertEqual(focusedWidget.id, "targetTop")
+        end function
+
+        @it("works even when source focusItem has enableSpatialNavigation=false")
+        function _()
+            ' Given: Source items have enableSpatialNavigation: false
+            ' enableSpatialEnter uses its own distance calculation (not spatialNavigation())
+            ' so it should still pick the closest item in the target group
+            template = {
+                id: "spatialEnterNoSpatialNavRoot",
+                nodeType: "Group",
+                focusGroup: {
+                    defaultFocusId: "sourceGroup"
+                },
+                children: [
+                    {
+                        id: "sourceGroup",
+                        nodeType: "Group",
+                        fields: { translation: [0, 0] },
+                        focusGroup: {
+                            defaultFocusId: "sourceTop",
+                            right: "targetGroup"
+                        },
+                        children: [
+                            {
+                                id: "sourceTop",
+                                nodeType: "Rectangle",
+                                fields: { width: 100, height: 80, translation: [0, 0] },
+                                focus: {
+                                    enableSpatialNavigation: false
+                                }
+                            },
+                            {
+                                id: "sourceBottom",
+                                nodeType: "Rectangle",
+                                fields: { width: 100, height: 80, translation: [0, 200] },
+                                focus: {
+                                    enableSpatialNavigation: false
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        id: "targetGroup",
+                        nodeType: "Group",
+                        fields: { translation: [300, 0] },
+                        focusGroup: {
+                            defaultFocusId: "targetTop",
+                            enableSpatialEnter: true,
+                            left: "sourceGroup"
+                        },
+                        children: [
+                            {
+                                id: "targetTop",
+                                nodeType: "Rectangle",
+                                fields: { width: 100, height: 80, translation: [0, 0] },
+                                focus: {}
+                            },
+                            {
+                                id: "targetBottom",
+                                nodeType: "Rectangle",
+                                fields: { width: 100, height: 80, translation: [0, 200] },
+                                focus: {}
+                            }
+                        ]
+                    }
+                ]
+            }
+
+            m.fwInstance.destroy()
+            m.fwInstance = new Rotor.Framework()
+            m.fwInstance.render(template)
+
+            ' Focus sourceBottom (which has enableSpatialNavigation: false)
+            sourceBottom = m.fwInstance.getWidget("sourceBottom")
+            sourceBottom.setFocus()
+
+            ' When: Press right to enter targetGroup
+            sourceBottom.triggerKeyPress("right")
+
+            ' Then: enableSpatialEnter should still work - targetBottom is closest
+            focusedWidget = m.fwInstance.plugins.focus.getFocusedWidget()
+            m.assertNotInvalid(focusedWidget)
+            m.assertEqual(focusedWidget.id, "targetBottom")
+        end function
+
+        @it("falls back to defaultFocusId when no global focus is set")
+        function _()
+            ' Given: enableSpatialEnter group but no previous focus (edge case)
+            template = {
+                id: "spatialEnterFallbackRoot",
+                nodeType: "Group",
+                focusGroup: {
+                    defaultFocusId: "targetGroup"
+                },
+                children: [
+                    {
+                        id: "targetGroup",
+                        nodeType: "Group",
+                        fields: { translation: [0, 0] },
+                        focusGroup: {
+                            defaultFocusId: "targetItem1",
+                            enableSpatialEnter: true
+                        },
+                        children: [
+                            {
+                                id: "targetItem1",
+                                nodeType: "Rectangle",
+                                fields: { width: 100, height: 80, translation: [0, 0] },
+                                focus: {}
+                            },
+                            {
+                                id: "targetItem2",
+                                nodeType: "Rectangle",
+                                fields: { width: 100, height: 80, translation: [0, 200] },
+                                focus: {}
+                            }
+                        ]
+                    }
+                ]
+            }
+
+            m.fwInstance.destroy()
+            m.fwInstance = new Rotor.Framework()
+            m.fwInstance.render(template)
+
+            ' When: Set focus on group (no prior focus exists)
+            targetGroup = m.fwInstance.getWidget("targetGroup")
+            targetGroup.setFocus()
+
+            ' Then: Should fall back to defaultFocusId since no previous focus for spatial calc
+            focusedWidget = m.fwInstance.plugins.focus.getFocusedWidget()
+            m.assertNotInvalid(focusedWidget)
+            m.assertEqual(focusedWidget.id, "targetItem1")
+        end function
+
+        @it("enableSpatialEnter skips lastFocusedHID and uses spatial calculation")
+        function _()
+            ' Given: enableSpatialEnter group where lastFocusedHID was set to targetTop
+            ' but current focus position is closer to targetBottom
+            template = {
+                id: "spatialEnterSkipLastRoot",
+                nodeType: "Group",
+                focusGroup: {
+                    defaultFocusId: "sourceGroup"
+                },
+                children: [
+                    {
+                        id: "sourceGroup",
+                        nodeType: "Group",
+                        fields: { translation: [0, 0] },
+                        focusGroup: {
+                            defaultFocusId: "sourceTop",
+                            right: "targetGroup"
+                        },
+                        children: [
+                            {
+                                id: "sourceTop",
+                                nodeType: "Rectangle",
+                                fields: { width: 100, height: 80, translation: [0, 0] },
+                                focus: {}
+                            },
+                            {
+                                id: "sourceBottom",
+                                nodeType: "Rectangle",
+                                fields: { width: 100, height: 80, translation: [0, 200] },
+                                focus: {}
+                            }
+                        ]
+                    },
+                    {
+                        id: "targetGroup",
+                        nodeType: "Group",
+                        fields: { translation: [300, 0] },
+                        focusGroup: {
+                            defaultFocusId: "targetTop",
+                            enableSpatialEnter: true,
+                            left: "sourceGroup"
+                        },
+                        children: [
+                            {
+                                id: "targetTop",
+                                nodeType: "Rectangle",
+                                fields: { width: 100, height: 80, translation: [0, 0] },
+                                focus: {}
+                            },
+                            {
+                                id: "targetBottom",
+                                nodeType: "Rectangle",
+                                fields: { width: 100, height: 80, translation: [0, 200] },
+                                focus: {}
+                            }
+                        ]
+                    }
+                ]
+            }
+
+            m.fwInstance.destroy()
+            m.fwInstance = new Rotor.Framework()
+            m.fwInstance.render(template)
+
+            ' Step 1: Enter targetGroup from top (sets lastFocusedHID to targetTop)
+            sourceTop = m.fwInstance.getWidget("sourceTop")
+            sourceTop.setFocus()
+            sourceTop.triggerKeyPress("right")
+
+            ' Verify we're on targetTop
+            focusedWidget = m.fwInstance.plugins.focus.getFocusedWidget()
+            m.assertEqual(focusedWidget.id, "targetTop")
+
+            ' Step 2: Navigate back to source
+            targetTop = m.fwInstance.getWidget("targetTop")
+            targetTop.triggerKeyPress("left")
+
+            ' Step 3: Move to sourceBottom
+            sourceBottom = m.fwInstance.getWidget("sourceBottom")
+            sourceBottom.setFocus()
+
+            ' Step 4: Re-enter targetGroup from bottom position
+            sourceBottom.triggerKeyPress("right")
+
+            ' Then: enableSpatialEnter should ignore lastFocusedHID (targetTop)
+            '       and pick targetBottom (spatially closest)
+            focusedWidget = m.fwInstance.plugins.focus.getFocusedWidget()
+            m.assertNotInvalid(focusedWidget)
+            m.assertEqual(focusedWidget.id, "targetBottom")
+        end function
+
+        @it("enableSpatialEnter defaults to false on groups")
+        function _()
+            ' Given: A group without enableSpatialEnter configured
+            focusPlugin = m.fwInstance.plugins.focus
+            groupL2Widget = m.fwInstance.getWidget("GroupL2")
+            group = focusPlugin.groupStack.get(groupL2Widget.HID)
+
+            ' Then: enableSpatialEnter should default to false
+            m.assertFalse(group.enableSpatialEnter)
+        end function
+
         @describe("focus plugin cleanup")
 
         @it("removeFocusConfig removes focus item from stack")
