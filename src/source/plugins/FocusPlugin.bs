@@ -1092,6 +1092,8 @@ namespace Rotor
             for each HID in focusItemsHIDlist
                 if HID <> focused.HID
                     focusItem = m.focusItemStack.get(HID)
+                    ' Skip disabled items - they should not be candidates for spatial navigation
+                    if focusItem.isEnabled = false then continue for
                     focusItem.refreshBounding()
                     ' Pass appropriate reference segments based on direction
                     if direction = "left" or direction = "right"
