@@ -1048,6 +1048,7 @@ namespace Rotor
         end sub
 
         function proceedLongPress() as object
+            if m.enableFocusNavigation = false then return m.parseOnKeyEventResult(m.longPressKey, false, false)
             return m.executeNavigationAction(m.longPressKey, true)
         end function
 
