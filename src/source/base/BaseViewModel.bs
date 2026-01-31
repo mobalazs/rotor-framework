@@ -21,10 +21,10 @@ namespace Rotor
         ' MEMBER VARIABLES
         ' =============================================================
 
-        isViewModel = true              ' Identifies this as a ViewModel
+        isViewModel = true ' Identifies this as a ViewModel
 
-        viewModelState = {}             ' Mutable state shared across ViewModel's widgets
-        props = {}                      ' Immutable props shared across ViewModel's widgets
+        viewModelState = {} ' Mutable state shared across ViewModel's widgets
+        props = {} ' Immutable props shared across ViewModel's widgets
 
         ' =============================================================
         ' PROPS MANAGEMENT
@@ -82,6 +82,8 @@ namespace Rotor
         ' Called automatically when setProps() is invoked.
         '
         sub onUpdateView()
+            ' Re-render template
+            m.render()
         end sub
 
         ' ---------------------------------------------------------------------

@@ -91,26 +91,31 @@ namespace Rotor.ViewBuilder
             return m.getFrameworkInstance().builder.widgetTree.getSubtreeClone(searchPattern, configIncludeFilter, m.parentHID)
         end function
 
-       ' Get i18n service
+        ' Get i18n service
         widget.i18n = function() as object
             return m.getFrameworkInstance().i18nService
         end function
 
         ' render - Renders widget updates (self, descendants, or children) *'
         widget.render = sub(payloads as dynamic, params = {} as object)
-            for each payload in Rotor.Utils.ensureArray(payloads)
-                if payload.DoesExist("id") = false
-                    ' Self update
-                    payload.id = m.id
-                    payload.HID = m.HID
-                else if payload.id <> m.id
-                    ' Update descendants starting from this widget
-                    payload.parentHID = m.HID
-                else
-                    ' Update descendants starting from parent widget
-                    payload.parentHID = m.parentHID
-                end if
-            end for
+            if payloads = invalid and m.isViewModel = true
+                ' Self update (only for viewModels)
+                payloads = m.template()
+            else
+                for each payload in Rotor.Utils.ensureArray(payloads)
+                    if payload.DoesExist("id") = false
+                        ' Self update
+                        payload.id = m.id
+                        payload.HID = m.HID
+                    else if payload.id <> m.id
+                        ' Update descendants starting from this widget
+                        payload.parentHID = m.HID
+                    else
+                        ' Update descendants starting from parent widget
+                        payload.parentHID = m.parentHID
+                    end if
+                end for
+            end if
             if Rotor.Utils.isValid(params.callback) then params.callbackScope = m
             m.getFrameworkInstance().builder.render(payloads, params)
         end sub
