@@ -77,9 +77,11 @@ namespace Rotor
     '   3. BubblingFocus (ask parent groups)
     '
     ' RULE #4: Spatial Navigation Scope
-    '   - ONLY works within a single group
-    '   - Cannot cross into sibling or parent groups
-    '   - Searches only possibleFocusItems from group.getGroupMembersHIDs()
+    '   - Works within parent group scope
+    '   - Participants: FocusItems AND direct child Groups with enableSpatialNavigation: true
+    '   - enableSpatialNavigation default is FALSE (opt-in)
+    '   - When Group is selected via spatial nav, capturing focus starts into that group
+    '   - Searches possibleFocusItems + Groups from group.getGroupMembersHIDs()
     '
     ' RULE #5: Group Direction Activation
     '   Group direction triggers ONLY when:
@@ -120,13 +122,6 @@ namespace Rotor
     '   1. group.lastFocusedHID (if exists) [AUTO-SAVED]
     '   2. group.defaultFocusId [CONFIGURED]
     '   3. Deep search (if defaultFocusId not found immediately)
-    '
-    ' RULE #11b: Deep Focus Tracking (trackDescendantFocus: true)
-    '   When a FocusGroup has trackDescendantFocus: true, it stores lastFocusedHID
-    '   for ANY descendant FocusItem (not just direct children).
-    '   - Immediate parent ALWAYS stores lastFocusedHID (default behavior)
-    '   - Ancestor groups with trackDescendantFocus: true ALSO store it
-    '   - Enables "deep focus memory" - returning to deeply nested items
     '
     ' RULE #12: DefaultFocusId Targets
     '   - FocusItem node ID → Focus goes directly to it
@@ -391,6 +386,7 @@ namespace Rotor
         ' State tracking
         globalFocusHID = ""
         globalFocusId = ""
+        lastNavigationDirection = ""
         isLongPress = false
         longPressKey = ""
 
@@ -403,6 +399,26 @@ namespace Rotor
         groupStack = new Rotor.FocusPluginHelper.GroupStack()
         distanceCalculator = new Rotor.FocusPluginHelper.ClosestSegmentToPointCalculatorClass()
         longPressTimer = CreateObject("roSGNode", "Timer")
+
+        ' Spatial navigation direction validators (reused across calls)
+        spatialValidators = {
+            "left": function(segments as object, refSegmentLeft as object, refSegmentRight as object) as object
+                right = segments[Rotor.Const.Segment.RIGHT]
+                return right.x2 <= refSegmentLeft.x1 ? { isValid: true, segment: right } : { isValid: false }
+            end function,
+            "up": function(segments as object, refSegmentTop as object, refSegmentBottom as object) as object
+                bottom = segments[Rotor.Const.Segment.BOTTOM]
+                return bottom.y2 <= refSegmentTop.y1 ? { isValid: true, segment: bottom } : { isValid: false }
+            end function,
+            "right": function(segments as object, refSegmentLeft as object, refSegmentRight as object) as object
+                left = segments[Rotor.Const.Segment.LEFT]
+                return left.x1 >= refSegmentRight.x2 ? { isValid: true, segment: left } : { isValid: false }
+            end function,
+            "down": function(segments as object, refSegmentTop as object, refSegmentBottom as object) as object
+                top = segments[Rotor.Const.Segment.TOP]
+                return top.y1 >= refSegmentBottom.y2 ? { isValid: true, segment: top } : { isValid: false }
+            end function
+        }
 
         ' ---------------------------------------------------------------------
         ' init - Initializes the plugin instance
@@ -585,7 +601,8 @@ namespace Rotor
                     group = m.groupStack.get(ref) ?? m.groupStack.getByNodeId(ref)
                     if group <> invalid
                         ' If group found, find its default/entry focus item recursively.
-                        HID = m.capturingFocus_recursively(group.HID)
+                        ' Use lastNavigationDirection so enableSpatialEnter groups can pick the right entry point
+                        HID = m.capturingFocus_recursively(group.HID, m.lastNavigationDirection)
                         focusItem = m.focusItemStack.get(HID) ' May still be invalid if capture fails
                         ' else: ref is not a known FocusItem HID or Group identifier
                     end if
@@ -642,16 +659,17 @@ namespace Rotor
                 if lastFocused <> invalid ' Check if the last focused widget hasn't been destroyed
                     ' Record the last focused item within its parent group for potential future use (e.g., returning focus)
                     lastFocusChainingGroups = m.findAncestorGroups(m.globalFocusHID)
-                    if lastFocusChainingGroups.Count() > 0
-                        ' Always set on immediate parent (index 0)
-                        parentGroupHID = lastFocusChainingGroups[0]
-                        if parentGroupHID <> invalid and parentGroupHID <> ""
-                            group = m.groupStack.get(parentGroupHID)
-                            if group <> invalid
-                                group.setLastFocusedHID(m.globalFocusHID)
+                    for i = 0 to lastFocusChainingGroups.Count() - 1
+                        ancestorGroupHID = lastFocusChainingGroups[i]
+                        ancestorGroup = m.groupStack.get(ancestorGroupHID)
+                        if ancestorGroup <> invalid
+                            ' Always set on immediate parent (index 0)
+                            ' For other ancestors, only set if trackDescendantFocus is enabled
+                            if i = 0 or ancestorGroup.trackDescendantFocus = true
+                                ancestorGroup.setLastFocusedHID(m.globalFocusHID)
                             end if
                         end if
-                    end if
+                    end for
                 end if
             end if
 
@@ -666,14 +684,6 @@ namespace Rotor
                 ' Add to allAffectedGroups if not present
                 if -1 = Rotor.Utils.findInArray(allAffectedGroups, groupHID)
                     allAffectedGroups.unshift(groupHID)
-                end if
-
-                ' Deep remember (skip index 0 - immediate parent is handled separately)
-                if i > 0 and lastFocused <> invalid
-                    ancestorGroup = m.groupStack.get(groupHID)
-                    if ancestorGroup <> invalid and ancestorGroup.trackDescendantFocus = true
-                        ancestorGroup.setLastFocusedHID(m.globalFocusHID)
-                    end if
                 end if
             end for
 
@@ -743,8 +753,9 @@ namespace Rotor
             m.notifyLongPressAtAncestorGroups(isLongPress, key, focused.HID, focusChainGroups)
         end sub
 
-        function spatialNavigation(focused as object, direction as string, focusItemsHIDlist as object) as string
-            if focused.enableSpatialNavigation = false then return ""
+        function spatialNavigation(focused as object, direction as string, focusItemsHIDlist as object, bypassFocusedCheck = false as boolean) as string
+            ' Skip if focused item doesn't participate in spatial nav (unless bypassed for cross-group nav)
+            if not bypassFocusedCheck and focused.enableSpatialNavigation = false then return ""
             if direction = Rotor.Const.Direction.BACK then return ""
 
             ' Remove current focused item from candidates
@@ -752,9 +763,10 @@ namespace Rotor
             if index >= 0 then focusItemsHIDlist.delete(index)
 
             ' Find closest focusable item in direction
-            segments = m.collectSegments(focused, direction, focusItemsHIDlist)
+            focusedMetrics = focused.refreshBounding()
+            segments = m.collectSegments(focusedMetrics, direction, focusItemsHIDlist, focused.HID)
             if segments.Count() > 0
-                return m.findClosestSegment(segments, focused.metrics.middlePoint)
+                return m.findClosestSegment(segments, focusedMetrics.middlePoint)
             end if
 
             return ""
@@ -796,9 +808,32 @@ namespace Rotor
             if group = invalid then group = m.groupStack.getByNodeId(identifier, ancestorHID)
             if group = invalid then return ""
 
-            ' Get fallback identifier for this group
-            ' (enableSpatialEnter groups return the spatially closest member here)
-            newHID = group.getFallbackIdentifier(m.globalFocusHID)
+            newHID = ""
+
+            ' enableSpatialEnter: use spatialNavigation to find closest member
+            if group.isSpatialEnterEnabledForDirection(direction)
+                if direction <> "" and m.globalFocusHID <> ""
+                    focused = m.focusItemStack.get(m.globalFocusHID)
+                    if focused <> invalid
+                        ' Get group members and use spatial navigation to find closest
+                        members = group.getGroupMembersHIDs()
+                        if members.count() > 0
+                            newHID = m.spatialNavigation(focused, direction, members, true)
+                            ' If spatial nav found a group (not a focus item), recursively resolve it
+                            if newHID <> "" and m.groupStack.has(newHID)
+                                newHID = m.capturingFocus_recursively(newHID, direction, group.HID)
+                            end if
+                        end if
+                    else
+                    end if
+                else
+                end if
+            end if
+
+            ' Fallback to getFallbackIdentifier if spatial enter didn't find anything
+            if newHID = ""
+                newHID = group.getFallbackIdentifier(m.globalFocusHID, direction)
+            end if
 
             ' Check if we found a FocusItem
             if m.focusItemStack.has(newHID)
@@ -815,7 +850,7 @@ namespace Rotor
 
             ' Prevent capturing by fallback in the same group where original focus was
             ' Skip this guard for enableSpatialEnter groups (spatial enter explicitly targets a sibling group's member)
-            if not group.enableSpatialEnter and newHID <> "" and m.globalFocusHID <> ""
+            if not group.isSpatialEnterEnabledForDirection(direction) and newHID <> "" and m.globalFocusHID <> ""
                 currentAncestors = m.findAncestorGroups(m.globalFocusHID)
                 newAncestors = m.findAncestorGroups(newHID)
                 if currentAncestors.Count() > 0 and newAncestors.Count() > 0
@@ -879,6 +914,9 @@ namespace Rotor
             ancestorGroupsCount = ancestorGroups.Count()
             ancestorIndex = 0
 
+            ' Get currently focused item for spatial navigation
+            focused = m.focusItemStack.get(m.globalFocusHID)
+
             ' Bubble up through ancestor groups until we find a target or reach the top
             while Rotor.Utils.isString(newHID) and newHID = "" and ancestorIndex < ancestorGroupsCount
                 ' Get next ancestor group
@@ -901,6 +939,34 @@ namespace Rotor
                         otherGroup = m.groupStack.getByNodeId(nodeId)
                         if otherGroup <> invalid
                             newHID = m.capturingFocus_recursively(otherGroup.HID, direction)
+                        end if
+                    else
+                        ' No explicit direction - try spatial navigation at this group level
+                        ' This allows navigation between sibling child groups with enableSpatialNavigation
+                        ' Skip during long press to allow bubbling up to parent carousel for continuous scrolling
+                        ' Skip for "back" direction - spatial navigation doesn't apply
+                        if focused <> invalid and m.isLongPress = false and direction <> Rotor.Const.Direction.BACK
+                            groupMembers = group.getGroupMembersHIDs()
+                            ' Check if this group has any child groups with spatial nav enabled
+                            hasSpatialNavGroups = false
+                            for each memberHID in groupMembers
+                                if m.groupStack.has(memberHID)
+                                    memberGroup = m.groupStack.get(memberHID)
+                                    if memberGroup.enableSpatialNavigation = true
+                                        hasSpatialNavGroups = true
+                                        exit for
+                                    end if
+                                end if
+                            end for
+                            ' If there are spatial-nav-enabled child groups, try spatial navigation
+                            ' Use bypassFocusedCheck=true since we're navigating between groups, not within
+                            if hasSpatialNavGroups
+                                newHID = m.spatialNavigation(focused, direction, groupMembers, true)
+                                ' If spatial nav found a group, use capturing focus to enter it
+                                if newHID <> "" and m.groupStack.has(newHID)
+                                    newHID = m.capturingFocus_recursively(newHID, direction)
+                                end if
+                            end if
                         end if
                     end if
                 end if
@@ -939,6 +1005,7 @@ namespace Rotor
 
                     newHID = ""
                     direction = key
+                    m.lastNavigationDirection = direction
 
                     ' (1) Pick up current focused item
 
@@ -1053,54 +1120,39 @@ namespace Rotor
         end function
 
         ' Find all the relevant(closest in direction) segments that are in the same group as the focused item.
-        function collectSegments(focused as object, direction as string, focusItemsHIDlist as object) as object
-            focused.refreshBounding()
+        ' @param focusedMetrics - The metrics object from focused.refreshBounding()
+        ' @param focusedHID - The HID of the focused item (to exclude from candidates)
+        function collectSegments(focusedMetrics as object, direction as string, focusItemsHIDlist as object, focusedHID as string) as object
+            refSegments = focusedMetrics.segments
+            refSegmentTop = refSegments[Rotor.Const.Segment.TOP]
+            refSegmentRight = refSegments[Rotor.Const.Segment.RIGHT]
+            refSegmentLeft = refSegments[Rotor.Const.Segment.LEFT]
+            refSegmentBottom = refSegments[Rotor.Const.Segment.BOTTOM]
 
-            refSegmentTop = focused.metrics.segments[Rotor.Const.Segment.TOP]
-            refSegmentRight = focused.metrics.segments[Rotor.Const.Segment.RIGHT]
-            refSegmentLeft = focused.metrics.segments[Rotor.Const.Segment.LEFT]
-            refSegmentBottom = focused.metrics.segments[Rotor.Const.Segment.BOTTOM]
-            referencePoint = { x: (refSegmentTop.x1 + refSegmentRight.x2) / 2, y: (refSegmentTop.y1 + refSegmentRight.y2) / 2 }
-
-            validators = {
-
-                "left": function(referencePoint as object, segments as object, refSegmentLeft as object, refSegmentRight as object) as object
-                    right = segments[Rotor.Const.Segment.RIGHT]
-                    ' Candidate's right edge must be strictly left of focused element's left edge
-                    return right.x2 <= refSegmentLeft.x1 ? { isValid: true, segment: right } : { isValid: false }
-                end function,
-
-                "up": function(referencePoint as object, segments as object, refSegmentTop as object, refSegmentBottom as object) as object
-                    bottom = segments[Rotor.Const.Segment.BOTTOM]
-                    ' Candidate's bottom edge must be strictly above focused element's top edge
-                    return bottom.y2 <= refSegmentTop.y1 ? { isValid: true, segment: bottom } : { isValid: false }
-                end function,
-
-                "right": function(referencePoint as object, segments as object, refSegmentLeft as object, refSegmentRight as object) as object
-                    left = segments[Rotor.Const.Segment.LEFT]
-                    ' Candidate's left edge must be strictly right of focused element's right edge
-                    return left.x1 >= refSegmentRight.x2 ? { isValid: true, segment: left } : { isValid: false }
-                end function,
-
-                "down": function(referencePoint as object, segments as object, refSegmentTop as object, refSegmentBottom as object) as object
-                    top = segments[Rotor.Const.Segment.TOP]
-                    ' Candidate's top edge must be strictly below focused element's bottom edge
-                    return top.y1 >= refSegmentBottom.y2 ? { isValid: true, segment: top } : { isValid: false }
-                end function
-            }
             segments = {}
-            validator = validators[direction]
+            validator = m.spatialValidators[direction]
             for each HID in focusItemsHIDlist
-                if HID <> focused.HID
-                    focusItem = m.focusItemStack.get(HID)
+                if HID <> focusedHID
+                    ' Try to get as FocusItem first, then as Group
+                    candidate = m.focusItemStack.get(HID)
+                    isGroup = false
+                    if candidate = invalid
+                        candidate = m.groupStack.get(HID)
+                        isGroup = true
+                    end if
+                    if candidate = invalid then continue for
+
                     ' Skip disabled items - they should not be candidates for spatial navigation
-                    if focusItem.isEnabled = false then continue for
-                    focusItem.refreshBounding()
+                    if not isGroup and candidate.isEnabled = false then continue for
+
+                    candidateMetrics = candidate.refreshBounding()
+                    candidateLeft = candidateMetrics.segments[Rotor.Const.Segment.LEFT]
+                    candidateTop = candidateMetrics.segments[Rotor.Const.Segment.TOP]
                     ' Pass appropriate reference segments based on direction
                     if direction = "left" or direction = "right"
-                        result = validator(referencePoint, focusItem.metrics.segments, refSegmentLeft, refSegmentRight)
+                        result = validator(candidateMetrics.segments, refSegmentLeft, refSegmentRight)
                     else ' up or down
-                        result = validator(referencePoint, focusItem.metrics.segments, refSegmentTop, refSegmentBottom)
+                        result = validator(candidateMetrics.segments, refSegmentTop, refSegmentBottom)
                     end if
                     if result.isValid
                         segments[HID] = result.segment
@@ -1213,6 +1265,7 @@ namespace Rotor
                 m.autoSetIsFocusedState = config.autoSetIsFocusedState ?? true
 
                 m.isEnabled = config.isEnabled ?? true
+                m.enableSpatialNavigation = config.enableSpatialNavigation ?? false
                 m.staticDirection = {}
                 m.staticDirection[Rotor.Const.Direction.UP] = config.up ?? ""
                 m.staticDirection[Rotor.Const.Direction.RIGHT] = config.right ?? ""
@@ -1240,12 +1293,54 @@ namespace Rotor
             idByKeys as object
             isEnabled as boolean
             isFocused as boolean
+            enableSpatialNavigation as boolean
             onFocusChanged as dynamic
             onFocus as dynamic
             onBlur as dynamic
             longPressHandler as dynamic
             node as object
             widget as object
+
+            protected metrics = {
+                segments: {}
+            }
+
+            function refreshBounding() as object
+                b = m.node.sceneBoundingRect()
+                rotation = m.node.rotation
+
+                if rotation = 0
+                    if b.y = 0 and b.x = 0
+                        t = m.node.translation
+                        b.x += t[0]
+                        b.y += t[1]
+                    end if
+
+                    m.metrics.append(b)
+                    m.metrics.segments[Rotor.Const.Segment.LEFT] = {
+                        x1: b.x, y1: b.y,
+                        x2: b.x, y2: b.y + b.height
+                    }
+                    m.metrics.segments[Rotor.Const.Segment.TOP] = {
+                        x1: b.x, y1: b.y,
+                        x2: b.x + b.width, y2: b.y
+                    }
+                    m.metrics.segments[Rotor.Const.Segment.RIGHT] = {
+                        x1: b.x + b.width, y1: b.y,
+                        x2: b.x + b.width, y2: b.y + b.height
+                    }
+                    m.metrics.segments[Rotor.Const.Segment.BOTTOM] = {
+                        x1: b.x, y1: b.y + b.height,
+                        x2: b.x + b.width, y2: b.y + b.height
+                    }
+                    m.metrics.middlePoint = {
+                        x: b.x + b.width / 2,
+                        y: b.y + b.height / 2
+                    }
+                end if
+
+                return m.metrics
+            end function
 
             function getStaticNodeIdInDirection(direction as dynamic) as dynamic
                 direction = m.staticDirection[direction]
@@ -1301,8 +1396,23 @@ namespace Rotor
 
             defaultFocusId as string
             lastFocusedHID as string
-            enableSpatialEnter as boolean
+            enableSpatialEnter as dynamic ' boolean | { up?: boolean, down?: boolean, left?: boolean, right?: boolean }
             trackDescendantFocus as boolean
+
+            '
+            ' isSpatialEnterEnabledForDirection - Checks if spatial enter is enabled for a specific direction
+            '
+            ' @param {string} direction - The direction to check (up, down, left, right)
+            ' @returns {boolean} True if spatial enter is enabled for the direction
+            '
+            function isSpatialEnterEnabledForDirection(direction as string) as boolean
+                if Rotor.Utils.isBoolean(m.enableSpatialEnter)
+                    return m.enableSpatialEnter
+                else if Rotor.Utils.isAssociativeArray(m.enableSpatialEnter)
+                    return m.enableSpatialEnter[direction] = true
+                end if
+                return false
+            end function
             focusItemsRef as object
             groupsRef as object
             isFocusItem = false
@@ -1315,6 +1425,7 @@ namespace Rotor
             function getGroupMembersHIDs()
                 ' Collect all focusItems that are descendants of this group
                 ' Exclude items that belong to nested sub-groups
+                ' Also include direct child groups with enableSpatialNavigation: true
                 focusItems = m.focusItemsRef.getAll()
                 groups = m.groupsRef.getAll()
                 HIDlen = Len(m.HID)
@@ -1322,6 +1433,7 @@ namespace Rotor
                 groupsKeys = groups.keys()
                 groupsCount = groups.Count()
 
+                ' Collect focusItems (existing logic)
                 for each focusItemHID in focusItems
                     ' Check if focusItem is a descendant of this group
                     isDescendant = Left(focusItemHID, HIDlen) = m.HID
@@ -1338,6 +1450,36 @@ namespace Rotor
                         end while
 
                         if not shouldExclude then collection.push(focusItemHID)
+                    end if
+                end for
+
+                ' Collect direct child groups with enableSpatialNavigation: true
+                for i = 0 to groupsCount - 1
+                    childGroupHID = groupsKeys[i]
+                    childGroupHIDlen = Len(childGroupHID)
+
+                    ' Check if it's a descendant of this group (but not this group itself)
+                    if childGroupHIDlen > HIDlen and Left(childGroupHID, HIDlen) = m.HID
+                        childGroup = groups[childGroupHID]
+
+                        ' Only include if enableSpatialNavigation is true
+                        if childGroup.enableSpatialNavigation = true
+                            ' Check if it's a DIRECT child (no intermediate groups)
+                            isDirectChild = true
+                            for j = 0 to groupsCount - 1
+                                intermediateHID = groupsKeys[j]
+                                intermediateLen = Len(intermediateHID)
+                                ' Check if there's a group between this group and the child
+                                if intermediateLen > HIDlen and intermediateLen < childGroupHIDlen
+                                    if Left(childGroupHID, intermediateLen) = intermediateHID
+                                        isDirectChild = false
+                                        exit for
+                                    end if
+                                end if
+                            end for
+
+                            if isDirectChild then collection.push(childGroupHID)
+                        end if
                     end if
                 end for
 
@@ -1365,41 +1507,15 @@ namespace Rotor
                 end if
             end function
 
-            function getFallbackIdentifier(globalFocusHID = "" as string) as string
+            function getFallbackIdentifier(globalFocusHID = "" as string, direction = "" as string) as string
                 HID = ""
-                ' enableSpatialEnter takes priority over lastFocusedHID
-                ' (lastFocusedHID may be stale from slot recycling)
-                if not m.enableSpatialEnter and m.lastFocusedHID <> ""
-                    return m.lastFocusedHID
-                end if
+                ' enableSpatialEnter is handled by capturingFocus_recursively using spatialNavigation
+                ' Here we only handle lastFocusedHID and defaultFocusId fallbacks
 
-                ' enableSpatialEnter: return the spatially closest member to the current focus
-                if m.enableSpatialEnter = true and globalFocusHID <> ""
-                    prevFocused = m.focusItemsRef.get(globalFocusHID)
-                    if prevFocused <> invalid
-                        prevFocused.refreshBounding()
-                        refPoint = prevFocused.metrics.middlePoint
-                        members = m.getGroupMembersHIDs()
-                        minDist = 2147483647
-                        closestHID = ""
-                        for each memberHID in members
-                            if memberHID <> globalFocusHID
-                                member = m.focusItemsRef.get(memberHID)
-                                if member <> invalid
-                                    member.refreshBounding()
-                                    dx = member.metrics.middlePoint.x - refPoint.x
-                                    dy = member.metrics.middlePoint.y - refPoint.y
-                                    dist = dx * dx + dy * dy
-                                    if dist < minDist
-                                        minDist = dist
-                                        closestHID = memberHID
-                                    end if
-                                end if
-                            end if
-                        end for
-                        if closestHID <> ""
-                            return closestHID
-                        end if
+                ' Use lastFocusedHID if available AND still exists (but not for enableSpatialEnter in this direction)
+                if not m.isSpatialEnterEnabledForDirection(direction) and m.lastFocusedHID <> ""
+                    if m.focusItemsRef.has(m.lastFocusedHID)
+                        return m.lastFocusedHID
                     end if
                 end if
 
@@ -1470,7 +1586,6 @@ namespace Rotor
                 super(config)
 
                 m.onSelect = config.onSelect ?? ""
-                m.enableSpatialNavigation = config.enableSpatialNavigation ?? true
                 m.enableNativeFocus = config.enableNativeFocus ?? false
             end sub
 
@@ -1482,16 +1597,12 @@ namespace Rotor
             isFocusItem = true
             isGroup = false
             enableNativeFocus as boolean
-            enableSpatialNavigation as boolean
             onSelect as dynamic
 
-            private metrics = {
-                segments: {}
-            }
             private bounding as object
 
 
-            sub refreshBounding()
+            override function refreshBounding() as object
                 b = m.node.sceneBoundingRect()
                 rotation = m.node.rotation
 
@@ -1558,7 +1669,9 @@ namespace Rotor
                     m.metrics.middlePoint = { x: rotatedMiddlePoint.x1, y: rotatedMiddlePoint.y1 }
 
                 end if
-            end sub
+
+                return m.metrics
+            end function
 
             override sub destroy()
                 m.onSelect = invalid
