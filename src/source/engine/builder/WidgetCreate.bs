@@ -101,6 +101,9 @@ namespace Rotor.ViewBuilder
             if payloads = invalid and m.isViewModel = true
                 ' Self update (only for viewModels)
                 payloads = m.template()
+                ' Self update
+                payloads.id = m.id
+                payloads.HID = m.HID
             else
                 for each payload in Rotor.Utils.ensureArray(payloads)
                     if payload.DoesExist("id") = false
