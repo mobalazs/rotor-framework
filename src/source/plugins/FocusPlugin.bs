@@ -239,13 +239,17 @@ namespace Rotor
             ' ---------------------------------------------------------------------
             ' beforeDestroy - Hook executed before a widget is destroyed
             '
-            ' Removes focus config.
+            ' Removes focus config. Clears global focus if this widget had it.
             '
             ' @param {object} scope - The plugin scope (this instance)
             ' @param {object} widget - The widget being destroyed
             '
             beforeDestroy: sub(scope as object, widget as object)
+                hadFocus = scope.globalFocusHID = widget.HID
                 scope.removeFocusConfig(widget.HID)
+                if hadFocus
+                    scope.storeGlobalFocusHID("", "")
+                end if
             end sub
         }
 
@@ -527,6 +531,11 @@ namespace Rotor
             ' Create and register the FocusItem instance
             newFocusItem = new Rotor.FocusPluginHelper.FocusItemClass(config)
             m.focusItemStack.set(HID, newFocusItem)
+
+            ' Restore focus state if this widget had global focus
+            if m.globalFocusHID = HID
+                newFocusItem.isFocused = true
+            end if
         end sub
 
         '
