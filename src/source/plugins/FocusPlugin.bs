@@ -1521,9 +1521,9 @@ namespace Rotor
                 ' enableSpatialEnter is handled by capturingFocus_recursively using spatialNavigation
                 ' Here we only handle lastFocusedHID and defaultFocusId fallbacks
 
-                ' Use lastFocusedHID if available AND still exists (but not for enableSpatialEnter in this direction)
+                ' Use lastFocusedHID if available AND still exists (check both focusItems and groups)
                 if not m.isSpatialEnterEnabledForDirection(direction) and m.lastFocusedHID <> ""
-                    if m.focusItemsRef.has(m.lastFocusedHID)
+                    if m.focusItemsRef.has(m.lastFocusedHID) or m.groupsRef.has(m.lastFocusedHID)
                         return m.lastFocusedHID
                     end if
                 end if
