@@ -117,7 +117,7 @@ namespace Rotor.ViewBuilder
             #if not unittest
                 if m.audioGuide = invalid
                     #if debug
-                        ? "[TTS_SERVICE][ERROR] Failed to create roAudioGuide instance"
+                        ' ? "[TTS_SERVICE][ERROR] Failed to create roAudioGuide instance"
                     #end if
                     m.isEnabled = false
                     return
@@ -132,13 +132,13 @@ namespace Rotor.ViewBuilder
             m.timerNode.observeFieldScoped("fire", "Rotor_ViewBuilder_ttsDebounceCallback")
             ' Note: Timer is NOT started here, only when pending speech is added
             #if debug
-                ? "[TTS_SERVICE][INFO] Threshold timer created (one-shot, "; m.debounceDelay; "ms)"
+                ' ? "[TTS_SERVICE][INFO] Threshold timer created (one-shot, "; m.debounceDelay; "ms)"
             #end if
 
             ' Check device AudioGuide status dynamically
             if not m.getIsDeviceAudioGuideEnabled()
                 #if debug
-                    ? "[TTS_SERVICE][INFO] Device AudioGuide is disabled, TTS service disabled"
+                    ' ? "[TTS_SERVICE][INFO] Device AudioGuide is disabled, TTS service disabled"
                 #end if
                 m.isEnabled = false
                 return
@@ -177,7 +177,7 @@ namespace Rotor.ViewBuilder
             if Rotor.Utils.isString(onceKey)
                 if m.skipCache.DoesExist(onceKey)
                     #if debug
-                        ? "[TTS_SERVICE] Skipping speech with onceKey (already spoken): "; onceKey
+                        ' ? "[TTS_SERVICE] Skipping speech with onceKey (already spoken): "; onceKey
                     #end if
                     return
                 end if
@@ -197,7 +197,7 @@ namespace Rotor.ViewBuilder
             ' Check if we should skip duplicate speech
             if dontRepeat and textToSpeak = m.lastSpeech
                 #if debug
-                    ? "[TTS_SERVICE] Skipping duplicate speech: "; textToSpeak
+                    ' ? "[TTS_SERVICE] Skipping duplicate speech: "; textToSpeak
                 #end if
                 return
             end if
@@ -206,7 +206,7 @@ namespace Rotor.ViewBuilder
             ' This means: bypass threshold immediately AND set flag to protect from next flush
             if shouldPreventNextFlush
                 #if debug
-                    ? "[TTS_SERVICE][OVERRIDE] Current speech bypassing threshold: "; textToSpeak
+                    ' ? "[TTS_SERVICE][OVERRIDE] Current speech bypassing threshold: "; textToSpeak
                 #end if
 
                 ' Track if there was pending speech
@@ -215,7 +215,7 @@ namespace Rotor.ViewBuilder
                 ' IMPORTANT: Execute pending speech FIRST if it exists (maintains correct order)
                 if m.pendingSpeech <> invalid
                     #if debug
-                        ? "[TTS_SERVICE][OVERRIDE] Executing pending speech first: '"; m.pendingSpeech.textToSpeak; "'"
+                        ' ? "[TTS_SERVICE][OVERRIDE] Executing pending speech first: '"; m.pendingSpeech.textToSpeak; "'"
                     #end if
                     pendingToExecute = m.pendingSpeech
                     m.pendingSpeech = invalid
@@ -247,7 +247,7 @@ namespace Rotor.ViewBuilder
             ' This allows rapid menu navigation to filter properly (threshold replaces pending)
             if m.preventNextFlushFlag or m.isPendingProtected
                 #if debug
-                    ? "[TTS_SERVICE][OVERRIDE] Flush blocked, speech goes to threshold: "; textToSpeak
+                    ' ? "[TTS_SERVICE][OVERRIDE] Flush blocked, speech goes to threshold: "; textToSpeak
                 #end if
                 if m.preventNextFlushFlag
                     m.preventNextFlushFlag = false ' Clear flag after first use
@@ -266,11 +266,11 @@ namespace Rotor.ViewBuilder
             ' If new request comes within 300ms, replace pending (filter rapid changes)
             #if debug
                 if m.pendingSpeech <> invalid
-                    ? "[TTS_SERVICE][THRESHOLD] Replacing pending: '"; m.pendingSpeech.textToSpeak; "' with: '"; textToSpeak; "'"
+                    ' ? "[TTS_SERVICE][THRESHOLD] Replacing pending: '"; m.pendingSpeech.textToSpeak; "' with: '"; textToSpeak; "'"
                 else
                     flushLabel = ""
                     if shouldFlush then flushLabel = " (will flush)"
-                    ? "[TTS_SERVICE][THRESHOLD] Pending: '"; textToSpeak; "' ("; m.debounceDelay; "ms)"; flushLabel
+                    ' ? "[TTS_SERVICE][THRESHOLD] Pending: '"; textToSpeak; "' ("; m.debounceDelay; "ms)"; flushLabel
                 end if
             #end if
             m.pendingSpeech = {
@@ -321,7 +321,7 @@ namespace Rotor.ViewBuilder
 
             ' Execute pending speech after threshold passed
             #if debug
-                ? "[TTS_SERVICE][THRESHOLD] Timer fired, executing: '"; pendingToExecute.textToSpeak; "'"
+                ' ? "[TTS_SERVICE][THRESHOLD] Timer fired, executing: '"; pendingToExecute.textToSpeak; "'"
             #end if
 
             ' IMPORTANT: Clear protection flag BEFORE executing pending speech
@@ -350,7 +350,7 @@ namespace Rotor.ViewBuilder
             if isLongText or isMultiSentence
                 shouldFlush = true
                 #if debug
-                    ? "[TTS_SERVICE] Forcing flush for long/multi-sentence text (len: "; Len(textToSpeak); ", multi: "; isMultiSentence; ")"
+                    ' ? "[TTS_SERVICE] Forcing flush for long/multi-sentence text (len: "; Len(textToSpeak); ", multi: "; isMultiSentence; ")"
                 #end if
             end if
 
@@ -372,7 +372,7 @@ namespace Rotor.ViewBuilder
             ' Handle flush with prevention protection
             if shouldFlush and m.preventNextFlushFlag
                 #if debug
-                    ? "[TTS_SERVICE] Flush blocked by preventNextFlush protection"
+                    ' ? "[TTS_SERVICE] Flush blocked by preventNextFlush protection"
                 #end if
                 shouldFlush = false ' Prevent flush in Say() call too!
                 m.preventNextFlushFlag = false
@@ -391,7 +391,7 @@ namespace Rotor.ViewBuilder
             end if
 
             #if debug
-                ? "[TTS_SERVICE] Speaking (ID: "; speechId; "): "; text; " (flush: "; shouldFlush; ", dontRepeat: "; dontRepeat; ")"
+                ' ? "[TTS_SERVICE] Speaking (ID: "; speechId; "): "; text; " (flush: "; shouldFlush; ", dontRepeat: "; dontRepeat; ")"
             #end if
 
             return speechId
@@ -560,7 +560,7 @@ namespace Rotor.ViewBuilder
             end if
 
             #if debug
-                ? "[TTS_SERVICE] Stop speech - flushed all speech and canceled pending"
+                ' ? "[TTS_SERVICE] Stop speech - flushed all speech and canceled pending"
             #end if
         end sub
 
@@ -585,7 +585,7 @@ namespace Rotor.ViewBuilder
             if m.skipCache.DoesExist(key)
                 m.skipCache.Delete(key)
                 #if debug
-                    ? "[TTS_SERVICE] Removed onceKey from cache: "; key
+                    ' ? "[TTS_SERVICE] Removed onceKey from cache: "; key
                 #end if
             end if
         end sub
@@ -596,7 +596,7 @@ namespace Rotor.ViewBuilder
         public sub enable()
             if not m.getIsDeviceAudioGuideEnabled()
                 #if debug
-                    ? "[TTS_SERVICE][WARNING] Cannot enable - device AudioGuide is disabled"
+                    ' ? "[TTS_SERVICE][WARNING] Cannot enable - device AudioGuide is disabled"
                 #end if
                 return
             end if
@@ -608,7 +608,7 @@ namespace Rotor.ViewBuilder
             if rootNode <> invalid and not m.allowNativeAudioGuide
                 rootNode.muteAudioGuide = true
                 #if debug
-                    ? "[TTS_SERVICE][INFO] Enabled TTS, muted native AudioGuide"
+                    ' ? "[TTS_SERVICE][INFO] Enabled TTS, muted native AudioGuide"
                 #end if
             end if
         end sub
@@ -626,7 +626,7 @@ namespace Rotor.ViewBuilder
                 if rootNode <> invalid
                     rootNode.muteAudioGuide = false
                     #if debug
-                        ? "[TTS_SERVICE][INFO] Disabled TTS, unmuted native AudioGuide"
+                        ' ? "[TTS_SERVICE][INFO] Disabled TTS, unmuted native AudioGuide"
                     #end if
                 end if
             end if
@@ -638,7 +638,7 @@ namespace Rotor.ViewBuilder
         public sub clearOnceCache()
             m.skipCache = {}
             #if debug
-                ? "[TTS_SERVICE] Once cache cleared"
+                ' ? "[TTS_SERVICE] Once cache cleared"
             #end if
         end sub
 
