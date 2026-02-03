@@ -185,6 +185,6 @@ This helps others discover the project and supports the open source community. T
 
 ---
 
-**Copyright 2025 Balazs Molnar**
+**Copyright © 2025-2026 Balazs Molnar**
 
 ---
