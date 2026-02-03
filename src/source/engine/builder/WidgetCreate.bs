@@ -97,7 +97,7 @@ namespace Rotor.ViewBuilder
         end function
 
         ' render - Renders widget updates (self, descendants, or children) *'
-        widget.render = sub(payloads as dynamic, params = {} as object)
+        widget.render = sub(payloads = invalid as dynamic, params = {} as object)
             if payloads = invalid and m.isViewModel = true
                 ' Self update (only for viewModels)
                 payloads = m.template()
