@@ -72,8 +72,9 @@ This means `defaultFocusId: "deepItem"` will find "deepItem" even if it's 3+ lev
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
 | `group.defaultFocusId` | string / `function() as string` | `""` | Default focus target when group receives focus |
-| `group.lastFocusedHID` | string | `""` | Automatically remembers last focused item in group (direct children only) |
-| `group.trackDescendantFocus` | boolean | `false` | When true, remembers last focused item from ANY descendant depth (not just direct children) |
+| `group.lastFocusedHID` | string | `""` | Automatically remembers last focused item in group |
+| `group.enableLastFocusId` | boolean | `true` | When true, immediate parent stores `lastFocusedHID` for direct children |
+| `group.enableDeepLastFocusId` | boolean | `false` | When true, ancestor groups also store `lastFocusedHID` from ANY descendant depth |
 | `group.enableSpatialEnter` | boolean | `false` | Enable spatial navigation when entering group from direction |
 | `group.up` / `down` / `left` / `right` / `back` | string / `function() as string` / boolean | `""` | Navigation directions to other groups/items |
 | `group.onFocusChanged` | `sub(isFocused as boolean)` | `invalid` | Called when group focus chain state changes |
@@ -379,7 +380,7 @@ Widgets with focus configuration automatically receive these methods via `widget
 }
 ```
 
-### Deep Focus Memory with trackDescendantFocus
+### Deep Focus Memory with enableDeepLastFocusId
 
 ```brightscript
 ' Main navigation that remembers deeply nested focus
@@ -389,7 +390,7 @@ Widgets with focus configuration automatically receive these methods via `widget
     focus: {
         group: {
             defaultFocusId: "categoriesMenu",
-            trackDescendantFocus: true, ' Remember focus at ANY depth
+            enableDeepLastFocusId: true, ' Remember focus at ANY depth
             right: "contentArea"
         }
     },
@@ -424,7 +425,24 @@ Widgets with focus configuration automatically receive these methods via `widget
 
 ' When user focuses subItem3, then navigates to contentArea and back,
 ' focus returns directly to subItem3 (not category1 or subItem1)
-' because mainNavigation has trackDescendantFocus: true
+' because mainNavigation has enableDeepLastFocusId: true
+```
+
+### Disabling Focus Memory
+
+```brightscript
+' Group that does NOT remember last focused item
+{
+    id: "alwaysDefaultGroup",
+    nodeType: "Group",
+    focus: {
+        group: {
+            defaultFocusId: "firstItem",
+            enableLastFocusId: false ' Always use defaultFocusId, never remember
+        }
+    },
+    children: [...]
+}
 ```
 
 ## Best Practices
@@ -608,16 +626,18 @@ FocusItem (no direction) → Spatial nav (nothing) → Group.direction?
 2. `group.defaultFocusId` [CONFIGURED]
 3. Deep search (if defaultFocusId not found immediately)
 
-### RULE #11b: Deep Focus Tracking (trackDescendantFocus)
+### RULE #11b: Focus Memory Configuration (enableLastFocusId / enableDeepLastFocusId)
 
-By default, a focus group only remembers the last focused item among its **direct children**. When `trackDescendantFocus: true` is set on a group:
+Focus groups can be configured to remember the last focused item:
 
-- The group stores `lastFocusedHID` for **ANY descendant** FocusItem (not just direct children)
-- This enables "deep focus memory" - returning to deeply nested items when re-entering the group
-- The immediate parent group **always** stores `lastFocusedHID` (default behavior)
-- Ancestor groups with `trackDescendantFocus: true` **also** store it
+- **`enableLastFocusId`** (default: `true`): Controls whether the **immediate parent** group stores `lastFocusedHID` for direct children
+- **`enableDeepLastFocusId`** (default: `false`): When true, **ancestor groups** also store `lastFocusedHID` from ANY descendant depth
 
-**Use case**: When you have nested groups (e.g., `mainMenu > subMenu > menuItem`) and want the outer `mainMenu` to remember which deeply nested `menuItem` was last focused, set `trackDescendantFocus: true` on `mainMenu`.
+**Behavior:**
+- Immediate parent stores `lastFocusedHID` only if `enableLastFocusId: true`
+- Ancestor groups store `lastFocusedHID` only if `enableDeepLastFocusId: true`
+
+**Use case**: When you have nested groups (e.g., `mainMenu > subMenu > menuItem`) and want the outer `mainMenu` to remember which deeply nested `menuItem` was last focused, set `enableDeepLastFocusId: true` on `mainMenu`. To disable focus memory on a group entirely, set `enableLastFocusId: false`.
 
 ### RULE #12: DefaultFocusId Targets
 

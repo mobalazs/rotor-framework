@@ -34,8 +34,9 @@ props:
     longPressHandler: "function(isLongPress as boolean, key as string) as boolean - handle long press, return true if handled"
   focusGroup:
     defaultFocusId: "string | function() as string - default focus target when group receives focus"
-    lastFocusedHID: "string (auto-managed) - remembers last focused item (direct children only)"
-    trackDescendantFocus: "boolean (default: false) - when true, remembers last focused item from ANY descendant depth (not just direct children)"
+    lastFocusedHID: "string (auto-managed) - remembers last focused item"
+    enableLastFocusId: "boolean (default: true) - when true, immediate parent stores lastFocusedHID for direct children"
+    enableDeepLastFocusId: "boolean (default: false) - when true, ancestor groups also store lastFocusedHID from ANY descendant depth"
     enableSpatialEnter: "boolean (default: false) - spatial nav when entering from direction"
     up/down/left/right/back: "string | function() as string | boolean - group-level navigation"
     onFocusChanged: "sub(isFocused as boolean) - group focus-chain callback"
@@ -74,13 +75,13 @@ rules:
     1: "group.lastFocusedHID (if exists) [AUTO-SAVED]"
     2: "group.defaultFocusId [CONFIGURED]"
     3: "Deep search (if defaultFocusId not found immediately)"
-  RULE_11b_trackDescendantFocus:
-    default: "Group only remembers lastFocusedHID for direct children"
-    withFlag: "trackDescendantFocus: true → remembers lastFocusedHID for ANY descendant depth"
+  RULE_11b_focusMemoryConfig:
+    enableLastFocusId: "boolean (default: true) - controls whether immediate parent stores lastFocusedHID"
+    enableDeepLastFocusId: "boolean (default: false) - when true, ancestor groups also store lastFocusedHID"
     behavior:
-      - "Immediate parent ALWAYS stores lastFocusedHID (default)"
-      - "Ancestor groups with trackDescendantFocus: true ALSO store it"
-    useCase: "Nested groups (mainMenu > subMenu > item) where outer group should remember deeply nested item"
+      - "Immediate parent stores lastFocusedHID only if enableLastFocusId: true"
+      - "Ancestor groups store lastFocusedHID only if enableDeepLastFocusId: true"
+    useCase: "Nested groups (mainMenu > subMenu > item) where outer group should remember deeply nested item (set enableDeepLastFocusId: true). To disable focus memory, set enableLastFocusId: false."
   RULE_12_defaultFocusIdTargets:
     focusItemId: "Focus goes directly to it"
     groupId: "Capturing continues on that group"
@@ -154,12 +155,17 @@ patterns:
   deepFocusMemory: |
     mainNav: focus.group: {
       defaultFocusId: "subMenu",
-      trackDescendantFocus: true,  (remembers ANY depth)
+      enableDeepLastFocusId: true,  (remembers ANY depth)
       right: "content"
     }
     subMenu > category > item1, item2, item3
     When user focuses item3, navigates to content and back,
     focus returns to item3 (not subMenu or category default)
+  disableFocusMemory: |
+    group: focus.group: {
+      defaultFocusId: "firstItem",
+      enableLastFocusId: false  (always uses default, never remembers)
+    }
 
 bestPractices:
   visualFeedback: "Always handle focus state visually via onFocusChanged. Use blendColor/opacity changes."

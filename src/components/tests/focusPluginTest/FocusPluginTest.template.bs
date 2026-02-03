@@ -48,45 +48,47 @@ function getFocusTestTemplate() as object
                 fields: {
                     translation: [100, 160]
                 },
-                children: {
-                    ' GroupL2 - Inner left group (depth 2)
-                    id: "GroupL2",
-                    nodeType: "Group",
-                    fields: {
-                        translation: [0, 80]
-                    },
-                    focusGroup: {
-                        defaultFocusId: "L1"
-                    },
-                    children: [
-                        ' L1 - First left leaf (depth 3)
-                        {
-                            id: "L1",
-                            nodeType: "Rectangle",
-                            fields: {
-                                translation: [0, 0],
-                                width: 140,
-                                height: 80,
-                                color: "0x7ED321FF"
-                            },
-                            focus: {
-                            }
+                children: [
+                    {
+                        ' GroupL2 - Inner left group (depth 2)
+                        id: "GroupL2",
+                        nodeType: "Group",
+                        fields: {
+                            translation: [0, 80]
                         },
-                        ' L2 - Second left leaf (depth 3)
-                        {
-                            id: "L2",
-                            nodeType: "Rectangle",
-                            fields: {
-                                translation: [180, 0],
-                                width: 140,
-                                height: 80,
-                                color: "0x7ED321FF"
+                        focusGroup: {
+                            defaultFocusId: "L1"
+                        },
+                        children: [
+                            ' L1 - First left leaf (depth 3)
+                            {
+                                id: "L1",
+                                nodeType: "Rectangle",
+                                fields: {
+                                    translation: [0, 0],
+                                    width: 140,
+                                    height: 80,
+                                    color: "0x7ED321FF"
+                                },
+                                focus: {
+                                }
                             },
-                            focus: {
+                            ' L2 - Second left leaf (depth 3)
+                            {
+                                id: "L2",
+                                nodeType: "Rectangle",
+                                fields: {
+                                    translation: [180, 0],
+                                    width: 140,
+                                    height: 80,
+                                    color: "0x7ED321FF"
+                                },
+                                focus: {
+                                }
                             }
-                        }
-                    ]
-                }
+                        ]
+                    }
+                ]
             },
             ' GroupR - Right branch (depth 1)
             {
@@ -95,46 +97,48 @@ function getFocusTestTemplate() as object
                 fields: {
                     translation: [560, 160]
                 },
-                children: {
-                    ' GroupR2 - Inner right group (depth 2)
-                    id: "GroupR2",
-                    nodeType: "Group",
-                    fields: {
-                        translation: [0, 80]
-                    },
-                    focusGroup: {
-                        defaultFocusId: "R1",
-                        left: true ' means handled
-                    },
-                    children: [
-                        ' R1 - First right leaf (depth 3)
-                        {
-                            id: "R1",
-                            nodeType: "Rectangle",
-                            fields: {
-                                translation: [0, 0],
-                                width: 140,
-                                height: 80,
-                                color: "0xF5A623FF"
-                            },
-                            focus: {
-                            }
+                children: [
+                    {
+                        ' GroupR2 - Inner right group (depth 2)
+                        id: "GroupR2",
+                        nodeType: "Group",
+                        fields: {
+                            translation: [0, 80]
                         },
-                        ' R2 - Second right leaf (depth 3)
-                        {
-                            id: "R2",
-                            nodeType: "Rectangle",
-                            fields: {
-                                translation: [180, 0],
-                                width: 140,
-                                height: 80,
-                                color: "0xF5A623FF"
+                        focusGroup: {
+                            defaultFocusId: "R1",
+                            left: true ' means handled
+                        },
+                        children: [
+                            ' R1 - First right leaf (depth 3)
+                            {
+                                id: "R1",
+                                nodeType: "Rectangle",
+                                fields: {
+                                    translation: [0, 0],
+                                    width: 140,
+                                    height: 80,
+                                    color: "0xF5A623FF"
+                                },
+                                focus: {
+                                }
                             },
-                            focus: {
+                            ' R2 - Second right leaf (depth 3)
+                            {
+                                id: "R2",
+                                nodeType: "Rectangle",
+                                fields: {
+                                    translation: [180, 0],
+                                    width: 140,
+                                    height: 80,
+                                    color: "0xF5A623FF"
+                                },
+                                focus: {
+                                }
                             }
-                        }
-                    ]
-                }
+                        ]
+                    }
+                ]
             },
             ' ===================================================================
             ' DEEP SEARCH TEST GROUPS
@@ -153,44 +157,51 @@ function getFocusTestTemplate() as object
                     up: true,
                     down: true
                 },
-                children: {
-                    id: "DeepLevel1",
-                    nodeType: "Group",
-                    fields: {
-                        translation: [0, 0]
-                    },
-                    children: {
-                        id: "DeepLevel2",
+                children: [
+                    {
+                        id: "DeepLevel1",
                         nodeType: "Group",
                         fields: {
                             translation: [0, 0]
                         },
                         children: [
                             {
-                                id: "DeepTarget",
-                                nodeType: "Rectangle",
+                                id: "DeepLevel2",
+                                nodeType: "Group",
                                 fields: {
-                                    translation: [0, 0],
-                                    width: 100,
-                                    height: 50,
-                                    color: "0xFF0000FF"
+                                    translation: [0, 0]
                                 },
-                                focus: {}
-                            },
-                            {
-                                id: "DeepSibling",
-                                nodeType: "Rectangle",
-                                fields: {
-                                    translation: [120, 0],
-                                    width: 100,
-                                    height: 50,
-                                    color: "0x00FF00FF"
+                                focusGroup: {
+                                    defaultFocusId: "DeepTarget"
                                 },
-                                focus: {}
+                                children: [
+                                    {
+                                        id: "DeepTarget",
+                                        nodeType: "Rectangle",
+                                        fields: {
+                                            translation: [0, 0],
+                                            width: 100,
+                                            height: 50,
+                                            color: "0xFF0000FF"
+                                        },
+                                        focus: {}
+                                    },
+                                    {
+                                        id: "DeepSibling",
+                                        nodeType: "Rectangle",
+                                        fields: {
+                                            translation: [120, 0],
+                                            width: 100,
+                                            height: 50,
+                                            color: "0x00FF00FF"
+                                        },
+                                        focus: {}
+                                    }
+                                ]
                             }
                         ]
                     }
-                }
+                ]
             },
             ' NestedGroupTestParent - tests group-to-group fallback with deep search
             {
@@ -200,57 +211,53 @@ function getFocusTestTemplate() as object
                     translation: [300, 400]
                 },
                 focusGroup: {
-                    defaultFocusId: "NestedTargetGroup",
-                    left: false,
-                    right: false,
-                    up: false,
-                    down: false
+                    defaultFocusId: "NestedTargetGroup"
                 },
-                children: {
-                    id: "NestedChildGroup",
-                    nodeType: "Group",
-                    fields: {
-                        translation: [0, 0]
-                    },
-                    children: {
-                        id: "NestedTargetGroup",
+                children: [
+                    {
+                        id: "NestedChildGroup",
                         nodeType: "Group",
                         fields: {
                             translation: [0, 0]
                         },
-                        focusGroup: {
-                            defaultFocusId: "FinalTarget",
-                            left: false,
-                            right: false,
-                            up: false,
-                            down: false
-                        },
                         children: [
                             {
-                                id: "FinalTarget",
-                                nodeType: "Rectangle",
+                                id: "NestedTargetGroup",
+                                nodeType: "Group",
                                 fields: {
-                                    translation: [0, 0],
-                                    width: 100,
-                                    height: 50,
-                                    color: "0x0000FFFF"
+                                    translation: [0, 0]
                                 },
-                                focus: {}
-                            },
-                            {
-                                id: "FinalSibling",
-                                nodeType: "Rectangle",
-                                fields: {
-                                    translation: [120, 0],
-                                    width: 100,
-                                    height: 50,
-                                    color: "0xFFFF00FF"
+                                focusGroup: {
+                                    defaultFocusId: "FinalTarget"
                                 },
-                                focus: {}
+                                children: [
+                                    {
+                                        id: "FinalTarget",
+                                        nodeType: "Rectangle",
+                                        fields: {
+                                            translation: [0, 0],
+                                            width: 100,
+                                            height: 50,
+                                            color: "0x0000FFFF"
+                                        },
+                                        focus: {}
+                                    },
+                                    {
+                                        id: "FinalSibling",
+                                        nodeType: "Rectangle",
+                                        fields: {
+                                            translation: [120, 0],
+                                            width: 100,
+                                            height: 50,
+                                            color: "0xFFFF00FF"
+                                        },
+                                        focus: {}
+                                    }
+                                ]
                             }
                         ]
                     }
-                }
+                ]
             }
         ]
     }

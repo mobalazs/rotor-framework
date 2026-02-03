@@ -672,9 +672,10 @@ namespace Rotor
                         ancestorGroupHID = lastFocusChainingGroups[i]
                         ancestorGroup = m.groupStack.get(ancestorGroupHID)
                         if ancestorGroup <> invalid
-                            ' Always set on immediate parent (index 0)
-                            ' For other ancestors, only set if trackDescendantFocus is enabled
-                            if i = 0 or ancestorGroup.trackDescendantFocus = true
+                            ' For immediate parent (index 0): set if enableLastFocusId is true (default)
+                            ' For other ancestors: set if enableDeepLastFocusId is enabled
+                            shouldSetLastFocusId = (i = 0 and ancestorGroup.enableLastFocusId) or (i > 0 and ancestorGroup.enableDeepLastFocusId)
+                            if shouldSetLastFocusId
                                 ancestorGroup.setLastFocusedHID(m.globalFocusHID)
                             end if
                         end if
@@ -1400,13 +1401,15 @@ namespace Rotor
                 m.defaultFocusId = config.defaultFocusId ?? ""
                 m.lastFocusedHID = config.lastFocusedHID ?? ""
                 m.enableSpatialEnter = config.enableSpatialEnter ?? false
-                m.trackDescendantFocus = config.trackDescendantFocus ?? false
+                m.enableLastFocusId = config.enableLastFocusId ?? true
+                m.enableDeepLastFocusId = config.enableDeepLastFocusId ?? false
             end sub
 
             defaultFocusId as string
             lastFocusedHID as string
             enableSpatialEnter as dynamic ' boolean | { up?: boolean, down?: boolean, left?: boolean, right?: boolean }
-            trackDescendantFocus as boolean
+            enableLastFocusId as boolean
+            enableDeepLastFocusId as boolean
 
             '
             ' isSpatialEnterEnabledForDirection - Checks if spatial enter is enabled for a specific direction
