@@ -834,9 +834,7 @@ namespace Rotor
                                 newHID = m.capturingFocus_recursively(newHID, direction, group.HID)
                             end if
                         end if
-                    else
                     end if
-                else
                 end if
             end if
 
