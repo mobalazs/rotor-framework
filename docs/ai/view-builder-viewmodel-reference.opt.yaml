@@ -26,9 +26,10 @@ core:
       override: true
     onUpdateView:
       whenCalled: "When ViewModel updates (after setProps or update props via render)"
-      purpose: "React to prop changes, update state based on new props"
+      purpose: "React to prop changes, re-render template by default"
       override: true
-      important: "Framework intentionally does NOT automatically re-render UI when ViewModel receives new props via render() or setProps(). This design optimizes for Roku's resource constraints and allows use-case-specific performance optimizations. Override onUpdateView() to implement custom UI update logic based on prop changes—you control exactly which widgets update and when. This does NOT affect initial rendering—UI is rendered normally based on template() using initial props and viewModelState values. onUpdateView() specifically handles subsequent updates after ViewModel is already mounted and displayed."
+      defaultBehavior: "Calls m.render() which re-renders using template(). Override to customize: skip render for performance, add custom logic, or render partial updates."
+      important: "By default onUpdateView() calls m.render(). When m.render() is called without arguments on a ViewModel, it automatically calls m.template() and re-renders with the result."
     onDestroyView:
       whenCalled: "Before ViewModel destruction"
       purpose: "Cleanup resources, remove listeners, clear references"
@@ -71,12 +72,19 @@ structure:
       ' Lifecycle hooks (optional)
       override sub onCreateView()
       override sub onTemplateCreated()
-      override sub onUpdateView()
       override sub onDestroyView()
 
-      ' Method for updating props
+      ' onUpdateView - has default implementation that calls m.render()
+      override sub onUpdateView()
+        ' Default: m.render() - re-renders using template()
+      end sub
+
+      ' Method for updating props - calls onUpdateView() after updating
       override sub setProps(newProps as object)
     end class
+  renderBehavior:
+    withoutArgs: "m.render() on ViewModel automatically calls m.template() and re-renders"
+    withArgs: "m.render(partialTemplate) updates specific parts of the widget tree"
 example:
   fullExample: |
     class ButtonViewModel extends Rotor.ViewModel
@@ -146,14 +154,15 @@ example:
 patterns:
   buttonExample: "Template returns Group with Rectangle + Label. Background color responds to props.enabled and viewModelState.isFocused."
   stateSharing: "Child widgets access m.props and m.viewModelState for coordinated updates. All children share same references."
-  manualUpdates: "Override onUpdateView to control rerenders on prop changes. Framework does not auto re-render."
+  autoRerender: "Default onUpdateView() calls m.render() which re-renders template(). Override to customize or skip for performance."
   propsConfiguration: "Pass props during render. Props are read-only within ViewModel."
   stateManagement: "Use viewModelState for mutable shared state. Initialize in onCreateView before template executes."
   dispatcherHelpers: "Use m.dispatchTo(id, intent) and m.getStateFrom(id) convenience methods for concise dispatcher access in ViewModels."
 rules:
   - "Use template() to declare UI structure. Do not mutate props/viewModelState inside template()."
   - "Initialize required state fields in onCreateView before template() executes."
-  - "Implement onUpdateView() to control post-mount updates. Framework will NOT automatically re-render on prop changes."
+  - "Default onUpdateView() calls m.render() for auto re-render. Override to customize behavior or optimize performance."
+  - "m.render() without arguments on ViewModel automatically calls m.template() and re-renders."
   - "Use props for read-only configuration. Use viewModelState for mutable shared state."
   - "Clean up resources in onDestroyView(). Invalidate listeners, references, timers."
   - "Declare lifecycle hooks with override keyword."
@@ -161,17 +170,17 @@ rules:
 bestPractices:
   - "Keep ViewModels focused on specific UI components or features."
   - "Initialize state in onCreateView before template executes."
-  - "Use onUpdateView for manual UI updates based on prop changes."
+  - "Override onUpdateView() to optimize re-renders if full template refresh is too expensive."
   - "Clean up resources in onDestroyView to prevent memory leaks."
   - "Use props for configuration, viewModelState for internal mutable state."
   - "Use type casting (typecast m as Rotor.ViewModel) in field functions for correct context."
   - "Use m.dispatchTo() and m.getStateFrom() for concise dispatcher interaction."
 pitfalls:
-  - "Forgetting to override onUpdateView means UI won't update on prop changes."
+  - "Overriding onUpdateView() without calling m.render() means UI won't auto-update on prop changes."
   - "Mutating props inside template or lifecycle hooks. Props are read-only."
   - "Not cleaning up listeners/resources in onDestroyView causes memory leaks."
-  - "Assuming framework auto re-renders on prop changes. You must implement onUpdateView."
   - "Not initializing viewModelState fields before template executes can cause errors."
+  - "Expensive template() with frequent setProps() calls - consider partial renders via m.render(partialTemplate)."
 nextSteps:
   - "Fields Plugin: Field management with expressions and interpolation"
   - "ViewBuilder Overview: High-level architecture and concepts"

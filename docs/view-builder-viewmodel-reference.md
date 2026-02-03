@@ -21,13 +21,27 @@ All lifecycle hooks are optional and should be declared with the `override` keyw
 |------|-------------|---------|
 | `onCreateView()` | After ViewModel creation, before template() | Initialize state, setup listeners, configure initial values |
 | `onTemplateCreated()` | After template() returns, before rendering | Access rendered widgets, setup widget-specific logic |
-| `onUpdateView()` | When ViewModel updates (after setProps or update props via render) | React to prop changes, update state based on new props |
+| `onUpdateView()` | When ViewModel updates (after setProps or update props via render) | React to prop changes, re-render template by default |
 | `onDestroyView()` | Before ViewModel destruction | Cleanup resources, remove listeners, clear references |
 
 **Note on `onUpdateView()`:**
-The framework intentionally does **not** automatically re-render the UI when a ViewModel receives new props via `render()` or `setProps()`. This design choice optimizes for Roku's resource constraints and allows for use-case-specific performance optimizations. Override `onUpdateView()` to implement custom UI update logic based on prop changes—you control exactly which widgets update and when.
+The `onUpdateView()` hook is called when props are updated via `setProps()` or when the ViewModel is updated via `render()`. By default, `onUpdateView()` calls `m.render()` which automatically re-renders the ViewModel using its `template()` function.
 
-This does **not** affect initial rendering—the UI is rendered normally based on `template()` using the initial `props` and `viewModelState` values. The `onUpdateView()` hook specifically handles **subsequent updates** after the ViewModel is already mounted and displayed.
+```brightscript
+' Default implementation in BaseViewModel
+sub onUpdateView()
+    m.render()  ' Re-renders using template()
+end sub
+```
+
+You can override `onUpdateView()` to customize update behavior:
+- Call `m.render()` to re-render the entire template (default behavior)
+- Call `m.render(partialTemplate)` to update specific parts
+- Skip rendering entirely for performance optimization
+- Add custom logic before/after re-rendering
+
+**Note on `m.render()` without arguments:**
+When `m.render()` is called without arguments on a ViewModel, it automatically calls `m.template()` and re-renders the ViewModel with the returned configuration. This provides a simple way to refresh the entire UI based on current `props` and `viewModelState`.
 
 **Shared Properties:**
 
@@ -66,10 +80,16 @@ class MyViewModel extends Rotor.ViewModel
     ' Lifecycle hooks (optional)
     override sub onCreateView()
     override sub onTemplateCreated()
-    override sub onUpdateView()
     override sub onDestroyView()
 
-    ' Method for updating props
+    ' onUpdateView - has default implementation that calls m.render()
+    ' Override to customize update behavior
+    override sub onUpdateView()
+        ' Default: m.render() - re-renders using template()
+        ' Custom: add logic, skip render, or render partial updates
+    end sub
+
+    ' Method for updating props - calls onUpdateView() after updating
     override sub setProps(newProps as object)
 end class
 ```

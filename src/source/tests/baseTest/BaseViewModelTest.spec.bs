@@ -2,6 +2,13 @@ import "pkg:/source/base/BaseViewModel.bs"
 
 namespace tests
 
+    ' Test-only ViewModel that doesn't require framework context
+    class TestViewModel extends Rotor.ViewModel
+        override sub onUpdateView()
+            ' No-op: skip render() call in isolated tests
+        end sub
+    end class
+
     @suite("BaseViewModel tests")
     class BaseViewModelTestSuite extends rooibos.BaseTestSuite
 
@@ -17,7 +24,8 @@ namespace tests
 
         @it("setProps updates props")
         function _()
-            vm = new Rotor.ViewModel()
+            ' Use TestViewModel to avoid framework dependency
+            vm = new tests.TestViewModel()
             vm.setProps({ title: "Test" })
 
             m.assertEqual(vm.props.title, "Test")

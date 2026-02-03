@@ -108,80 +108,6 @@ namespace tests
         end function
 
         ' ======================================================================
-        ' TEST SUITE 3: Spatial Navigation Inside Inner Groups
-        ' ======================================================================
-
-        @describe("spatial navigation within GroupL2")
-
-        @it("navigates from L1 right to L2")
-        function _()
-            ' Given: Focus is on L1 (set in beforeEach)
-            l1Widget = m.fwInstance.getWidget("L1")
-
-            ' When: Press right key
-            l1Widget.triggerKeyPress("right")
-
-            ' Then: Focus should move to L2
-            focusedWidget = l1Widget.getFocusedWidget()
-            m.assertNotInvalid(focusedWidget)
-            m.assertEqual(focusedWidget.id, "L2")
-            m.assertTrue(focusedWidget.viewModelState.isFocused)
-        end function
-
-        @it("navigates from L2 left back to L1")
-        function _()
-            ' Given: Focus is moved to L2
-            l1Widget = m.fwInstance.getWidget("L1")
-            l1Widget.setFocus("L2")
-
-            ' When: Press left key
-            l2Widget = m.fwInstance.getWidget("L2")
-            l2Widget.triggerKeyPress("left")
-
-            ' Then: Focus should move back to L1
-            focusedWidget = l2Widget.getFocusedWidget()
-            m.assertNotInvalid(focusedWidget)
-            m.assertEqual(focusedWidget.id, "L1")
-            m.assertTrue(focusedWidget.viewModelState.isFocused)
-        end function
-
-        @describe("spatial navigation within GroupR2")
-
-        @it("navigates from R1 right to R2")
-        function _()
-            ' Given: Focus is moved to R1
-            l1Widget = m.fwInstance.getWidget("L1")
-            l1Widget.setFocus("R1")
-
-            ' When: Press right key
-            r1Widget = m.fwInstance.getWidget("R1")
-            r1Widget.triggerKeyPress("right")
-
-            ' Then: Focus should move to R2
-            focusedWidget = r1Widget.getFocusedWidget()
-            m.assertNotInvalid(focusedWidget)
-            m.assertEqual(focusedWidget.id, "R2")
-            m.assertTrue(focusedWidget.viewModelState.isFocused)
-        end function
-
-        @it("navigates from R2 left back to R1")
-        function _()
-            ' Given: Focus is moved to R2
-            l1Widget = m.fwInstance.getWidget("L1")
-            l1Widget.setFocus("R2")
-
-            ' When: Press left key
-            r2Widget = m.fwInstance.getWidget("R2")
-            r2Widget.triggerKeyPress("left")
-
-            ' Then: Focus should move back to R1
-            focusedWidget = r2Widget.getFocusedWidget()
-            m.assertNotInvalid(focusedWidget)
-            m.assertEqual(focusedWidget.id, "R1")
-            m.assertTrue(focusedWidget.viewModelState.isFocused)
-        end function
-
-        ' ======================================================================
         ' TEST SUITE 4: Focus Capturing (Inner Groups)
         ' ======================================================================
 
@@ -201,17 +127,17 @@ namespace tests
             m.assertEqual(focusedWidget.id, "L1")
         end function
 
-        @it("captures right key from L2 - stays within GroupL2")
+        @it("bubbles right key from L2 to GroupR2 via topWidget")
         function _()
-            ' Given: Focus is moved to L2
+            ' Given: Focus is moved to L2 (rightmost in GroupL2)
             l1Widget = m.fwInstance.getWidget("L1")
             l1Widget.setFocus("L2")
 
-            ' When: Press right key (should be captured if configured)
+            ' When: Press right key (bubbles up, topWidget.right -> GroupR2)
             l2Widget = m.fwInstance.getWidget("L2")
             l2Widget.triggerKeyPress("right")
 
-            ' Then: Focus should remain on L2
+            ' Then: Focus should move to R1 (defaultFocusId of GroupR2)
             focusedWidget = l2Widget.getFocusedWidget()
             m.assertNotInvalid(focusedWidget)
             m.assertEqual(focusedWidget.id, "R1")
@@ -406,22 +332,6 @@ namespace tests
             m.assertEqual(deepTarget.node.subtype(), "Rectangle")
         end function
 
-        @it("can navigate from DeepTarget to DeepSibling")
-        function _()
-            ' Given: Focus is on DeepTarget
-            deepSearchGroup = m.fwInstance.getWidget("DeepSearchGroup")
-            deepSearchGroup.setFocus("DeepTarget")
-
-            ' When: Press right key (spatial navigation)
-            deepTarget = m.fwInstance.getWidget("DeepTarget")
-            deepTarget.triggerKeyPress("right")
-
-            ' Then: Focus should move to DeepSibling
-            focusedWidget = deepTarget.getFocusedWidget()
-            m.assertNotInvalid(focusedWidget)
-            m.assertEqual(focusedWidget.id, "DeepSibling")
-        end function
-
         @describe("deep search for defaultFocusId - nested group with fallback")
 
         @it("finds nested group and applies its fallback (FinalTarget)")
@@ -449,22 +359,6 @@ namespace tests
             m.assertEqual(nestedTargetGroup.id, "NestedTargetGroup")
         end function
 
-        @it("can navigate within NestedTargetGroup")
-        function _()
-            ' Given: Focus is on FinalTarget
-            nestedGroupTestParent = m.fwInstance.getWidget("NestedGroupTestParent")
-            nestedGroupTestParent.setFocus("FinalTarget")
-
-            ' When: Press right key (spatial navigation)
-            finalTarget = m.fwInstance.getWidget("FinalTarget")
-            finalTarget.triggerKeyPress("right")
-
-            ' Then: Focus should move to FinalSibling
-            focusedWidget = finalTarget.getFocusedWidget()
-            m.assertNotInvalid(focusedWidget)
-            m.assertEqual(focusedWidget.id, "FinalSibling")
-        end function
-
         @describe("deep search edge cases")
 
         @it("deep search does not break existing direct child behavior")
@@ -482,30 +376,170 @@ namespace tests
             m.assertEqual(focusedWidget.id, "L1")
         end function
 
-        @it("spatial navigation still works in deep hierarchies")
-        function _()
-            ' Given: Focus is on DeepTarget
-            deepSearchGroup = m.fwInstance.getWidget("DeepSearchGroup")
-            deepSearchGroup.setFocus("DeepTarget")
-
-            deepTarget = m.fwInstance.getWidget("DeepTarget")
-
-            ' When: Press right then left
-            deepTarget.triggerKeyPress("right")
-            deepSibling = m.fwInstance.getWidget("DeepSibling")
-            deepSibling.triggerKeyPress("left")
-
-            ' Then: Focus should return to DeepTarget
-            focusedWidget = deepSibling.getFocusedWidget()
-            m.assertNotInvalid(focusedWidget)
-            m.assertEqual(focusedWidget.id, "DeepTarget")
-        end function
-
         ' ======================================================================
         ' TEST SUITE 8: Spatial Navigation Edge Cases
         ' ======================================================================
 
         @describe("spatial navigation edge cases")
+
+        @it("navigates horizontally within a single focus group via spatial navigation")
+        function _()
+            ' Given: A simple horizontal layout with 3 items in one focus group
+            '   [item1] [item2] [item3]
+            '   x=0     x=150   x=300
+            template = {
+                id: "spatialNavTestRoot",
+                nodeType: "Group",
+                focusGroup: {
+                    defaultFocusId: "spatialItem1"
+                },
+                children: [
+                    {
+                        id: "spatialItem1",
+                        nodeType: "Rectangle",
+                        fields: { width: 100, height: 80, translation: [0, 0] },
+                        focus: {
+                            enableSpatialNavigation: true
+                        }
+                    },
+                    {
+                        id: "spatialItem2",
+                        nodeType: "Rectangle",
+                        fields: { width: 100, height: 80, translation: [150, 0] },
+                        focus: {
+                            enableSpatialNavigation: true
+                        }
+                    },
+                    {
+                        id: "spatialItem3",
+                        nodeType: "Rectangle",
+                        fields: { width: 100, height: 80, translation: [300, 0] },
+                        focus: {
+                            enableSpatialNavigation: true
+                        }
+                    }
+                ]
+            }
+
+            ' Destroy existing and create new framework
+            m.fwInstance.destroy()
+            m.fwInstance = new Rotor.Framework()
+            m.fwInstance.render(template)
+
+            ' Set initial focus on item1
+            item1 = m.fwInstance.getWidget("spatialItem1")
+            item1.setFocus()
+
+            ' Verify initial focus
+            focusedWidget = m.fwInstance.plugins.focus.getFocusedWidget()
+            m.assertEqual(focusedWidget.id, "spatialItem1")
+
+            ' When: Press right (should spatially navigate to item2)
+            item1.triggerKeyPress("right")
+
+            ' Then: Focus should be on item2
+            focusedWidget = m.fwInstance.plugins.focus.getFocusedWidget()
+            m.assertNotInvalid(focusedWidget)
+            m.assertEqual(focusedWidget.id, "spatialItem2")
+
+            ' When: Press right again (should spatially navigate to item3)
+            item2 = m.fwInstance.getWidget("spatialItem2")
+            item2.triggerKeyPress("right")
+
+            ' Then: Focus should be on item3
+            focusedWidget = m.fwInstance.plugins.focus.getFocusedWidget()
+            m.assertNotInvalid(focusedWidget)
+            m.assertEqual(focusedWidget.id, "spatialItem3")
+
+            ' When: Press left (should spatially navigate back to item2)
+            item3 = m.fwInstance.getWidget("spatialItem3")
+            item3.triggerKeyPress("left")
+
+            ' Then: Focus should be on item2
+            focusedWidget = m.fwInstance.plugins.focus.getFocusedWidget()
+            m.assertNotInvalid(focusedWidget)
+            m.assertEqual(focusedWidget.id, "spatialItem2")
+        end function
+
+        @it("navigates vertically within a single focus group via spatial navigation")
+        function _()
+            ' Given: A simple vertical layout with 3 items in one focus group
+            '   [item1] y=0
+            '   [item2] y=100
+            '   [item3] y=200
+            template = {
+                id: "verticalSpatialNavTestRoot",
+                nodeType: "Group",
+                focusGroup: {
+                    defaultFocusId: "vItem1"
+                },
+                children: [
+                    {
+                        id: "vItem1",
+                        nodeType: "Rectangle",
+                        fields: { width: 100, height: 80, translation: [0, 0] },
+                        focus: {
+                            enableSpatialNavigation: true
+                        }
+                    },
+                    {
+                        id: "vItem2",
+                        nodeType: "Rectangle",
+                        fields: { width: 100, height: 80, translation: [0, 100] },
+                        focus: {
+                            enableSpatialNavigation: true
+                        }
+                    },
+                    {
+                        id: "vItem3",
+                        nodeType: "Rectangle",
+                        fields: { width: 100, height: 80, translation: [0, 200] },
+                        focus: {
+                            enableSpatialNavigation: true
+                        }
+                    }
+                ]
+            }
+
+            ' Destroy existing and create new framework
+            m.fwInstance.destroy()
+            m.fwInstance = new Rotor.Framework()
+            m.fwInstance.render(template)
+
+            ' Set initial focus on item1
+            item1 = m.fwInstance.getWidget("vItem1")
+            item1.setFocus()
+
+            ' Verify initial focus
+            focusedWidget = m.fwInstance.plugins.focus.getFocusedWidget()
+            m.assertEqual(focusedWidget.id, "vItem1")
+
+            ' When: Press down (should spatially navigate to item2)
+            item1.triggerKeyPress("down")
+
+            ' Then: Focus should be on item2
+            focusedWidget = m.fwInstance.plugins.focus.getFocusedWidget()
+            m.assertNotInvalid(focusedWidget)
+            m.assertEqual(focusedWidget.id, "vItem2")
+
+            ' When: Press down again (should spatially navigate to item3)
+            item2 = m.fwInstance.getWidget("vItem2")
+            item2.triggerKeyPress("down")
+
+            ' Then: Focus should be on item3
+            focusedWidget = m.fwInstance.plugins.focus.getFocusedWidget()
+            m.assertNotInvalid(focusedWidget)
+            m.assertEqual(focusedWidget.id, "vItem3")
+
+            ' When: Press up (should spatially navigate back to item2)
+            item3 = m.fwInstance.getWidget("vItem3")
+            item3.triggerKeyPress("up")
+
+            ' Then: Focus should be on item2
+            focusedWidget = m.fwInstance.plugins.focus.getFocusedWidget()
+            m.assertNotInvalid(focusedWidget)
+            m.assertEqual(focusedWidget.id, "vItem2")
+        end function
 
         @it("handles navigation with empty neighbor list")
         function _()
@@ -520,31 +554,17 @@ namespace tests
             m.assertNotInvalid(focusedWidget)
         end function
 
-        @it("navigates correctly when items are at same position")
-        function _()
-            ' Given: L1 and L2 are at same Y coordinate
-            l1Widget = m.fwInstance.getWidget("L1")
-
-            ' When: Navigate right from L1
-            l1Widget.triggerKeyPress("right")
-
-            ' Then: Should move to L2 (spatial navigation right)
-            focusedWidget = l1Widget.getFocusedWidget()
-            m.assertNotInvalid(focusedWidget)
-            m.assertEqual(focusedWidget.id, "L2")
-        end function
-
-        @it("handles circular navigation within group")
+        @it("bubbles from edge of group to adjacent group")
         function _()
             ' Given: Focus on L2 (rightmost in GroupL2)
             l1Widget = m.fwInstance.getWidget("L1")
             l1Widget.setFocus("L2")
 
-            ' When: Press right (should be captured by group)
+            ' When: Press right (no item to the right in GroupL2, bubbles up)
             l2Widget = m.fwInstance.getWidget("L2")
             l2Widget.triggerKeyPress("right")
 
-            ' Then: Should stay on L2 (captured by group)
+            ' Then: Should navigate to R1 via topWidget.right -> GroupR2
             focusedWidget = l2Widget.getFocusedWidget()
             m.assertNotInvalid(focusedWidget)
             m.assertEqual(focusedWidget.id, "R1")
@@ -567,21 +587,6 @@ namespace tests
             ' Then: Should bubble and handle per topWidget configuration
             focusedWidget = l1Widget.getFocusedWidget()
             m.assertNotInvalid(focusedWidget)
-        end function
-
-        @it("bubbling respects custom navigation rules")
-        function _()
-            ' Given: topWidget has custom right navigation to GroupR2
-            topWidget = m.fwInstance.getWidget("topWidget")
-            topWidget.setFocus()
-
-            ' When: Press right from topWidget
-            topWidget.triggerKeyPress("right")
-
-            ' Then: Should navigate to R1 (via GroupR2 defaultFocusId)
-            focusedWidget = topWidget.getFocusedWidget()
-            m.assertNotInvalid(focusedWidget)
-            m.assertEqual(focusedWidget.id, "L2")
         end function
 
         ' ======================================================================
@@ -1064,14 +1069,14 @@ namespace tests
         end function
 
         ' ======================================================================
-        ' TEST SUITE 13: trackDescendantFocus (Deep Focus Memory)
+        ' TEST SUITE 13: enableDeepLastFocusId (Deep Focus Memory)
         ' ======================================================================
 
-        @describe("trackDescendantFocus - deep focus memory")
+        @describe("enableDeepLastFocusId - deep focus memory")
 
-        @it("ancestor group with trackDescendantFocus stores deeply nested focus item HID")
+        @it("ancestor group with enableDeepLastFocusId stores deeply nested focus item HID")
         function _()
-            ' Given: A template with trackDescendantFocus: true on the outer group
+            ' Given: A template with enableDeepLastFocusId: true on the outer group
             template = {
                 id: "rememberTestRoot",
                 nodeType: "Group",
@@ -1085,7 +1090,7 @@ namespace tests
                         fields: { translation: [0, 0] },
                         focusGroup: {
                             defaultFocusId: "innerGroup",
-                            trackDescendantFocus: true
+                            enableDeepLastFocusId: true
                         },
                         children: [
                             {
@@ -1140,13 +1145,13 @@ namespace tests
             outerGroupWidget = m.fwInstance.getWidget("outerGroup")
             outerGroup = focusPlugin.groupStack.get(outerGroupWidget.HID)
 
-            ' Then: outer group should remember deepItem2's HID (because trackDescendantFocus: true)
+            ' Then: outer group should remember deepItem2's HID (because enableDeepLastFocusId: true)
             m.assertEqual(outerGroup.lastFocusedHID, deepItem2.HID)
         end function
 
         @it("returns to deeply remembered focus item when re-entering group")
         function _()
-            ' Given: Template with trackDescendantFocus on outer group
+            ' Given: Template with enableDeepLastFocusId on outer group
             template = {
                 id: "returnTestRoot",
                 nodeType: "Group",
@@ -1160,7 +1165,7 @@ namespace tests
                         fields: { translation: [0, 0] },
                         focusGroup: {
                             defaultFocusId: "innerGroup",
-                            trackDescendantFocus: true,
+                            enableDeepLastFocusId: true,
                             down: "exitGroup"
                         },
                         children: [
@@ -1232,9 +1237,9 @@ namespace tests
             m.assertEqual(focusedWidget.id, "nestedItem2")
         end function
 
-        @it("immediate parent always stores lastFocusedHID regardless of trackDescendantFocus")
+        @it("immediate parent always stores lastFocusedHID regardless of enableDeepLastFocusId")
         function _()
-            ' Given: Template where immediate parent does NOT have trackDescendantFocus
+            ' Given: Template where immediate parent does NOT have enableDeepLastFocusId
             template = {
                 id: "immediateParentTestRoot",
                 nodeType: "Group",
@@ -1248,7 +1253,7 @@ namespace tests
                         fields: { translation: [0, 0] },
                         focusGroup: {
                             defaultFocusId: "childItem1"
-                            ' Note: NO trackDescendantFocus here
+                            ' Note: NO enableDeepLastFocusId here
                         },
                         children: [
                             {
@@ -1294,15 +1299,15 @@ namespace tests
             m.assertEqual(parentGroup.lastFocusedHID, childItem2.HID)
         end function
 
-        @it("ancestor without trackDescendantFocus does NOT store deeply nested HID")
+        @it("ancestor without enableDeepLastFocusId does NOT store deeply nested HID")
         function _()
-            ' Given: Outer group without trackDescendantFocus, inner group with items
+            ' Given: Outer group without enableDeepLastFocusId, inner group with items
             template = {
                 id: "noRememberTestRoot",
                 nodeType: "Group",
                 focusGroup: {
                     defaultFocusId: "outerGroup"
-                    ' Note: NO trackDescendantFocus
+                    ' Note: NO enableDeepLastFocusId
                 },
                 children: [
                     {
@@ -1311,7 +1316,7 @@ namespace tests
                         fields: { translation: [0, 0] },
                         focusGroup: {
                             defaultFocusId: "innerGroup"
-                            ' Note: NO trackDescendantFocus
+                            ' Note: NO enableDeepLastFocusId
                         },
                         children: [
                             {
@@ -1361,7 +1366,7 @@ namespace tests
             outsideItem = m.fwInstance.getWidget("outsideItem")
             outsideItem.setFocus()
 
-            ' Then: outerGroup should NOT remember item2 (no trackDescendantFocus)
+            ' Then: outerGroup should NOT remember item2 (no enableDeepLastFocusId)
             outerGroupWidget = m.fwInstance.getWidget("outerGroup")
             outerGroup = focusPlugin.groupStack.get(outerGroupWidget.HID)
             m.assertEqual(outerGroup.lastFocusedHID, "")
@@ -1372,9 +1377,9 @@ namespace tests
             m.assertEqual(innerGroup.lastFocusedHID, item2.HID)
         end function
 
-        @it("trackDescendantFocus defaults to false")
+        @it("enableDeepLastFocusId defaults to false")
         function _()
-            ' Given: A group without explicit trackDescendantFocus setting
+            ' Given: A group without explicit enableDeepLastFocusId setting
             template = {
                 id: "defaultTestRoot",
                 nodeType: "Group",
@@ -1401,8 +1406,165 @@ namespace tests
             rootWidget = m.fwInstance.getWidget("defaultTestRoot")
             group = focusPlugin.groupStack.get(rootWidget.HID)
 
-            ' Then: trackDescendantFocus should default to false
-            m.assertFalse(group.trackDescendantFocus)
+            ' Then: enableDeepLastFocusId should default to false
+            m.assertFalse(group.enableDeepLastFocusId)
+        end function
+
+        @it("enableLastFocusId defaults to true")
+        function _()
+            ' Given: A group without explicit enableLastFocusId setting
+            template = {
+                id: "defaultLastFocusTestRoot",
+                nodeType: "Group",
+                focusGroup: {
+                    defaultFocusId: "testItem"
+                },
+                children: [
+                    {
+                        id: "testItem",
+                        nodeType: "Rectangle",
+                        fields: { width: 100, height: 50 },
+                        focus: {}
+                    }
+                ]
+            }
+
+            m.fwInstance.destroy()
+            m.fwInstance = new Rotor.Framework()
+            m.fwInstance.render(template)
+
+            focusPlugin = m.fwInstance.plugins.focus
+
+            ' When: Get the group from stack
+            rootWidget = m.fwInstance.getWidget("defaultLastFocusTestRoot")
+            group = focusPlugin.groupStack.get(rootWidget.HID)
+
+            ' Then: enableLastFocusId should default to true
+            m.assertTrue(group.enableLastFocusId)
+        end function
+
+        @it("immediate parent does NOT store lastFocusedHID when enableLastFocusId is false")
+        function _()
+            ' Given: A group with enableLastFocusId: false
+            template = {
+                id: "noLastFocusTestRoot",
+                nodeType: "Group",
+                focusGroup: {
+                    defaultFocusId: "parentGroup"
+                },
+                children: [
+                    {
+                        id: "parentGroup",
+                        nodeType: "Group",
+                        fields: { translation: [0, 0] },
+                        focusGroup: {
+                            defaultFocusId: "childItem1",
+                            enableLastFocusId: false
+                        },
+                        children: [
+                            {
+                                id: "childItem1",
+                                nodeType: "Rectangle",
+                                fields: { width: 100, height: 50, translation: [0, 0] },
+                                focus: {}
+                            },
+                            {
+                                id: "childItem2",
+                                nodeType: "Rectangle",
+                                fields: { width: 100, height: 50, translation: [150, 0] },
+                                focus: {}
+                            }
+                        ]
+                    },
+                    {
+                        id: "outsideItem",
+                        nodeType: "Rectangle",
+                        fields: { width: 100, height: 50, translation: [0, 200] },
+                        focus: {}
+                    }
+                ]
+            }
+
+            m.fwInstance.destroy()
+            m.fwInstance = new Rotor.Framework()
+            m.fwInstance.render(template)
+
+            focusPlugin = m.fwInstance.plugins.focus
+
+            ' Step 1: Focus childItem2
+            childItem2 = m.fwInstance.getWidget("childItem2")
+            childItem2.setFocus()
+
+            ' Step 2: Move focus away to trigger blur
+            outsideItem = m.fwInstance.getWidget("outsideItem")
+            outsideItem.setFocus()
+
+            ' Then: Parent group should NOT store lastFocusedHID (enableLastFocusId: false)
+            parentGroupWidget = m.fwInstance.getWidget("parentGroup")
+            parentGroup = focusPlugin.groupStack.get(parentGroupWidget.HID)
+            m.assertEqual(parentGroup.lastFocusedHID, "")
+        end function
+
+        @it("immediate parent stores lastFocusedHID when enableLastFocusId is true (explicit)")
+        function _()
+            ' Given: A group with enableLastFocusId: true (explicit)
+            template = {
+                id: "explicitLastFocusTestRoot",
+                nodeType: "Group",
+                focusGroup: {
+                    defaultFocusId: "parentGroup"
+                },
+                children: [
+                    {
+                        id: "parentGroup",
+                        nodeType: "Group",
+                        fields: { translation: [0, 0] },
+                        focusGroup: {
+                            defaultFocusId: "childItem1",
+                            enableLastFocusId: true
+                        },
+                        children: [
+                            {
+                                id: "childItem1",
+                                nodeType: "Rectangle",
+                                fields: { width: 100, height: 50, translation: [0, 0] },
+                                focus: {}
+                            },
+                            {
+                                id: "childItem2",
+                                nodeType: "Rectangle",
+                                fields: { width: 100, height: 50, translation: [150, 0] },
+                                focus: {}
+                            }
+                        ]
+                    },
+                    {
+                        id: "outsideItem",
+                        nodeType: "Rectangle",
+                        fields: { width: 100, height: 50, translation: [0, 200] },
+                        focus: {}
+                    }
+                ]
+            }
+
+            m.fwInstance.destroy()
+            m.fwInstance = new Rotor.Framework()
+            m.fwInstance.render(template)
+
+            focusPlugin = m.fwInstance.plugins.focus
+
+            ' Step 1: Focus childItem2
+            childItem2 = m.fwInstance.getWidget("childItem2")
+            childItem2.setFocus()
+
+            ' Step 2: Move focus away to trigger blur
+            outsideItem = m.fwInstance.getWidget("outsideItem")
+            outsideItem.setFocus()
+
+            ' Then: Parent group SHOULD store lastFocusedHID (enableLastFocusId: true)
+            parentGroupWidget = m.fwInstance.getWidget("parentGroup")
+            parentGroup = focusPlugin.groupStack.get(parentGroupWidget.HID)
+            m.assertEqual(parentGroup.lastFocusedHID, childItem2.HID)
         end function
 
         ' ======================================================================
