@@ -32,8 +32,8 @@ namespace Rotor
         dispatch as function            ' Dispatch intent to owner dispatcher
         dispatchTo as function          ' Dispatch intent to dispatcher by ID
         getStateFrom as function        ' Get state from dispatcher by ID
-        ownerDispatcher as object       ' Owning dispatcher instance
-        ownerDispatcherId as string     ' Owning dispatcher ID
+        dispatcher as object            ' Owning dispatcher instance
+        dispatcherId as string          ' Owning dispatcher ID
 
         ' Internal
         middlewareFnScoped as dynamic   ' Currently executing middleware
@@ -56,12 +56,12 @@ namespace Rotor
 
             ' Inject dispatch method for dispatching intents
             m.dispatch = sub(intent as object)
-                m.ownerDispatcher.dispatch(intent)
+                m.dispatcher.dispatch(intent)
             end sub
 
             ' Inject getState method for accessing current state
             m.getState = function() as Rotor.Model
-                return m.ownerDispatcher.getState()
+                return m.dispatcher.getState()
             end function
 
             ' Inject dispatchTo method for dispatching intents to other dispatchers
@@ -200,7 +200,7 @@ namespace Rotor
 
             ' Only call if the method exists (task thread only)
             if Rotor.Utils.isFunction(frameworkInstance?.registerAsyncTransfer)
-                frameworkInstance.registerAsyncTransfer(transferId, m.ownerDispatcherId, context)
+                frameworkInstance.registerAsyncTransfer(transferId, m.dispatcherId, context)
             end if
         end sub
 
@@ -225,7 +225,7 @@ namespace Rotor
         ' destroy - Cleans up reducer references
         '
         sub destroy()
-            m.ownerDispatcher = invalid
+            m.dispatcher = invalid
             m.port = invalid
         end sub
 

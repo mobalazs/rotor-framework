@@ -149,7 +149,7 @@ namespace tests
             model1 = new Rotor.Model()
             model1.state = { value: "owner" }
             reducer1 = new Rotor.Reducer()
-            dispatcher1 = Rotor.createDispatcher("ownerDispatcher", model1, reducer1)
+            dispatcher1 = Rotor.createDispatcher("dispatcher", model1, reducer1)
 
             ' Create target dispatcher
             model2 = new Rotor.Model()
@@ -223,11 +223,11 @@ namespace tests
         @it("cleans up references")
         function _()
             testReducer = new Rotor.Reducer()
-            testReducer.ownerDispatcher = { test: "value" }
+            testReducer.dispatcher = { test: "value" }
 
             testReducer.destroy()
 
-            m.assertEqual(testReducer.ownerDispatcher, invalid)
+            m.assertEqual(testReducer.dispatcher, invalid)
             m.assertEqual(testReducer.port, invalid)
         end function
 

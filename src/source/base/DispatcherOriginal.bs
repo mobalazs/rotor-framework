@@ -62,8 +62,8 @@ namespace Rotor
 
             ' Link reducer to this dispatcher
             m.reducerInstance = reducerInstance
-            m.reducerInstance.ownerDispatcher = m
-            m.reducerInstance.ownerDispatcherId = dispatcherId
+            m.reducerInstance.dispatcher = m
+            m.reducerInstance.dispatcherId = dispatcherId
             m.modelInstance = modelInstance
 
             ' Create field on task node for render thread communication
