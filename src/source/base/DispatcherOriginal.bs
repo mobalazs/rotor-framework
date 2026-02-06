@@ -75,6 +75,10 @@ namespace Rotor
             ' Register with dispatcher provider
             dispatcherProvider = globalScope.rotor_framework_helper.frameworkInstance.dispatcherProvider
             dispatcherProvider.registerDispatcher(m, dispatcherId)
+
+            ' Lifecycle hook - called after dispatcher is fully registered
+            m.reducerInstance.onCreateDispatcher()
+
         end sub
 
         ' =============================================================
@@ -155,12 +159,12 @@ namespace Rotor
         ' =============================================================
 
         ' ---------------------------------------------------------------------
-        ' asyncReducerCallback - Routes async callback to reducer
+        ' onSourceEvent - Routes async callback to reducer
         '
         ' @param {object} msg - Message from async operation
         '
-        sub asyncReducerCallback(msg as roUrlEvent, context as dynamic)
-            m.reducerInstance.asyncReducerCallback(msg as roUrlEvent, context as dynamic)
+        sub onSourceEvent(msg as object, context as dynamic)
+            m.reducerInstance.onSourceEvent(msg, context)
         end sub
 
         ' =============================================================

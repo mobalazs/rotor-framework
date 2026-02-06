@@ -264,15 +264,6 @@ namespace Rotor.ViewBuilder
             ' Apply threshold to ALL speech (both flush=true and flush=false)
             ' This prevents rapid interruptions from focus changes (e.g., "Home Home Home")
             ' If new request comes within 300ms, replace pending (filter rapid changes)
-            #if debug
-                if m.pendingSpeech <> invalid
-                    ' ? "[TTS_SERVICE][THRESHOLD] Replacing pending: '"; m.pendingSpeech.textToSpeak; "' with: '"; textToSpeak; "'"
-                else
-                    flushLabel = ""
-                    if shouldFlush then flushLabel = " (will flush)"
-                    ' ? "[TTS_SERVICE][THRESHOLD] Pending: '"; textToSpeak; "' ("; m.debounceDelay; "ms)"; flushLabel
-                end if
-            #end if
             m.pendingSpeech = {
                 textToSpeak: textToSpeak,
                 shouldFlush: shouldFlush,

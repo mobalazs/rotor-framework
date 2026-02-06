@@ -1154,8 +1154,6 @@ namespace Rotor
                     if not isGroup and candidate.isEnabled = false then continue for
 
                     candidateMetrics = candidate.refreshBounding()
-                    candidateLeft = candidateMetrics.segments[Rotor.Const.Segment.LEFT]
-                    candidateTop = candidateMetrics.segments[Rotor.Const.Segment.TOP]
                     ' Pass appropriate reference segments based on direction
                     if direction = "left" or direction = "right"
                         result = validator(candidateMetrics.segments, refSegmentLeft, refSegmentRight)

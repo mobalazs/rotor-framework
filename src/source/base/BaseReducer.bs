@@ -37,7 +37,7 @@ namespace Rotor
 
         ' Internal
         middlewareFnScoped as dynamic   ' Currently executing middleware
-
+        
         ' =============================================================
         ' CONSTRUCTOR
         ' =============================================================
@@ -104,6 +104,19 @@ namespace Rotor
         public function reducer(state as object, intent as Intent)
             return state
         end function
+
+        ' ---------------------------------------------------------------------
+        ' onCreateDispatcher - Lifecycle hook called after dispatcher is fully registered
+        '
+        ' Called by the framework after the dispatcher is created and registered
+        ' with the DispatcherProvider. At this point, dispatcherId and all
+        ' framework integrations are available.
+        '
+        ' Override this method to perform initialization that requires
+        ' the dispatcher to be fully set up (e.g., port object registration).
+        '
+        sub onCreateDispatcher()
+        end sub
 
         ' =============================================================
         ' MIDDLEWARE
@@ -174,34 +187,46 @@ namespace Rotor
         end function
 
         ' =============================================================
-        ' ASYNC TRANSFER SUPPORT
+        ' PORT OBJECT SUPPORT
         ' =============================================================
 
         ' ---------------------------------------------------------------------
-        ' registerAsyncTransfer - Registers a roUrlTransfer with the framework
+        ' registerSourceObject - Registers a port-based object with the framework
         '
-        ' Helper method to simplify async HTTP request tracking. Call this after
-        ' creating a roUrlTransfer but BEFORE calling AsyncGetToString() or other
-        ' async methods.
+        ' Helper method for registering any Roku port object (roUrlTransfer,
+        ' roDeviceInfo, roChannelStore, etc.). The framework will call
+        ' SetMessagePort and route events to this reducer's onSourceEvent.
+        ' Routing mode is auto-detected: identity-based if sourceObject has GetIdentity(),
+        ' broadcast otherwise.
         '
-        ' @param {object} transfer - The roUrlTransfer object
-        ' @param {object} context - Optional data to receive in asyncReducerCallback
+        ' @param {object} sourceObject - The port-based object
+        ' @param {function} eventFilter - Optional filter function. Receives msg, returns boolean.
         '
-        ' Example:
-        '   transfer = CreateObject("roUrlTransfer")
-        '   transfer.SetUrl("https://api.example.com/data")
-        '   transfer.SetMessagePort(m.port)
-        '   m.registerAsyncTransfer(transfer, { userId: 123 })
-        '   transfer.AsyncGetToString()
-        '
-        sub registerAsyncTransfer(transfer as object, context = invalid as dynamic)
+        sub registerSourceObject(sourceObject as object, eventFilter = invalid as dynamic)
             frameworkInstance = GetGlobalAA().rotor_framework_helper.frameworkInstance
-            transferId = transfer.GetIdentity().ToStr()
 
-            ' Only call if the method exists (task thread only)
-            if Rotor.Utils.isFunction(frameworkInstance?.registerAsyncTransfer)
-                frameworkInstance.registerAsyncTransfer(transferId, m.dispatcherId, context)
+            hasIdentify = FindMemberFunction(sourceObject, "GetIdentity") <> invalid
+            if hasIdentify
+                objectId = `${m.dispatcherId}_${sourceObject.GetIdentity()}`
+            else
+                objectId = m.dispatcherId
             end if
+            frameworkInstance.registerSourceObject(objectId, m.dispatcherId, sourceObject, eventFilter)
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' unregisterSourceObject - Unregisters a port-based object from the framework
+        '
+        ' @param {object} sourceObject - The port-based object to unregister
+        '
+        sub unregisterSourceObject(sourceObject as object)
+            frameworkInstance = GetGlobalAA().rotor_framework_helper.frameworkInstance
+            if FindMemberFunction(sourceObject, "GetIdentity") <> invalid
+                objectId = m.dispatcherId + "_" + sourceObject.GetIdentity().ToStr()
+            else
+                objectId = m.dispatcherId
+            end if
+            frameworkInstance.unregisterSourceObject(objectId)
         end sub
 
         ' =============================================================
@@ -209,11 +234,12 @@ namespace Rotor
         ' =============================================================
 
         ' ---------------------------------------------------------------------
-        ' asyncReducerCallback - Callback for async middleware operations
+        ' onSourceEvent - Callback for async port object events
         '
-        ' @param {object} msg - Message from async operation
+        ' @param {object} msg - Raw message from port object (roUrlEvent, roDeviceInfoEvent, etc.)
+        ' @param {dynamic} context - Optional context data passed during registration
         '
-        sub asyncReducerCallback(msg as roUrlEvent, context as dynamic)
+        sub onSourceEvent(msg as object, context as dynamic)
             ' Override in subclass to handle async responses
         end sub
 
