@@ -1539,33 +1539,28 @@ namespace Rotor
                 if defaultFocusId <> ""
                     focusItemsHIDlist = m.getGroupMembersHIDs()
                     if focusItemsHIDlist.Count() > 0
-
                         ' Try find valid HID in focusItems by node id
                         focusItemHID = m.findHIDinFocusItemsByNodeId(defaultFocusId, focusItemsHIDlist)
                         if focusItemHID <> ""
-                            HID = focusItemHID
+                            return focusItemHID
                         end if
-
-                    else
-
-                        return defaultFocusId
-
                     end if
+                    ' If not found as focusItem, return defaultFocusId string
+                    ' so capturingFocus_recursively can try to resolve it as a group
+                    return defaultFocusId
                 end if
 
                 return HID
             end function
 
             function findHIDinFocusItemsByNodeId(nodeId as string, focusItemsHIDlist as object) as string
-                HID = ""
-                for each HID in focusItemsHIDlist
-                    focusItem = m.focusItemsRef.get(HID)
+                for each itemHID in focusItemsHIDlist
+                    focusItem = m.focusItemsRef.get(itemHID)
                     if focusItem <> invalid and focusItem.id = nodeId
-                        HID = focusItem.HID
-                        exit for
+                        return focusItem.HID
                     end if
                 end for
-                return HID
+                return ""
             end function
 
             sub applyFocus(isFocused as boolean)
