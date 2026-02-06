@@ -41,6 +41,102 @@ namespace test
         Rotor.createDispatcher("fooDispatcher", new test.TestModel(), new test.TestReducer())
     end sub
 
+    ' MARK: Source Object Test - roDeviceInfo caption mode
+
+    class SourceObjectTestModel extends Rotor.Model
+        state = {
+            ccMode: "",
+            eventCount: 0,
+            tickCount: 0
+        }
+    end class
+
+    class SourceObjectTestReducer extends Rotor.Reducer
+
+        deviceInfo as object
+
+        override sub onCreateDispatcher()
+            m.deviceInfo = CreateObject("roDeviceInfo")
+            m.registerSourceObject(m.deviceInfo, function(msg as object) as boolean
+                return true
+            end function)
+        end sub
+
+        override sub onSourceEvent(msg as object, context as dynamic)
+            m.dispatch({
+                type: IntentTypes.CC_MODE_CHANGED,
+                payload: { ccMode: msg.GetInfo().Mode }
+            })
+        end sub
+
+        override function reducer(state, intent)
+            if intent.type = IntentTypes.CC_MODE_CHANGED
+                state.ccMode = intent.payload.ccMode
+                state.eventCount++
+            else if intent.type = IntentTypes.UNREGISTER_SOURCE_OBJECT
+                m.unregisterSourceObject(m.deviceInfo)
+                state.unregistered = true
+            else if intent.type = IntentTypes.TICK
+                state.tickCount++
+            end if
+            return state
+        end function
+
+    end class
+
+    sub createSourceObjectDispatcher()
+        Rotor.createDispatcher("sourceObjectDispatcher", new test.SourceObjectTestModel(), new test.SourceObjectTestReducer())
+    end sub
+
+    ' MARK: Identity-based Source Object Test - roUrlTransfer
+
+    class TransferTestModel extends Rotor.Model
+        state = {
+            responseCount: 0,
+            responseCode: 0
+        }
+    end class
+
+    class TransferTestReducer extends Rotor.Reducer
+
+        transfer as object
+
+        override sub onCreateDispatcher()
+            m.transfer = CreateObject("roUrlTransfer")
+            m.transfer.SetCertificatesFile("common:/certs/ca-bundle.crt")
+            m.transfer.InitClientCertificates()
+            m.registerSourceObject(m.transfer)
+            ' Fire a POST to a non-routable address — will fail fast with roUrlEvent
+            m.transfer.SetUrl("https://127.0.0.1:1/fake")
+            m.transfer.AsyncPostFromString("test")
+        end sub
+
+        override sub onSourceEvent(msg as object, context as dynamic)
+            m.dispatch({
+                type: IntentTypes.TRANSFER_COMPLETE,
+                payload: { responseCode: msg.GetResponseCode() }
+            })
+        end sub
+
+        override function reducer(state, intent)
+            if intent.type = IntentTypes.TRANSFER_COMPLETE
+                state.responseCode = intent.payload.responseCode
+                state.responseCount++
+            else if intent.type = IntentTypes.UNREGISTER_TRANSFER
+                m.unregisterSourceObject(m.transfer)
+                state.unregistered = true
+            else if intent.type = IntentTypes.START_TRANSFER
+                m.transfer.SetUrl("https://127.0.0.1:1/fake")
+                m.transfer.AsyncPostFromString("test")
+            end if
+            return state
+        end function
+
+    end class
+
+    sub createTransferDispatcher()
+        Rotor.createDispatcher("transferDispatcher", new test.TransferTestModel(), new test.TransferTestReducer())
+    end sub
 
 end namespace
 

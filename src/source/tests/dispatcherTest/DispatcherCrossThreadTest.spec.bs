@@ -23,19 +23,27 @@ namespace tests
     @suite("dispatcherCrossThreadTest integration")
     class dispatcherCrossThreadTest extends rooibos.BaseTestSuite
 
-        fwInstance as Rotor.Framework
+        fwInstance = invalid
         isFWReady = false
+        expectedCCMode = ""
+        originalCCMode = ""
+        baselineEventCount = 0
+        eventCountAfterUnregister = 0
+        baselineTickCount = 0
+        countAfterUnregister = 0
 
         protected override function setup()
-            m.fwInstance = new Rotor.Framework({
-                tasks: ["DispatcherCrossThreadTest"],
-                onReady: sub() m.testsuite.isFWReady = true : end sub
-            })
-            ' Template will be queued because framework prepared for deferred rendering until Task Ready state.
-            template = getDispatcherTestTemplate()
-            m.fwInstance.render(template)
-            ' Create a simple dispatcher that runs in the render thread
-            Rotor.createDispatcher("renderThreadDispatcher", new TestRenderThreadModel(), new TestRenderThreadReducer())
+            if m.fwInstance = invalid
+                m.fwInstance = new Rotor.Framework({
+                    tasks: ["DispatcherCrossThreadTest"],
+                    onReady: sub() m.testsuite.isFWReady = true : end sub
+                })
+                ' Template will be queued because framework prepared for deferred rendering until Task Ready state.
+                template = getDispatcherTestTemplate()
+                m.fwInstance.render(template)
+                ' Create a simple dispatcher that runs in the render thread
+                Rotor.createDispatcher("renderThreadDispatcher", new TestRenderThreadModel(), new TestRenderThreadReducer())
+            end if
         end function
 
         protected override function beforeEach()
@@ -58,7 +66,7 @@ namespace tests
             else
                 rooibos_promises_internal_delay(function(ctx as dynamic)
                     ctx.waitForReady()
-                end function, m, 0.001)
+                end function, m, 0.1)
             end if
         end sub
 
@@ -105,6 +113,176 @@ namespace tests
 
         end function
 
+        @describe("source object event routing via registerSourceObject")
+
+        @async()
+        @it("routes roDeviceInfo caption mode events to reducer via onSourceEvent")
+        function _()
+            sourceDispatcher = m.fwInstance.getDispatcher("sourceObjectDispatcher")
+            m.assertNotInvalid(sourceDispatcher)
+
+            ' Capture baseline — roDeviceInfo may fire an initial event when bound to port
+            baselineState = sourceDispatcher.getState()
+            baselineEventCount = baselineState.eventCount
+
+            ' Toggle CC mode to ensure an event fires
+            deviceInfo = CreateObject("roDeviceInfo")
+            currentMode = deviceInfo.GetCaptionsMode()
+            newMode = "On"
+            if currentMode = "On" then newMode = "Off"
+            deviceInfo.SetCaptionsMode(newMode)
+
+            ' Store for assertion in async callback
+            m.expectedCCMode = newMode
+            m.originalCCMode = currentMode
+            m.baselineEventCount = baselineEventCount
+
+            ' Wait for event to propagate through task thread
+            rooibos_promises_internal_delay(function(ctx as dynamic)
+                sourceDispatcher = ctx.fwInstance.getDispatcher("sourceObjectDispatcher")
+                state = sourceDispatcher.getState()
+                ctx.assertTrue(state.eventCount > ctx.baselineEventCount, "onSourceEvent should have been called after CC toggle")
+                ctx.assertEqual(state.ccMode, ctx.expectedCCMode)
+
+                ' Restore original CC mode
+                restoreInfo = CreateObject("roDeviceInfo")
+                restoreInfo.SetCaptionsMode(ctx.originalCCMode)
+
+                ctx.done()
+            end function, m, 0.5)
+        end function
+
+        @async()
+        @it("unregisters source object and stops receiving events")
+        function _()
+            sourceDispatcher = m.fwInstance.getDispatcher("sourceObjectDispatcher")
+
+            ' Dispatch unregister intent to task thread
+            sourceDispatcher.dispatch({ type: IntentTypes.UNREGISTER_SOURCE_OBJECT })
+
+            ' Wait for unregister to propagate, then toggle CC and verify no new events
+            rooibos_promises_internal_delay(function(ctx as dynamic)
+                sourceDispatcher = ctx.fwInstance.getDispatcher("sourceObjectDispatcher")
+                state = sourceDispatcher.getState()
+                ctx.assertTrue(state.unregistered = true, "source object should be unregistered")
+                eventCountAfterUnregister = state.eventCount
+
+                ' Toggle CC mode — should NOT trigger onSourceEvent anymore
+                deviceInfo = CreateObject("roDeviceInfo")
+                currentMode = deviceInfo.GetCaptionsMode()
+                newMode = "On"
+                if currentMode = "On" then newMode = "Off"
+                deviceInfo.SetCaptionsMode(newMode)
+
+                ' Store for second delay check
+                ctx.eventCountAfterUnregister = eventCountAfterUnregister
+                ctx.originalCCMode = currentMode
+
+                rooibos_promises_internal_delay(function(ctx2 as dynamic)
+                    sourceDispatcher = ctx2.fwInstance.getDispatcher("sourceObjectDispatcher")
+                    state = sourceDispatcher.getState()
+                    ctx2.assertEqual(state.eventCount, ctx2.eventCountAfterUnregister, "eventCount should not increase after unregister")
+
+                    ' Restore original CC mode
+                    restoreInfo = CreateObject("roDeviceInfo")
+                    restoreInfo.SetCaptionsMode(ctx2.originalCCMode)
+
+                    ctx2.done()
+                end function, ctx, 0.5)
+            end function, m, 0.3)
+        end function
+
+        @describe("identity-based source object routing via roUrlTransfer")
+
+        @async(5000)
+        @it("routes roUrlEvent to reducer via GetSourceIdentity")
+        function _()
+            transferDispatcher = m.fwInstance.getDispatcher("transferDispatcher")
+            m.assertNotInvalid(transferDispatcher)
+
+            ' POST was fired in onCreateDispatcher — wait for roUrlEvent response
+            rooibos_promises_internal_delay(function(ctx as dynamic)
+                transferDispatcher = ctx.fwInstance.getDispatcher("transferDispatcher")
+                state = transferDispatcher.getState()
+                ctx.assertTrue(state.responseCount > 0, "onSourceEvent should have received roUrlEvent")
+                ctx.assertTrue(state.responseCode <> 0, "responseCode should be non-zero (negative = connection error)")
+
+                ctx.done()
+            end function, m, 2.0)
+        end function
+
+        @async(5000)
+        @it("unregisters roUrlTransfer and stops routing events")
+        function _()
+            transferDispatcher = m.fwInstance.getDispatcher("transferDispatcher")
+
+            ' Unregister the transfer source object
+            transferDispatcher.dispatch({ type: IntentTypes.UNREGISTER_TRANSFER })
+
+            ' Wait for unregister to propagate
+            rooibos_promises_internal_delay(function(ctx as dynamic)
+                transferDispatcher = ctx.fwInstance.getDispatcher("transferDispatcher")
+                state = transferDispatcher.getState()
+                ctx.assertTrue(state.unregistered = true, "transfer should be unregistered")
+                countAfterUnregister = state.responseCount
+
+                ' Fire another POST — should NOT be routed anymore
+                transferDispatcher.dispatch({ type: IntentTypes.START_TRANSFER })
+
+                ctx.countAfterUnregister = countAfterUnregister
+
+                rooibos_promises_internal_delay(function(ctx2 as dynamic)
+                    transferDispatcher = ctx2.fwInstance.getDispatcher("transferDispatcher")
+                    state = transferDispatcher.getState()
+                    ctx2.assertEqual(state.responseCount, ctx2.countAfterUnregister, "responseCount should not increase after unregister")
+
+                    ctx2.done()
+                end function, ctx, 2.0)
+            end function, m, 0.3)
+        end function
+
+        @describe("sync tick timer")
+
+        @async()
+        @it("invokes onTick callback at specified interval")
+        function _()
+            sourceDispatcher = m.fwInstance.getDispatcher("sourceObjectDispatcher")
+            baselineTickCount = sourceDispatcher.getState().tickCount
+
+            ' Wait 350ms — with waitMs=100, onTick should fire at least twice
+            rooibos_promises_internal_delay(function(ctx as dynamic)
+                sourceDispatcher = ctx.fwInstance.getDispatcher("sourceObjectDispatcher")
+                tickCount = sourceDispatcher.getState().tickCount
+                ctx.assertTrue(tickCount > ctx.baselineTickCount, "onTick should have incremented tickCount")
+
+                ctx.done()
+            end function, m, 0.35)
+        end function
+
+        @describe("render thread dispatcher integration")
+
+        @it("render thread dispatcher synchronizes automatically to framework")
+        function _()
+            ' Dispatcher was created in setup()
+            ' Get dispatcher facade - should synchronize automatically
+            renderDispatcher = m.fwInstance.getDispatcher("renderThreadDispatcher")
+
+            ' Should be valid (synchronized)
+            m.assertNotInvalid(renderDispatcher)
+
+            ' Should have initial state
+            state = renderDispatcher.getState()
+            m.assertNotInvalid(state)
+            m.assertEqual(state.counter, 0)
+
+            ' Dispatch increment - should work synchronously
+            renderDispatcher.dispatch({ type: "INCREMENT" })
+            state = renderDispatcher.getState()
+            m.assertEqual(state.counter, 1)
+        end function
+
+        @describe("task-thread dispatcher middleware and destroy")
+
         @async()
         @it("ignores BLOCK_BY_MIDDLEWARE intents")
         function _()
@@ -129,28 +307,6 @@ namespace tests
 
                 ctx.done()
             end function, m, 0.09)
-        end function
-
-        @describe("render thread dispatcher integration")
-
-        @it("render thread dispatcher synchronizes automatically to framework")
-        function _()
-            ' Dispatcher was created in AncestorViewModel.onCreateView()
-            ' Get dispatcher facade - should synchronize automatically
-            renderDispatcher = m.fwInstance.getDispatcher("renderThreadDispatcher")
-
-            ' Should be valid (synchronized)
-            m.assertNotInvalid(renderDispatcher)
-
-            ' Should have initial state
-            state = renderDispatcher.getState()
-            m.assertNotInvalid(state)
-            m.assertEqual(state.counter, 0)
-
-            ' Dispatch increment - should work synchronously
-            renderDispatcher.dispatch({ type: "INCREMENT" })
-            state = renderDispatcher.getState()
-            m.assertEqual(state.counter, 1)
         end function
 
     end class
