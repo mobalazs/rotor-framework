@@ -27,10 +27,10 @@ api:
     description: "Subscribe to state changes. mapStateToProps updates props from state. allowUpdate filters when callback fires. callback or callbackWithState executes on update. once removes listener after first trigger."
   registerSourceObject:
     syntax: "m.registerSourceObject(sourceObject, eventFilter)"
-    description: "Register any Roku port object (roUrlTransfer, roDeviceInfo, roChannelStore, roInput, etc.) for event routing. Framework auto-sets port and auto-detects routing mode: identity-based (GetIdentity) for 1:1 routing, broadcast for objects without identity. Optional eventFilter function filters events for broadcast objects. Events routed to onSourceEvent(). Available in BaseReducer."
+    description: "Register any Roku source object (roUrlTransfer, roDeviceInfo, roChannelStore, roInput, etc.) for event routing. Framework auto-sets port and auto-detects routing mode: identity-based (GetIdentity) for 1:1 routing, broadcast for objects without identity. Optional eventFilter function filters events for broadcast objects. Events routed to onSourceEvent(). Available in BaseReducer."
   unregisterSourceObject:
     syntax: "m.unregisterSourceObject(sourceObject)"
-    description: "Unregister a previously registered port-based object. Available in BaseReducer."
+    description: "Unregister a previously registered source object. Available in BaseReducer."
   onCreateDispatcher:
     syntax: "override sub onCreateDispatcher()"
     description: "Lifecycle hook called after dispatcher is fully registered. Override to perform initialization that requires dispatcher to be set up (e.g., registering broadcast source objects like roDeviceInfo)."
@@ -166,7 +166,7 @@ rules:
   - "Create dispatchers in task thread for global access; render-thread dispatchers are local-use only."
   - "All state mutations happen in reducers on task thread. Never mutate state in render thread."
   - "Use middleware for async work; return invalid to stop reducer execution."
-  - "Register port objects with m.registerSourceObject(). Framework auto-sets port and handles routing (identity-based or broadcast)."
+  - "Register source objects with m.registerSourceObject(). Framework auto-sets port and handles routing (identity-based or broadcast)."
   - "Filter listener updates with allowUpdate or once: true to reduce churn and improve performance."
   - "Maintain single source of truth per dispatcher/model pair. Multiple components can subscribe to same dispatcher."
   - "Use clear, descriptive intent types (e.g., 'INCREMENT', 'LOAD_DATA', 'SET_USER')."

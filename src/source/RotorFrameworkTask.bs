@@ -134,9 +134,9 @@ namespace Rotor
         end function
 
         ' ---------------------------------------------------------------------
-        ' registerSourceObject - Registers a port-based object for event routing
+        ' registerSourceObject - Registers a source object for event routing
         '
-        ' Generic registry for any Roku port object. Auto-detects routing mode:
+        ' Generic registry for any Roku source object. Auto-detects routing mode:
         '   - Identity-based: If sourceObject implements ifSourceIdentity, routes via
         '     GetSourceIdentity() on the event (roUrlTransfer, roChannelStore).
         '   - Broadcast: If sourceObject does NOT implement ifSourceIdentity, broadcasts
@@ -144,7 +144,7 @@ namespace Rotor
         '
         ' @param {string} objectId - Unique identifier for this registration
         ' @param {string} dispatcherId - Dispatcher ID that will handle events
-        ' @param {object} sourceObject - The port-based object (SetMessagePort will be called)
+        ' @param {object} sourceObject - The source object (SetMessagePort will be called)
         ' @param {function} eventFilter - Optional filter function. Receives msg, returns boolean.
         '
         public sub registerSourceObject(objectId as string, dispatcherId as string, sourceObject as object, eventFilter = invalid as dynamic)
@@ -275,7 +275,7 @@ namespace Rotor
 
                         end if
                     else
-                        ' Generic port object routing
+                        ' Generic source object routing
                         routed = false
 
                         ' Try identity-based routing

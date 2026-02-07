@@ -113,7 +113,7 @@ namespace Rotor
         ' framework integrations are available.
         '
         ' Override this method to perform initialization that requires
-        ' the dispatcher to be fully set up (e.g., port object registration).
+        ' the dispatcher to be fully set up (e.g., source object registration).
         '
         sub onCreateDispatcher()
         end sub
@@ -187,19 +187,19 @@ namespace Rotor
         end function
 
         ' =============================================================
-        ' PORT OBJECT SUPPORT
+        ' SOURCE OBJECT SUPPORT
         ' =============================================================
 
         ' ---------------------------------------------------------------------
-        ' registerSourceObject - Registers a port-based object with the framework
+        ' registerSourceObject - Registers a source object with the framework
         '
-        ' Helper method for registering any Roku port object (roUrlTransfer,
+        ' Helper method for registering any Roku source object (roUrlTransfer,
         ' roDeviceInfo, roChannelStore, etc.). The framework will call
         ' SetMessagePort and route events to this reducer's onSourceEvent.
         ' Routing mode is auto-detected: identity-based if sourceObject has GetIdentity(),
         ' broadcast otherwise.
         '
-        ' @param {object} sourceObject - The port-based object
+        ' @param {object} sourceObject - The source object
         ' @param {function} eventFilter - Optional filter function. Receives msg, returns boolean.
         '
         sub registerSourceObject(sourceObject as object, eventFilter = invalid as dynamic)
@@ -215,9 +215,9 @@ namespace Rotor
         end sub
 
         ' ---------------------------------------------------------------------
-        ' unregisterSourceObject - Unregisters a port-based object from the framework
+        ' unregisterSourceObject - Unregisters a source object from the framework
         '
-        ' @param {object} sourceObject - The port-based object to unregister
+        ' @param {object} sourceObject - The source object to unregister
         '
         sub unregisterSourceObject(sourceObject as object)
             frameworkInstance = GetGlobalAA().rotor_framework_helper.frameworkInstance
@@ -234,9 +234,9 @@ namespace Rotor
         ' =============================================================
 
         ' ---------------------------------------------------------------------
-        ' onSourceEvent - Callback for async port object events
+        ' onSourceEvent - Callback for async source object events
         '
-        ' @param {object} msg - Raw message from port object (roUrlEvent, roDeviceInfoEvent, etc.)
+        ' @param {object} msg - Raw message from source object (roUrlEvent, roDeviceInfoEvent, etc.)
         ' @param {dynamic} context - Optional context data passed during registration
         '
         sub onSourceEvent(msg as object, context as dynamic)

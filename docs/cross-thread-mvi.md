@@ -74,7 +74,7 @@ class CounterReducer extends Reducer
         return state
     end function
 
-    ' Handle port object events (roUrlEvent, roDeviceInfoEvent, etc.)
+    ' Handle source object events (roUrlEvent, roDeviceInfoEvent, etc.)
     override sub onSourceEvent(msg as object, context as dynamic)
         if msg.GetResponseCode() = 200
             data = ParseJson(msg.GetString())
@@ -241,7 +241,7 @@ end sub
 **Cleanup:** Call `m.unregisterSourceObject(sourceObject)` when the source object is no longer needed.
 
 **Benefits:**
-- Unified API for all Roku port objects (HTTP, device info, input, etc.)
+- Unified API for all Roku source objects (HTTP, device info, input, etc.)
 - No need to manually call `SetMessagePort()` — the framework handles it
 - Identity-based objects are routed precisely; broadcast objects use `eventFilter` for filtering
 - No need to create separate Task nodes for async operations
@@ -397,7 +397,7 @@ Each dispatcher maintains one model as the single source of truth for its domain
 
 - Keep models focused on specific domains (e.g., user, content, settings)
 - Use clear, descriptive intent types
-- **Use `m.registerSourceObject()` for port-based objects** (`roUrlTransfer`, `roDeviceInfo`, etc.) to enable automatic event routing
+- **Use `m.registerSourceObject()` for source objects** (`roUrlTransfer`, `roDeviceInfo`, etc.) to enable automatic event routing
 - **Use `eventFilter` with broadcast objects** (e.g., `roDeviceInfo`) to filter relevant events in `onSourceEvent()`
 - **Use `m.getState()` in reducers** to access current state directly without callback
 - **Use `m.dispatchTo()` and `m.getStateFrom()`** in widgets and reducers for concise cross-dispatcher access
