@@ -260,7 +260,7 @@ namespace Rotor
 
                             end if
                         else
-
+                            ' Cross-thread state change: notify task-side listeners
                             data = msg.getData()
                             dispatcherId = fieldId
                             dispatcherInstance = m.dispatcherProvider.get(dispatcherId)
@@ -290,7 +290,7 @@ namespace Rotor
                                     if allowed
                                         dispatcherInstance = m.dispatcherProvider.get(entry.dispatcherId)
                                         if dispatcherInstance <> invalid
-                                            dispatcherInstance.onSourceEvent(msg, invalid)
+                                            dispatcherInstance.onSourceEvent(msg)
                                         end if
                                     end if
                                     routed = true
@@ -313,7 +313,7 @@ namespace Rotor
                                 if allowed
                                     dispatcherInstance = m.dispatcherProvider.get(entry.dispatcherId)
                                     if dispatcherInstance <> invalid
-                                        dispatcherInstance.onSourceEvent(msg, invalid)
+                                        dispatcherInstance.onSourceEvent(msg)
                                     end if
                                 end if
                             end for

@@ -62,7 +62,7 @@ namespace test
             end function)
         end sub
 
-        override sub onSourceEvent(msg as object, context as dynamic)
+        override sub onSourceEvent(msg as object)
             m.dispatch({
                 type: IntentTypes.CC_MODE_CHANGED,
                 payload: { ccMode: msg.GetInfo().Mode }
@@ -111,7 +111,7 @@ namespace test
             m.transfer.AsyncPostFromString("test")
         end sub
 
-        override sub onSourceEvent(msg as object, context as dynamic)
+        override sub onSourceEvent(msg as object)
             m.dispatch({
                 type: IntentTypes.TRANSFER_COMPLETE,
                 payload: { responseCode: msg.GetResponseCode() }

@@ -163,8 +163,8 @@ namespace Rotor
         '
         ' @param {object} msg - Message from async operation
         '
-        sub onSourceEvent(msg as object, context as dynamic)
-            m.reducerInstance.onSourceEvent(msg, context)
+        sub onSourceEvent(msg as object)
+            m.reducerInstance.onSourceEvent(msg)
         end sub
 
         ' =============================================================

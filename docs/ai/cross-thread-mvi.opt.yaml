@@ -27,7 +27,7 @@ api:
     description: "Subscribe to state changes. mapStateToProps updates props from state. allowUpdate filters when callback fires. callback or callbackWithState executes on update. once removes listener after first trigger."
   registerSourceObject:
     syntax: "m.registerSourceObject(sourceObject, eventFilter)"
-    description: "Register any Roku source object (roUrlTransfer, roDeviceInfo, roChannelStore, roInput, etc.) for event routing. Framework auto-sets port and auto-detects routing mode: identity-based (GetIdentity) for 1:1 routing, broadcast for objects without identity. Optional eventFilter function filters events for broadcast objects. Events routed to onSourceEvent(). Available in BaseReducer."
+    description: "Register any Roku source object (roUrlTransfer, roDeviceInfo, roChannelStore, roInput, etc.) for event routing. Task thread only — source objects require a task thread message port. Framework auto-sets port and auto-detects routing mode: identity-based (GetIdentity) for 1:1 routing, broadcast for objects without identity. Optional eventFilter function filters events for broadcast objects. Events routed to onSourceEvent(). Available in BaseReducer."
   unregisterSourceObject:
     syntax: "m.unregisterSourceObject(sourceObject)"
     description: "Unregister a previously registered source object. Available in BaseReducer."
@@ -77,7 +77,7 @@ examples:
         end if
         return state
       end function
-      override sub onSourceEvent(msg as object, context as dynamic)
+      override sub onSourceEvent(msg as object)
         if msg.GetResponseCode() = 200
           data = ParseJson(msg.GetString())
           m.dispatch({ type: "COUNT_LOADED", payload: { value: data.count } })
@@ -131,7 +131,7 @@ patterns:
     - "Call m.registerSourceObject(sourceObject) for identity-based objects (roUrlTransfer, roChannelStore) — framework auto-sets port and routes by GetSourceIdentity()."
     - "Call m.registerSourceObject(sourceObject, eventFilter) for broadcast objects (roDeviceInfo, roInput) — eventFilter function filters relevant events."
     - "Register broadcast objects in onCreateDispatcher() lifecycle hook; identity-based objects can be registered in middleware."
-    - "Framework routes all events to reducer's onSourceEvent(msg as object, context as dynamic)."
+    - "Framework routes all events to reducer's onSourceEvent(msg as object)."
     - "Call m.unregisterSourceObject(sourceObject) to clean up when no longer needed."
     - "Dispatch new intent from onSourceEvent() to update state."
   renderIntegration:

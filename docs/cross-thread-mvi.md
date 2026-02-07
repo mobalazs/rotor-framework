@@ -75,7 +75,7 @@ class CounterReducer extends Reducer
     end function
 
     ' Handle source object events (roUrlEvent, roDeviceInfoEvent, etc.)
-    override sub onSourceEvent(msg as object, context as dynamic)
+    override sub onSourceEvent(msg as object)
         if msg.GetResponseCode() = 200
             data = ParseJson(msg.GetString())
             m.dispatch({ type: "COUNT_LOADED", payload: { value: data.count } })
@@ -179,7 +179,7 @@ m.dispatcher.addListener({
 
 #### registerSourceObject
 
-Registers any Roku port-based object (`roUrlTransfer`, `roDeviceInfo`, `roChannelStore`, `roInput`, etc.) with the framework for automatic event routing. The framework auto-detects the routing mode:
+Registers any Roku port-based object (`roUrlTransfer`, `roDeviceInfo`, `roChannelStore`, `roInput`, etc.) with the framework for automatic event routing. **Only available on the task thread** — source objects require a task thread message port for event routing. The framework auto-detects the routing mode:
 
 - **Identity-based routing**: Objects with `GetIdentity()` (e.g., `roUrlTransfer`, `roChannelStore`) — events are routed 1:1 to the registering dispatcher via `GetSourceIdentity()`.
 - **Broadcast routing**: Objects without `GetIdentity()` (e.g., `roDeviceInfo`, `roInput`, `roAppManager`) — events are broadcast to all dispatchers that registered broadcast-type objects. Use `eventFilter` to filter relevant events.
@@ -223,7 +223,7 @@ end sub
 The framework automatically routes events to your reducer's `onSourceEvent()` method:
 
 ```brightscript
-override sub onSourceEvent(msg as object, context as dynamic)
+override sub onSourceEvent(msg as object)
     msgType = type(msg)
 
     if msgType = "roUrlEvent"

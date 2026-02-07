@@ -37,7 +37,6 @@ const outputFile = path.join(projectRoot, 'coverage.lcov');
 const debugLogFile = path.join(projectRoot, 'debug.log');
 const srcManifestPath = path.join(projectRoot, 'src', 'manifest');
 const stagingDir = path.join(projectRoot, 'out');
-const outDir = path.join(projectRoot, 'out');
 
 // Flag to track if we're inside the coverage section
 let isCapturing = false;
