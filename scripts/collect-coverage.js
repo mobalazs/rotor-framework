@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const net = require('net');
 const http = require('http');
+const rokuDeploy = require('roku-deploy');
 
 // Load environment variables from .env file (fallback for local development)
 const envPath = path.join(__dirname, '..', '.env');
@@ -35,6 +36,8 @@ const projectRoot = path.join(__dirname, '..');
 const outputFile = path.join(projectRoot, 'coverage.lcov');
 const debugLogFile = path.join(projectRoot, 'debug.log');
 const srcManifestPath = path.join(projectRoot, 'src', 'manifest');
+const stagingDir = path.join(projectRoot, 'out');
+const outDir = path.join(projectRoot, 'out');
 
 // Flag to track if we're inside the coverage section
 let isCapturing = false;
@@ -63,13 +66,11 @@ if (fs.existsSync(srcManifestPath)) {
   process.exit(1);
 }
 
-// Step 2: Spawn the bsc process with deploy options
+// Step 2: Build with bsc (no deploy - removed in bsc alpha.49+)
 const buildProcess = spawn('npx', [
   'bsc',
   '--project', 'bsconfig-tests.json',
-  '--deploy',
-  '--host', rokuHost,
-  '--password', rokuPassword
+  '--createPackage=false'
 ], {
   cwd: projectRoot,
   shell: true
@@ -88,7 +89,7 @@ buildProcess.stderr.on('data', (data) => {
 });
 
 // Handle process exit
-buildProcess.on('close', (code) => {
+buildProcess.on('close', async (code) => {
   // Restore original manifest
   if (originalManifest && fs.existsSync(srcManifestPath)) {
     fs.writeFileSync(srcManifestPath, originalManifest, 'utf8');
@@ -96,22 +97,78 @@ buildProcess.on('close', (code) => {
   }
 
   if (code !== 0) {
-    console.error(`\nBuild/Deploy failed with code: ${code}`);
+    console.error(`\nBuild failed with code: ${code}`);
     process.exit(code);
   }
 
-  console.log('\nDeploy successful! Connecting to Roku debug console...');
+  console.log('\nBuild successful! Deploying to device...');
 
-  // Connect to Roku telnet port to capture console output
-  const telnetClient = net.createConnection({ host: rokuHost, port: TELNET_PORT }, () => {
-    console.log('Connected to Roku debug console. Waiting for test output...\n');
+  // Step 3: Deploy using roku-deploy (zip build output + publish to device)
+  try {
+    const deployStagingDir = path.join(projectRoot, '.roku-deploy-staging');
+    await rokuDeploy.deploy({
+      host: rokuHost,
+      password: rokuPassword,
+      rootDir: stagingDir,
+      stagingDir: deployStagingDir,
+      outDir: projectRoot,
+      outFile: 'roku-deploy.zip',
+      files: ['**/*'],
+      deleteInstalledChannel: true,
+      retainStagingDir: false
+    });
+    // Clean up zip file
+    const zipPath = path.join(projectRoot, 'roku-deploy.zip');
+    if (fs.existsSync(zipPath)) fs.unlinkSync(zipPath);
+    console.log('✓ Deploy successful!');
+  } catch (err) {
+    console.error('Deploy failed:', err.message);
+    process.exit(1);
+  }
+
+  // Step 4: Connect to telnet and drain stale buffer, then capture test output
+  connectAndCapture();
+});
+
+// Handle process errors
+buildProcess.on('error', (error) => {
+  console.error('Failed to start process:', error);
+  restoreManifest();
+  process.exit(1);
+});
+
+let telnetClient = null;
+
+function connectAndCapture() {
+  console.log('Connecting to Roku debug console...');
+
+  telnetClient = net.createConnection({ host: rokuHost, port: TELNET_PORT }, () => {
+    console.log('Connected to Roku debug console. Draining stale buffer...');
   });
 
-  let telnetBuffer = '';
+  let drainComplete = false;
+  let drainTimer = null;
+  const DRAIN_IDLE_MS = 2000; // Consider buffer drained after 2s of silence
+
+  function resetDrainTimer() {
+    if (drainTimer) clearTimeout(drainTimer);
+    drainTimer = setTimeout(() => {
+      drainComplete = true;
+      console.log('Buffer drained. Waiting for test output...\n');
+    }, DRAIN_IDLE_MS);
+  }
+
+  // Start the drain timer immediately on connect
+  resetDrainTimer();
 
   telnetClient.on('data', (data) => {
     const output = data.toString();
-    telnetBuffer += output;
+
+    if (!drainComplete) {
+      // Still draining stale buffer - reset idle timer
+      resetDrainTimer();
+      return;
+    }
 
     // Store all output for debug log
     debugLog.push(output);
@@ -165,14 +222,7 @@ buildProcess.on('close', (code) => {
     console.log('\nTimeout reached. Closing connection...');
     writeCoverageAndExit(telnetClient);
   }, 300000);
-});
-
-// Handle process errors
-buildProcess.on('error', (error) => {
-  console.error('Failed to start process:', error);
-  restoreManifest();
-  process.exit(1);
-});
+}
 
 // Helper function to restore manifest
 function restoreManifest() {
@@ -186,14 +236,16 @@ function restoreManifest() {
 process.on('SIGINT', () => {
   console.log('\nTerminating...');
   restoreManifest();
-  buildProcess.kill('SIGINT');
+  if (buildProcess) buildProcess.kill('SIGINT');
+  if (telnetClient) telnetClient.end();
   process.exit(0);
 });
 
 process.on('SIGTERM', () => {
   console.log('\nTerminating...');
   restoreManifest();
-  buildProcess.kill('SIGTERM');
+  if (buildProcess) buildProcess.kill('SIGTERM');
+  if (telnetClient) telnetClient.end();
   process.exit(0);
 });
 

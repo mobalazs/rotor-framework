@@ -52,8 +52,8 @@
 	},
 	"homepage": "https://github.com/mobalazs/rotor-framework#readme",
 	"devDependencies": {
-		"@rokucommunity/bslint": "^1.0.0-alpha.48",
-		"brighterscript": "^1.0.0-alpha.48",
-		"rooibos-roku": "file:./vendor/rooibos-roku-6.0.0-alpha.48-fixed354.tgz"
+		"@rokucommunity/bslint": "1.0.0-alpha.50",
+		"brighterscript": "1.0.0-alpha.50",
+		"rooibos-roku": "6.0.0-alpha.50"
 	}
 }
