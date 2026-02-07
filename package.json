@@ -54,6 +54,7 @@
 	"devDependencies": {
 		"@rokucommunity/bslint": "1.0.0-alpha.50",
 		"brighterscript": "1.0.0-alpha.50",
+		"roku-deploy": "^3.16.1",
 		"rooibos-roku": "6.0.0-alpha.50"
 	}
 }
