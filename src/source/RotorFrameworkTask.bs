@@ -262,14 +262,9 @@ namespace Rotor
                         else
 
                             data = msg.getData()
-                            extraInfo = msg.GetInfo() ' Info AA passed during observeFieldScoped
-
-                            if extraInfo?.dispatcherId <> invalid and m.dispatcherProvider.get(extraInfo?.dispatcherId) <> invalid
-                                ' Catch by dispatcherId
-                                m.dispatcherProvider.get(extraInfo?.dispatcherId).onSourceEvent(msg, extraInfo?.context as dynamic)
-                            else
-                                dispatcherId = fieldId
-                                dispatcherInstance = m.dispatcherProvider.get(dispatcherId)
+                            dispatcherId = fieldId
+                            dispatcherInstance = m.dispatcherProvider.get(dispatcherId)
+                            if dispatcherInstance <> invalid
                                 dispatcherInstance.notifyListeners(data)
                             end if
 
