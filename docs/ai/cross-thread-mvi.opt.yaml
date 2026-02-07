@@ -25,9 +25,15 @@ api:
   addListener:
     syntax: "dispatcher.addListener({ mapStateToProps, allowUpdate, callback, once })"
     description: "Subscribe to state changes. mapStateToProps updates props from state. allowUpdate filters when callback fires. callback or callbackWithState executes on update. once removes listener after first trigger."
-  registerAsyncTransfer:
-    syntax: "m.registerAsyncTransfer(transfer, context)"
-    description: "Register roUrlTransfer for async HTTP tracking. Call from reducer middleware before AsyncGetToString(). Framework routes roUrlEvent to asyncReducerCallback with context data. Available in BaseReducer."
+  registerSourceObject:
+    syntax: "m.registerSourceObject(sourceObject, eventFilter)"
+    description: "Register any Roku source object (roUrlTransfer, roDeviceInfo, roChannelStore, roInput, etc.) for event routing. Task thread only — source objects require a task thread message port. Framework auto-sets port and auto-detects routing mode: identity-based (GetIdentity) for 1:1 routing, broadcast for objects without identity. Optional eventFilter function filters events for broadcast objects. Events routed to onSourceEvent(). Available in BaseReducer."
+  unregisterSourceObject:
+    syntax: "m.unregisterSourceObject(sourceObject)"
+    description: "Unregister a previously registered source object. Available in BaseReducer."
+  onCreateDispatcher:
+    syntax: "override sub onCreateDispatcher()"
+    description: "Lifecycle hook called after dispatcher is fully registered. Override to perform initialization that requires dispatcher to be set up (e.g., registering broadcast source objects like roDeviceInfo)."
 state:
   renderThread:
     - "dispatch intent to task thread"
@@ -53,8 +59,7 @@ examples:
             if intent.type = "LOAD_COUNT"
               transfer = CreateObject("roUrlTransfer")
               transfer.SetUrl("https://api.example.com/count")
-              transfer.SetMessagePort(m.port)
-              m.registerAsyncTransfer(transfer, { requestType: "count" })
+              m.registerSourceObject(transfer)
               transfer.AsyncGetToString()
               return invalid ' halt reducer
             end if
@@ -72,7 +77,7 @@ examples:
         end if
         return state
       end function
-      override sub asyncReducerCallback(msg as roUrlEvent, context as dynamic)
+      override sub onSourceEvent(msg as object)
         if msg.GetResponseCode() = 200
           data = ParseJson(msg.GetString())
           m.dispatch({ type: "COUNT_LOADED", payload: { value: data.count } })
@@ -117,16 +122,18 @@ examples:
 patterns:
   middleware:
     - "Logger middleware demonstrating pass-through. Logs intent then returns intent to continue."
-    - "Async HTTP middleware using registerAsyncTransfer() for roUrlTransfer tracking. Framework routes response to asyncReducerCallback()."
+    - "Async HTTP middleware using registerSourceObject() for roUrlTransfer tracking. Framework auto-sets port and routes response to onSourceEvent()."
   reducer:
     - "Intent types INCREMENT, COUNT_LOADED mutating count and lastUpdated."
     - "Reducer returns modified state object. All mutations happen in reducer on task thread."
     - "Use m.getState() helper in reducers to access current state directly without callback."
-  asyncTransfers:
-    - "Call m.registerAsyncTransfer(transfer, context) in middleware before AsyncGetToString()."
-    - "Framework automatically routes roUrlEvent to reducer's asyncReducerCallback(msg as roUrlEvent, context as dynamic)."
-    - "Access response directly via msg (roUrlEvent) and context parameter in callback."
-    - "Dispatch new intent from asyncReducerCallback() to update state."
+  sourceObjects:
+    - "Call m.registerSourceObject(sourceObject) for identity-based objects (roUrlTransfer, roChannelStore) — framework auto-sets port and routes by GetSourceIdentity()."
+    - "Call m.registerSourceObject(sourceObject, eventFilter) for broadcast objects (roDeviceInfo, roInput) — eventFilter function filters relevant events."
+    - "Register broadcast objects in onCreateDispatcher() lifecycle hook; identity-based objects can be registered in middleware."
+    - "Framework routes all events to reducer's onSourceEvent(msg as object)."
+    - "Call m.unregisterSourceObject(sourceObject) to clean up when no longer needed."
+    - "Dispatch new intent from onSourceEvent() to update state."
   renderIntegration:
     - "ViewModel onCreateView obtains dispatcher via m.getDispatcher(name)."
     - "getState binds initial state to props."
@@ -139,7 +146,8 @@ patterns:
     - "m.dispatch(intent) - dispatch intent to own dispatcher"
     - "m.dispatchTo(id, intent) - dispatch intent to another dispatcher by ID"
     - "m.getStateFrom(id) - get state from another dispatcher by ID"
-    - "m.registerAsyncTransfer(transfer, context) - register async transfer for routing"
+    - "m.registerSourceObject(sourceObject, eventFilter) - register port-based object for event routing (identity-based or broadcast)"
+    - "m.unregisterSourceObject(sourceObject) - unregister a port-based object"
   dispatcherAccessibility:
     taskThread: "Dispatchers created via Rotor.createDispatcher() on task thread are globally accessible from render thread and other task threads."
     renderThread: "Dispatchers created on render thread are technically accessible but rarely recommended for cross-thread use. Use for complex component internal state or local UI coordination."
@@ -158,7 +166,7 @@ rules:
   - "Create dispatchers in task thread for global access; render-thread dispatchers are local-use only."
   - "All state mutations happen in reducers on task thread. Never mutate state in render thread."
   - "Use middleware for async work; return invalid to stop reducer execution."
-  - "Register async transfers with m.registerAsyncTransfer() before calling AsyncGetToString(). Framework handles routing."
+  - "Register source objects with m.registerSourceObject(). Framework auto-sets port and handles routing (identity-based or broadcast)."
   - "Filter listener updates with allowUpdate or once: true to reduce churn and improve performance."
   - "Maintain single source of truth per dispatcher/model pair. Multiple components can subscribe to same dispatcher."
   - "Use clear, descriptive intent types (e.g., 'INCREMENT', 'LOAD_DATA', 'SET_USER')."
@@ -168,13 +176,13 @@ pitfalls:
   - "Avoid mutating state directly in render thread. Always dispatch intents."
   - "Render-thread dispatchers should rarely be consumed cross-thread."
   - "Don't perform state mutations in middleware; middleware is for async operations only."
-  - "Forgetting to call m.registerAsyncTransfer() before async operations prevents framework routing."
+  - "Forgetting to call m.registerSourceObject() before async operations prevents framework event routing."
   - "Forgetting to remove listeners can cause memory leaks. Use once: true for one-time operations."
 bestPractices:
   - "Keep models focused on specific domains (e.g., user, content, settings)."
   - "Use clear, descriptive intent types."
-  - "Use m.registerAsyncTransfer() for roUrlTransfer objects to enable automatic routing."
-  - "Pass context data to registerAsyncTransfer() to identify requests in asyncReducerCallback()."
+  - "Use m.registerSourceObject() for port-based objects (roUrlTransfer, roDeviceInfo, etc.) to enable automatic event routing."
+  - "Use eventFilter with broadcast objects (roDeviceInfo, roInput) to filter relevant events in onSourceEvent()."
   - "Use m.getState() in reducers to access current state without callback."
   - "Use m.dispatchTo() and m.getStateFrom() in widgets and reducers for concise cross-dispatcher access."
   - "Filter listener updates with allowUpdate when needed for performance."

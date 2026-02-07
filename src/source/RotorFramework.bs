@@ -333,6 +333,20 @@ namespace Rotor
             return m.builder.nodePool.presetNodePool(config)
         end function
 
+        ' ---------------------------------------------------------------------
+        ' registerSourceObject - Not available on render thread
+        '
+        public sub registerSourceObject(objectId as string, dispatcherId as string, sourceObject as object, eventFilter = invalid as dynamic)
+            throw "registerSourceObject() is only available on the task thread. Source objects require a task thread message port for event routing."
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' unregisterSourceObject - Not available on render thread
+        '
+        public sub unregisterSourceObject(objectId as string)
+            throw "unregisterSourceObject() is only available on the task thread."
+        end sub
+
         ' =====================================================================
         ' INTERNAL METHODS - INITIALIZATION AND TASK SYNCING
         ' =====================================================================

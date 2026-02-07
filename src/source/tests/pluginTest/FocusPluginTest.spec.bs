@@ -2048,6 +2048,559 @@ namespace tests
             m.assertFalse(group.enableSpatialEnter)
         end function
 
+        ' ======================================================================
+        ' TEST SUITE 15: beforeUpdate hook - widget focus config update
+        ' ======================================================================
+
+        @describe("beforeUpdate hook - focus config update")
+
+        @it("beforeUpdate removes old focus config and applies new config")
+        function _()
+            ' Given: A template with a focus item that has onSelect callback
+            template = {
+                id: "updateTestRoot",
+                nodeType: "Group",
+                focusGroup: {
+                    defaultFocusId: "updateItem"
+                },
+                children: [
+                    {
+                        id: "updateItem",
+                        nodeType: "Rectangle",
+                        fields: { width: 100, height: 50 },
+                        focus: {
+                            onSelect: sub()
+                                m.testMarker = "original_select"
+                            end sub
+                        }
+                    }
+                ]
+            }
+
+            m.fwInstance.destroy()
+            m.fwInstance = new Rotor.Framework()
+            m.fwInstance.render(template)
+
+            ' Verify initial setup
+            widget = m.fwInstance.getWidget("updateItem")
+            m.assertNotInvalid(widget)
+            widget.setFocus()
+
+            focusPlugin = m.fwInstance.plugins.focus
+            focusItem = focusPlugin.focusItemStack.get(widget.HID)
+            m.assertNotInvalid(focusItem)
+
+            ' When: Re-render with updated focus config (onFocus instead of onSelect)
+            updatedTemplate = {
+                id: "updateTestRoot",
+                nodeType: "Group",
+                focusGroup: {
+                    defaultFocusId: "updateItem"
+                },
+                children: [
+                    {
+                        id: "updateItem",
+                        nodeType: "Rectangle",
+                        fields: { width: 100, height: 50 },
+                        focus: {
+                            onFocus: sub()
+                                m.testMarker = "updated_focus"
+                            end sub
+                        }
+                    }
+                ]
+            }
+
+            m.fwInstance.render(updatedTemplate)
+
+            ' Then: Widget should still be in focus stack with updated config
+            updatedWidget = m.fwInstance.getWidget("updateItem")
+            m.assertNotInvalid(updatedWidget)
+
+            updatedFocusItem = focusPlugin.focusItemStack.get(updatedWidget.HID)
+            m.assertNotInvalid(updatedFocusItem)
+        end function
+
+        ' ======================================================================
+        ' TEST SUITE 16: beforeDestroy clears global focus
+        ' ======================================================================
+
+        @describe("beforeDestroy clears global focus")
+
+        @it("erasing a focused widget clears globalFocusHID and globalFocusId")
+        function _()
+            ' Given: A template with a focusable widget
+            template = {
+                id: "destroyFocusTestRoot",
+                nodeType: "Group",
+                focusGroup: {
+                    defaultFocusId: "erasableItem"
+                },
+                children: [
+                    {
+                        id: "erasableItem",
+                        nodeType: "Rectangle",
+                        fields: { width: 100, height: 50 },
+                        focus: {}
+                    }
+                ]
+            }
+
+            m.fwInstance.destroy()
+            m.fwInstance = new Rotor.Framework()
+            m.fwInstance.render(template)
+
+            ' Set focus on the item
+            widget = m.fwInstance.getWidget("erasableItem")
+            widget.setFocus()
+
+            ' Verify focus is set
+            focusPlugin = m.fwInstance.plugins.focus
+            m.assertEqual(focusPlugin.globalFocusId, "erasableItem")
+            m.assertTrue(focusPlugin.globalFocusHID <> "")
+
+            ' When: Erase the focused widget
+            m.fwInstance.erase("erasableItem")
+
+            ' Then: Global focus should be cleared
+            m.assertEqual(focusPlugin.globalFocusHID, "")
+            m.assertEqual(focusPlugin.globalFocusId, "")
+        end function
+
+        ' ======================================================================
+        ' TEST SUITE 17: Both focus + focusGroup validation error
+        ' ======================================================================
+
+        @describe("focus + focusGroup validation")
+
+        @it("widget with both focus and focusGroup is skipped")
+        function _()
+            ' Given: A template with a widget that has BOTH focus and focusGroup
+            template = {
+                id: "dualConfigTestRoot",
+                nodeType: "Group",
+                focusGroup: {
+                    defaultFocusId: "dualConfigItem"
+                },
+                children: [
+                    {
+                        id: "dualConfigItem",
+                        nodeType: "Rectangle",
+                        fields: { width: 100, height: 50 },
+                        focus: {
+                            onSelect: sub()
+                            end sub
+                        },
+                        focusGroup: {
+                            defaultFocusId: "someChild"
+                        }
+                    }
+                ]
+            }
+
+            m.fwInstance.destroy()
+            m.fwInstance = new Rotor.Framework()
+            m.fwInstance.render(template)
+
+            ' Then: Widget should NOT be in either stack (validation error skips setup)
+            focusPlugin = m.fwInstance.plugins.focus
+            dualWidget = m.fwInstance.getWidget("dualConfigItem")
+            m.assertNotInvalid(dualWidget)
+
+            focusItem = focusPlugin.focusItemStack.get(dualWidget.HID)
+            m.assertInvalid(focusItem)
+
+            group = focusPlugin.groupStack.get(dualWidget.HID)
+            m.assertInvalid(group)
+        end function
+
+        ' ======================================================================
+        ' TEST SUITE 18: Focus restoration on re-creation
+        ' ======================================================================
+
+        @describe("focus restoration on widget re-creation")
+
+        @it("restores focus state when a previously focused widget is re-created")
+        function _()
+            ' Given: A template with two focusable items
+            template = {
+                id: "restoreTestRoot",
+                nodeType: "Group",
+                focusGroup: {
+                    defaultFocusId: "restoreItem1"
+                },
+                children: [
+                    {
+                        id: "restoreItem1",
+                        nodeType: "Rectangle",
+                        fields: { width: 100, height: 50, translation: [0, 0] },
+                        focus: {}
+                    },
+                    {
+                        id: "restoreItem2",
+                        nodeType: "Rectangle",
+                        fields: { width: 100, height: 50, translation: [150, 0] },
+                        focus: {}
+                    }
+                ]
+            }
+
+            m.fwInstance.destroy()
+            m.fwInstance = new Rotor.Framework()
+            m.fwInstance.render(template)
+
+            ' Focus restoreItem1
+            item1 = m.fwInstance.getWidget("restoreItem1")
+            item1.setFocus()
+
+            ' Verify focus is on restoreItem1
+            focusPlugin = m.fwInstance.plugins.focus
+            m.assertEqual(focusPlugin.globalFocusId, "restoreItem1")
+            item1HID = item1.HID
+
+            ' When: Re-render (which triggers update/re-creation)
+            m.fwInstance.render(template)
+
+            ' Then: The focus item should have isFocused restored
+            reCreatedItem = focusPlugin.focusItemStack.get(item1HID)
+            m.assertNotInvalid(reCreatedItem)
+            m.assertTrue(reCreatedItem.isFocused)
+        end function
+
+        ' ======================================================================
+        ' TEST SUITE 19: No ancestor group navigation
+        ' ======================================================================
+
+        @describe("no ancestor group - all items as candidates")
+
+        @it("focus item with no ancestor group uses all focus items as candidates")
+        function _()
+            ' Given: A template with focus items directly under root (no focusGroup wrapper)
+            template = {
+                id: "noGroupTestRoot",
+                nodeType: "Group",
+                children: [
+                    {
+                        id: "orphanItem1",
+                        nodeType: "Rectangle",
+                        fields: { width: 100, height: 50, translation: [0, 0] },
+                        focus: {}
+                    },
+                    {
+                        id: "orphanItem2",
+                        nodeType: "Rectangle",
+                        fields: { width: 100, height: 50, translation: [150, 0] },
+                        focus: {
+                            enableSpatialNavigation: true
+                        }
+                    }
+                ]
+            }
+
+            m.fwInstance.destroy()
+            m.fwInstance = new Rotor.Framework()
+            m.fwInstance.render(template)
+
+            focusPlugin = m.fwInstance.plugins.focus
+            ' Disable long press to prevent async timer callback issues
+            focusPlugin.enableLongPressFeature = false
+
+            ' Set focus on orphanItem1
+            item1 = m.fwInstance.getWidget("orphanItem1")
+            item1.setFocus()
+
+            ' Verify focus is on orphanItem1
+            focusedWidget = focusPlugin.getFocusedWidget()
+            m.assertEqual(focusedWidget.id, "orphanItem1")
+
+            ' Verify the item has no ancestor groups
+            ancestorGroups = focusPlugin.findAncestorGroups(item1.HID)
+            m.assertEqual(ancestorGroups.Count(), 0)
+
+            ' When: Try to navigate (triggers executeNavigationAction with ancestorGroupsCount=0)
+            item1.triggerKeyPress("right")
+
+            ' Then: Should not crash (path where all focus items are candidates was exercised)
+            m.assertTrue(true)
+        end function
+
+        ' ======================================================================
+        ' TEST SUITE 20: enableSpatialEnter as AA (per-direction)
+        ' ======================================================================
+
+        @describe("enableSpatialEnter with per-direction AA config")
+
+        @it("AA enableSpatialEnter picks closest item for enabled direction")
+        function _()
+            ' Given: targetGroup has enableSpatialEnter: { right: true }
+            ' This covers isSpatialEnterEnabledForDirection lines 1419-1420
+            template = {
+                id: "aaSpatialEnterRoot",
+                nodeType: "Group",
+                focusGroup: {
+                    defaultFocusId: "aaSrcGroup"
+                },
+                children: [
+                    {
+                        id: "aaSrcGroup",
+                        nodeType: "Group",
+                        fields: { translation: [0, 0] },
+                        focusGroup: {
+                            defaultFocusId: "aaSrcTop",
+                            right: "aaTgtGroup"
+                        },
+                        children: [
+                            {
+                                id: "aaSrcTop",
+                                nodeType: "Rectangle",
+                                fields: { width: 100, height: 80, translation: [0, 0] },
+                                focus: {}
+                            },
+                            {
+                                id: "aaSrcBottom",
+                                nodeType: "Rectangle",
+                                fields: { width: 100, height: 80, translation: [0, 200] },
+                                focus: {}
+                            }
+                        ]
+                    },
+                    {
+                        id: "aaTgtGroup",
+                        nodeType: "Group",
+                        fields: { translation: [300, 0] },
+                        focusGroup: {
+                            defaultFocusId: "aaTgtTop",
+                            enableSpatialEnter: { right: true },
+                            left: "aaSrcGroup"
+                        },
+                        children: [
+                            {
+                                id: "aaTgtTop",
+                                nodeType: "Rectangle",
+                                fields: { width: 100, height: 80, translation: [0, 0] },
+                                focus: {}
+                            },
+                            {
+                                id: "aaTgtBottom",
+                                nodeType: "Rectangle",
+                                fields: { width: 100, height: 80, translation: [0, 200] },
+                                focus: {}
+                            }
+                        ]
+                    }
+                ]
+            }
+
+            m.fwInstance.destroy()
+            m.fwInstance = new Rotor.Framework()
+            m.fwInstance.render(template)
+            m.fwInstance.plugins.focus.enableLongPressFeature = false
+
+            ' Focus srcBottom (y=200)
+            srcBottom = m.fwInstance.getWidget("aaSrcBottom")
+            srcBottom.setFocus()
+
+            ' When: Press right to enter targetGroup
+            srcBottom.triggerKeyPress("right")
+
+            ' Then: Spatial enter enabled for right → picks aaTgtBottom (closest to srcBottom)
+            focusedWidget = m.fwInstance.plugins.focus.getFocusedWidget()
+            m.assertNotInvalid(focusedWidget)
+            m.assertEqual(focusedWidget.id, "aaTgtBottom")
+        end function
+
+        @it("AA enableSpatialEnter falls back to default for disabled direction")
+        function _()
+            ' Given: targetGroup has enableSpatialEnter: { left: true } (only left enabled)
+            ' Entering from right press → direction "right" not in AA → returns false (line 1422)
+            template = {
+                id: "aaFallbackRoot",
+                nodeType: "Group",
+                focusGroup: {
+                    defaultFocusId: "fbSrcGroup"
+                },
+                children: [
+                    {
+                        id: "fbSrcGroup",
+                        nodeType: "Group",
+                        fields: { translation: [0, 0] },
+                        focusGroup: {
+                            defaultFocusId: "fbSrcTop",
+                            right: "fbTgtGroup"
+                        },
+                        children: [
+                            {
+                                id: "fbSrcTop",
+                                nodeType: "Rectangle",
+                                fields: { width: 100, height: 80, translation: [0, 0] },
+                                focus: {}
+                            },
+                            {
+                                id: "fbSrcBottom",
+                                nodeType: "Rectangle",
+                                fields: { width: 100, height: 80, translation: [0, 200] },
+                                focus: {}
+                            }
+                        ]
+                    },
+                    {
+                        id: "fbTgtGroup",
+                        nodeType: "Group",
+                        fields: { translation: [300, 0] },
+                        focusGroup: {
+                            defaultFocusId: "fbTgtTop",
+                            enableSpatialEnter: { left: true },
+                            left: "fbSrcGroup"
+                        },
+                        children: [
+                            {
+                                id: "fbTgtTop",
+                                nodeType: "Rectangle",
+                                fields: { width: 100, height: 80, translation: [0, 0] },
+                                focus: {}
+                            },
+                            {
+                                id: "fbTgtBottom",
+                                nodeType: "Rectangle",
+                                fields: { width: 100, height: 80, translation: [0, 200] },
+                                focus: {}
+                            }
+                        ]
+                    }
+                ]
+            }
+
+            m.fwInstance.destroy()
+            m.fwInstance = new Rotor.Framework()
+            m.fwInstance.render(template)
+            m.fwInstance.plugins.focus.enableLongPressFeature = false
+
+            ' Focus fbSrcBottom (y=200)
+            srcBottom = m.fwInstance.getWidget("fbSrcBottom")
+            srcBottom.setFocus()
+
+            ' When: Press right to enter targetGroup
+            ' Direction "right" is NOT in enableSpatialEnter AA → falls back to defaultFocusId
+            srcBottom.triggerKeyPress("right")
+
+            ' Then: Should use defaultFocusId (fbTgtTop) NOT spatial closest
+            focusedWidget = m.fwInstance.plugins.focus.getFocusedWidget()
+            m.assertNotInvalid(focusedWidget)
+            m.assertEqual(focusedWidget.id, "fbTgtTop")
+        end function
+
+        ' ======================================================================
+        ' TEST SUITE 21: Function-based defaultFocusId
+        ' ======================================================================
+
+        @describe("function-based defaultFocusId")
+
+        @it("defaultFocusId as function resolves dynamically")
+        function _()
+            ' Given: A group with function-based defaultFocusId
+            ' Covers getFallbackNodeId line 1511-1512 and getFallbackIdentifier line 1531-1532
+            template = {
+                id: "fnDefaultRoot",
+                nodeType: "Group",
+                focusGroup: {
+                    defaultFocusId: function()
+                        return "fnItem2"
+                    end function
+                },
+                children: [
+                    {
+                        id: "fnItem1",
+                        nodeType: "Rectangle",
+                        fields: { width: 100, height: 50, translation: [0, 0] },
+                        focus: {}
+                    },
+                    {
+                        id: "fnItem2",
+                        nodeType: "Rectangle",
+                        fields: { width: 100, height: 50, translation: [150, 0] },
+                        focus: {}
+                    }
+                ]
+            }
+
+            m.fwInstance.destroy()
+            m.fwInstance = new Rotor.Framework()
+            m.fwInstance.render(template)
+            m.fwInstance.plugins.focus.enableLongPressFeature = false
+
+            ' When: Set focus on the root group (triggers capturing with function defaultFocusId)
+            rootWidget = m.fwInstance.getWidget("fnDefaultRoot")
+            rootWidget.setFocus()
+
+            ' Then: Focus should be on fnItem2 (resolved by function)
+            focusedWidget = m.fwInstance.plugins.focus.getFocusedWidget()
+            m.assertNotInvalid(focusedWidget)
+            m.assertEqual(focusedWidget.id, "fnItem2")
+        end function
+
+        ' ======================================================================
+        ' TEST SUITE 22: focusItemStack.hasEnabled edge case
+        ' ======================================================================
+
+        @describe("focusItemStack utility methods")
+
+        @it("hasEnabled returns false for non-existent HID")
+        function _()
+            ' Given: Focus plugin with populated focusItemStack
+            focusPlugin = m.fwInstance.plugins.focus
+
+            ' When: Check hasEnabled for a HID that doesn't exist
+            result = focusPlugin.focusItemStack.hasEnabled("nonExistent.123.456")
+
+            ' Then: Should return false (covers line 1250-1251)
+            m.assertFalse(result)
+        end function
+
+        @it("hasEnabled returns true for existing enabled focus item")
+        function _()
+            ' Given: L1 is a focus item in the stack
+            focusPlugin = m.fwInstance.plugins.focus
+            l1Widget = m.fwInstance.getWidget("L1")
+
+            ' When: Check hasEnabled for L1's HID
+            result = focusPlugin.focusItemStack.hasEnabled(l1Widget.HID)
+
+            ' Then: Should return true (item exists and is enabled)
+            m.assertTrue(result)
+        end function
+
+        ' ======================================================================
+        ' TEST SUITE 23: deepSearchFocusItemByNodeId fallback paths
+        ' ======================================================================
+
+        @describe("deepSearchFocusItemByNodeId fallback")
+
+        @it("deep search returns empty for non-existent nodeId")
+        function _()
+            ' Given: Focus plugin
+            focusPlugin = m.fwInstance.plugins.focus
+            topWidget = m.fwInstance.getWidget("topWidget")
+
+            ' When: Search for a nodeId that doesn't exist
+            result = focusPlugin.deepSearchFocusItemByNodeId(topWidget.HID, "completelyNonExistentId")
+
+            ' Then: Should return empty string
+            m.assertEqual(result, "")
+        end function
+
+        @it("deep search returns empty for empty nodeId")
+        function _()
+            ' Given: Focus plugin
+            focusPlugin = m.fwInstance.plugins.focus
+            topWidget = m.fwInstance.getWidget("topWidget")
+
+            ' When: Search with empty nodeId
+            result = focusPlugin.deepSearchFocusItemByNodeId(topWidget.HID, "")
+
+            ' Then: Should return empty string (early return line 880)
+            m.assertEqual(result, "")
+        end function
+
         @describe("focus plugin cleanup")
 
         @it("removeFocusConfig removes focus item from stack")

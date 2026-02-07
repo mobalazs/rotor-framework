@@ -86,8 +86,10 @@ namespace Rotor
         taskNode as object
         dispatcherProvider as object
         port as object
-        asyncTransferRegistry = {} ' transferId -> { dispatcherId, context }
-        deviceInfoRegistry = {} ' deviceInfoId -> { dispatcherId, context, deviceInfo }
+        sourceObjectRegistry = {} ' identity -> { dispatcherId, objectId, eventFilter }
+        sourceObjectIdIndex = {} ' objectId -> identity (reverse index for unregistration)
+        sourceObjectTypeRegistry = [] ' [{ dispatcherId, objectId, eventFilter }] - broadcast routing
+        private _eventFilterFn = invalid as dynamic
         onTick as function
 
         ' ---------------------------------------------------------------------
@@ -132,42 +134,59 @@ namespace Rotor
         end function
 
         ' ---------------------------------------------------------------------
-        ' registerAsyncTransfer - Registers an async transfer with dispatcher context
+        ' registerSourceObject - Registers a source object for event routing
         '
-        ' This method associates a roUrlTransfer identity with a dispatcher ID and
-        ' optional context data. When the transfer completes and sends a roUrlEvent,
-        ' the framework will route it to the correct dispatcher's asyncReducerCallback.
+        ' Generic registry for any Roku source object. Auto-detects routing mode:
+        '   - Identity-based: If sourceObject implements ifSourceIdentity, routes via
+        '     GetSourceIdentity() on the event (roUrlTransfer, roChannelStore).
+        '   - Broadcast: If sourceObject does NOT implement ifSourceIdentity, broadcasts
+        '     to all registered dispatchers (roDeviceInfo, roInput, roAppManager).
         '
-        ' @param {string} transferId - The transfer.GetIdentity().ToStr() value
-        ' @param {string} dispatcherId - Dispatcher ID that initiated the transfer
-        ' @param {object} context - Optional user data to pass back in callback
+        ' @param {string} objectId - Unique identifier for this registration
+        ' @param {string} dispatcherId - Dispatcher ID that will handle events
+        ' @param {object} sourceObject - The source object (SetMessagePort will be called)
+        ' @param {function} eventFilter - Optional filter function. Receives msg, returns boolean.
         '
-        public sub registerAsyncTransfer(transferId as string, dispatcherId as string, context = invalid as dynamic)
-            m.asyncTransferRegistry[transferId] = {
-                dispatcherId: dispatcherId,
-                context: context
-            }
+        public sub registerSourceObject(objectId as string, dispatcherId as string, sourceObject as object, eventFilter = invalid as dynamic)
+            sourceObject.SetMessagePort(m.port)
+            if FindMemberFunction(sourceObject, "GetIdentity") <> invalid
+                ' Identity-based routing
+                identity = sourceObject.GetIdentity().ToStr()
+                m.sourceObjectRegistry[identity] = {
+                    dispatcherId: dispatcherId,
+                    objectId: objectId,
+                    eventFilter: eventFilter
+                }
+                m.sourceObjectIdIndex[objectId] = identity
+            else
+                ' Broadcast routing
+                m.sourceObjectTypeRegistry.push({
+                    dispatcherId: dispatcherId,
+                    objectId: objectId,
+                    eventFilter: eventFilter
+                })
+            end if
         end sub
 
         ' ---------------------------------------------------------------------
-        ' registerDeviceInfo - Registers a roDeviceInfo for event listening
+        ' unregisterSourceObject - Unregisters a port-based object by its objectId
         '
-        ' This method associates a roDeviceInfo object with a dispatcher ID.
-        ' When device info events occur (linkStatus, etc.), the framework will
-        ' route them to the correct dispatcher's asyncReducerCallback.
+        ' @param {string} objectId - The unique identifier used during registration
         '
-        ' @param {string} deviceInfoId - Unique identifier for this registration
-        ' @param {string} dispatcherId - Dispatcher ID that will handle events
-        ' @param {object} deviceInfo - The roDeviceInfo object (must have SetMessagePort called)
-        ' @param {object} context - Optional user data to pass back in callback
-        '
-        public sub registerDeviceInfo(deviceInfoId as string, dispatcherId as string, deviceInfo as object, context = invalid as dynamic)
-            deviceInfo.SetMessagePort(m.port)
-            m.deviceInfoRegistry[deviceInfoId] = {
-                dispatcherId: dispatcherId,
-                deviceInfo: deviceInfo,
-                context: context
-            }
+        public sub unregisterSourceObject(objectId as string)
+            ' Try identity-based registry
+            if m.sourceObjectIdIndex.DoesExist(objectId)
+                identity = m.sourceObjectIdIndex[objectId]
+                m.sourceObjectRegistry.Delete(identity)
+                m.sourceObjectIdIndex.Delete(objectId)
+                return
+            end if
+            ' Try broadcast registry
+            for i = m.sourceObjectTypeRegistry.count() - 1 to 0 step -1
+                if m.sourceObjectTypeRegistry[i].objectId = objectId
+                    m.sourceObjectTypeRegistry.Delete(i)
+                end if
+            end for
         end sub
 
         ' ---------------------------------------------------------------------
@@ -241,53 +260,63 @@ namespace Rotor
 
                             end if
                         else
-
+                            ' Cross-thread state change: notify task-side listeners
                             data = msg.getData()
-                            extraInfo = msg.GetInfo() ' Info AA passed during observeFieldScoped
-
-                            if extraInfo?.dispatcherId <> invalid and m.dispatcherProvider.get(extraInfo?.dispatcherId) <> invalid
-                                ' Catch by dispatcherId
-                                m.dispatcherProvider.get(extraInfo?.dispatcherId).asyncReducerCallback(msg, extraInfo?.context as dynamic)
-                            else
-                                dispatcherId = fieldId
-                                dispatcherInstance = m.dispatcherProvider.get(dispatcherId)
+                            dispatcherId = fieldId
+                            dispatcherInstance = m.dispatcherProvider.get(dispatcherId)
+                            if dispatcherInstance <> invalid
                                 dispatcherInstance.notifyListeners(data)
                             end if
 
                         end if
-                    else if msgType = "roUrlEvent"
-                        ' Handle async transfer responses
-                        transferId = msg.GetSourceIdentity().ToStr()
+                    else
+                        ' Generic source object routing
+                        routed = false
 
-                        if m.asyncTransferRegistry.DoesExist(transferId)
-                            transferData = m.asyncTransferRegistry[transferId]
-                            dispatcherId = transferData.dispatcherId
+                        ' Try identity-based routing
+                        if m.sourceObjectRegistry.count() > 0
+                            try
+                                sourceIdentity = msg.GetSourceIdentity().ToStr()
+                                if m.sourceObjectRegistry.DoesExist(sourceIdentity)
+                                    entry = m.sourceObjectRegistry[sourceIdentity]
 
-                            ' Cleanup registry entry (Note: order is important - this make it reusable immediately)
-                            m.asyncTransferRegistry.delete(transferId)
-
-                            dispatcherInstance = m.dispatcherProvider.get(dispatcherId)
-                            if dispatcherInstance <> invalid
-                                ' Route to dispatcher with wrapped message
-                                dispatcherInstance.asyncReducerCallback(msg as roUrlEvent, transferData?.context as dynamic)
-                            end if
-
-                        end if
-                    else if msgType = "roDeviceInfoEvent"
-                        ' Handle device info events (ignore appFocused, etc.)
-                        if m.deviceInfoRegistry.count() > 0
-                            eventInfo = msg.GetInfo()
-                            ' Only process linkStatus events, ignore appFocused and other events
-                            if eventInfo?.linkStatus <> invalid
-                                ' Route to all registered device info dispatchers
-                                for each deviceInfoId in m.deviceInfoRegistry
-                                    registryEntry = m.deviceInfoRegistry[deviceInfoId]
-                                    dispatcherInstance = m.dispatcherProvider.get(registryEntry.dispatcherId)
-                                    if dispatcherInstance <> invalid
-                                        dispatcherInstance.asyncReducerCallback(eventInfo, registryEntry?.context as dynamic)
+                                    ' Apply event filter if provided
+                                    allowed = true
+                                    if entry.eventFilter <> invalid
+                                        m._eventFilterFn = entry.eventFilter
+                                        allowed = m._eventFilterFn(msg)
                                     end if
-                                end for
-                            end if
+
+                                    if allowed
+                                        dispatcherInstance = m.dispatcherProvider.get(entry.dispatcherId)
+                                        if dispatcherInstance <> invalid
+                                            dispatcherInstance.onSourceEvent(msg)
+                                        end if
+                                    end if
+                                    routed = true
+                                end if
+                            catch e
+                                ' Event doesn't support GetSourceIdentity - fall through to broadcast
+                            end try
+                        end if
+
+                        ' Broadcast to all non-identity registered dispatchers
+                        if not routed
+                            for each entry in m.sourceObjectTypeRegistry
+                                ' Apply event filter if provided
+                                allowed = true
+                                if entry.eventFilter <> invalid
+                                    m._eventFilterFn = entry.eventFilter
+                                    allowed = m._eventFilterFn(msg)
+                                end if
+
+                                if allowed
+                                    dispatcherInstance = m.dispatcherProvider.get(entry.dispatcherId)
+                                    if dispatcherInstance <> invalid
+                                        dispatcherInstance.onSourceEvent(msg)
+                                    end if
+                                end if
+                            end for
                         end if
                     end if
                 end if
@@ -354,8 +383,9 @@ namespace Rotor
         ' Destroys dispatcher provider and clears global framework helper.
         '
         public sub destroy()
-            m.asyncTransferRegistry.clear()
-            m.deviceInfoRegistry.clear()
+            m.sourceObjectRegistry.clear()
+            m.sourceObjectIdIndex.clear()
+            m.sourceObjectTypeRegistry.clear()
             m.dispatcherProvider.destroy()
 
             globalScope = GetGlobalAA()

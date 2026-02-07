@@ -21,5 +21,17 @@ sub task()
     ' Create Foo Dispatcher (Owned by this Task)
     m.fooDispatcher = test.createFooDispatcher()
 
-    m.appFw.sync() ' main loop of cross-thread MVI
+    ' Create Source Object Dispatcher (tests registerSourceObject with roDeviceInfo)
+    m.sourceObjectDispatcher = test.createSourceObjectDispatcher()
+
+    ' Create Transfer Dispatcher (tests identity-based registerSourceObject with roUrlTransfer)
+    m.transferDispatcher = test.createTransferDispatcher()
+
+    m.appFw.sync(100, sub()
+        fw = m.rotor_framework_helper.frameworkInstance
+        dispatcher = fw.dispatcherProvider.get("sourceObjectDispatcher")
+        if dispatcher <> invalid
+            dispatcher.dispatch({ type: "tick" })
+        end if
+    end sub)
 end sub

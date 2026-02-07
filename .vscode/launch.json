@@ -19,7 +19,7 @@
             "password": "${env:ROKU_DEV_PASS}",
 
             "consoleOutput": "normal",
-            "rootDir": "${workspaceFolder}/dist",
+            "rootDir": "${workspaceFolder}/out",
             "files": [
                 "source/**/*",
                 "components/**/*",
@@ -54,7 +54,7 @@
             "password": "${env:ROKU_DEV_PASS}",
 
             "consoleOutput": "normal",
-            "rootDir": "${workspaceFolder}/dist",
+            "rootDir": "${workspaceFolder}/out",
             "files": [
                 "source/**/*",
                 "components/**/*",

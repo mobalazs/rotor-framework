@@ -40,16 +40,15 @@ class CounterReducer extends Reducer
                 return intent ' NEXT
             end function,
 
-            ' Async HTTP middleware using roUrlTransfer
+            ' Async HTTP middleware using registerSourceObject
             function(intent, state) as Intent
                 if intent.type = "LOAD_COUNT"
                     ' Create async transfer
                     transfer = CreateObject("roUrlTransfer")
                     transfer.SetUrl("https://api.example.com/count")
-                    transfer.SetMessagePort(m.port)
 
-                    ' Register transfer with framework
-                    m.registerAsyncTransfer(transfer, { requestType: "count" })
+                    ' Register with framework (auto-sets port, auto-routes by identity)
+                    m.registerSourceObject(transfer)
 
                     ' Start async request
                     transfer.AsyncGetToString()
@@ -75,8 +74,8 @@ class CounterReducer extends Reducer
         return state
     end function
 
-    ' Handle async transfer responses
-    override sub asyncReducerCallback(msg as roUrlEvent, context as dynamic)
+    ' Handle source object events (roUrlEvent, roDeviceInfoEvent, etc.)
+    override sub onSourceEvent(msg as object)
         if msg.GetResponseCode() = 200
             data = ParseJson(msg.GetString())
             m.dispatch({ type: "COUNT_LOADED", payload: { value: data.count } })
@@ -178,21 +177,24 @@ m.dispatcher.addListener({
 })
 ```
 
-#### registerAsyncTransfer
+#### registerSourceObject
 
-Registers a `roUrlTransfer` object with the framework for automatic routing of async HTTP responses. Call this method in middleware before initiating async operations:
+Registers any Roku port-based object (`roUrlTransfer`, `roDeviceInfo`, `roChannelStore`, `roInput`, etc.) with the framework for automatic event routing. **Only available on the task thread** — source objects require a task thread message port for event routing. The framework auto-detects the routing mode:
+
+- **Identity-based routing**: Objects with `GetIdentity()` (e.g., `roUrlTransfer`, `roChannelStore`) — events are routed 1:1 to the registering dispatcher via `GetSourceIdentity()`.
+- **Broadcast routing**: Objects without `GetIdentity()` (e.g., `roDeviceInfo`, `roInput`, `roAppManager`) — events are broadcast to all dispatchers that registered broadcast-type objects. Use `eventFilter` to filter relevant events.
+
+**Identity-based example (roUrlTransfer):**
 
 ```brightscript
 ' In reducer middleware
 function(intent, state) as Intent
     if intent.type = "FETCH_DATA"
-        ' Create transfer
         transfer = CreateObject("roUrlTransfer")
         transfer.SetUrl("https://api.example.com/data")
-        transfer.SetMessagePort(m.port)
 
-        ' Register with framework (with optional context)
-        m.registerAsyncTransfer(transfer, { userId: 123, requestType: "userData" })
+        ' Register with framework (auto-sets port, routes by identity)
+        m.registerSourceObject(transfer)
 
         ' Start async request
         transfer.AsyncGetToString()
@@ -203,24 +205,46 @@ function(intent, state) as Intent
 end function
 ```
 
-The framework automatically routes the `roUrlEvent` response to your reducer's `asyncReducerCallback()` method:
+**Broadcast example (roDeviceInfo):**
 
 ```brightscript
-override sub asyncReducerCallback(msg as roUrlEvent, context as dynamic)
-    ' context = { userId: 123, requestType: "userData" }
-    
-    if msg.GetResponseCode() = 200
-        data = ParseJson(msg.GetString())
-        m.dispatch({ type: "DATA_LOADED", payload: { data: data, userId: context.userId } })
+' In onCreateDispatcher lifecycle hook
+override sub onCreateDispatcher()
+    deviceInfo = CreateObject("roDeviceInfo")
+    deviceInfo.EnableLinkStatusEvent(true)
+
+    ' Register with event filter (only process linkStatus events)
+    m.registerSourceObject(deviceInfo, function(msg as object) as boolean
+        return msg.GetInfo()?.linkStatus <> invalid
+    end function)
+end sub
+```
+
+The framework automatically routes events to your reducer's `onSourceEvent()` method:
+
+```brightscript
+override sub onSourceEvent(msg as object)
+    msgType = type(msg)
+
+    if msgType = "roUrlEvent"
+        if msg.GetResponseCode() = 200
+            data = ParseJson(msg.GetString())
+            m.dispatch({ type: "DATA_LOADED", payload: { data: data } })
+        end if
+    else if msgType = "roDeviceInfoEvent"
+        info = msg.GetInfo()
+        m.dispatch({ type: "LINK_STATUS_CHANGED", payload: { linkStatus: info.linkStatus } })
     end if
 end sub
 ```
 
+**Cleanup:** Call `m.unregisterSourceObject(sourceObject)` when the source object is no longer needed.
+
 **Benefits:**
-- No need to create separate Task nodes for HTTP requests
-- Framework automatically routes responses to the correct dispatcher
-- Context data passed through for request identification
-- Automatic cleanup of transfer registry
+- Unified API for all Roku source objects (HTTP, device info, input, etc.)
+- No need to manually call `SetMessagePort()` — the framework handles it
+- Identity-based objects are routed precisely; broadcast objects use `eventFilter` for filtering
+- No need to create separate Task nodes for async operations
 
 ## Complete Example
 
@@ -373,8 +397,8 @@ Each dispatcher maintains one model as the single source of truth for its domain
 
 - Keep models focused on specific domains (e.g., user, content, settings)
 - Use clear, descriptive intent types
-- **Use `m.registerAsyncTransfer()` for `roUrlTransfer` objects** to enable automatic routing
-- **Pass context data to `registerAsyncTransfer()`** to identify requests in `asyncReducerCallback()`
+- **Use `m.registerSourceObject()` for source objects** (`roUrlTransfer`, `roDeviceInfo`, etc.) to enable automatic event routing
+- **Use `eventFilter` with broadcast objects** (e.g., `roDeviceInfo`) to filter relevant events in `onSourceEvent()`
 - **Use `m.getState()` in reducers** to access current state directly without callback
 - **Use `m.dispatchTo()` and `m.getStateFrom()`** in widgets and reducers for concise cross-dispatcher access
 - Filter listener updates with `allowUpdate` when needed

@@ -1,4 +1,10 @@
 enum IntentTypes
     UPDATE_FOO = "update_foo"
     BLOCK_BY_MIDDLEWARE = "block_by_middleware"
+    CC_MODE_CHANGED = "cc_mode_changed"
+    UNREGISTER_SOURCE_OBJECT = "unregister_source_object"
+    TICK = "tick"
+    TRANSFER_COMPLETE = "transfer_complete"
+    UNREGISTER_TRANSFER = "unregister_transfer"
+    START_TRANSFER = "start_transfer"
 end enum

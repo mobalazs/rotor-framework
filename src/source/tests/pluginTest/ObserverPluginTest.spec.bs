@@ -2,297 +2,373 @@ import "pkg:/source/RotorFramework.bs"
 
 namespace tests
 
-    ' @SGNode("observerPluginTest")
+    @SGNode("widgetTest")
     @suite("ObserverPlugin Test Suite")
     class observerPluginTestSuite extends rooibos.BaseTestSuite
 
         fwInstance as Rotor.Framework
-        testNode as object
+        detachNode as object
 
         protected override function beforeEach()
-            ' Initialize framework
             m.fwInstance = new Rotor.Framework()
-
-            ' Create a test node for observations
-            m.testNode = CreateObject("roSGNode", "Group")
         end function
 
         protected override function afterEach()
-            m.testNode = invalid
             m.fwInstance.destroy()
             m.fwInstance = invalid
         end function
 
-        @describe("Observer plugin lifecycle")
+        ' =================================================================
+        ' Callback routing
+        ' =================================================================
 
-        @it("attaches observer on widget mount")
+        @describe("observer callback routing")
+
+        @async()
+        @it("fires callback when observed field changes")
         function _()
-            ' Create template with observer
-            template = {
-                id: "testWidget",
-                type: "Group",
+            m.fwInstance.render({
+                id: "cbTest",
+                nodeType: "Group",
                 observer: {
-                    fieldId: "translation",
+                    fieldId: "opacity",
                     callback: sub(payload)
-                        ' Observer callback
+                        m.node.addField("_cbFired", "boolean", false)
+                        m.node.setField("_cbFired", true)
                     end sub
                 }
-            }
-
-            m.fwInstance.render(template)
-            widget = m.fwInstance.getWidget("testWidget")
-
+            })
+            widget = m.fwInstance.getWidget("cbTest")
             m.assertNotInvalid(widget)
-            m.assertTrue(true)
+
+            widget.node.opacity = 0.5
+
+            rooibos_promises_internal_delay(function(ctx as dynamic)
+                widget = ctx.fwInstance.getWidget("cbTest")
+                ctx.assertTrue(widget.node.hasField("_cbFired"), "callback should have fired")
+                ctx.assertTrue(widget.node.getField("_cbFired"), "callback should have set _cbFired to true")
+                ctx.done()
+            end function, m, 0.05)
         end function
 
-        @it("handles array of observers")
+        @async()
+        @it("handles array of observers on different fields")
         function _()
-            ' Create template with multiple observers
-            template = {
-                id: "testWidget",
-                type: "Group",
+            m.fwInstance.render({
+                id: "multiFieldTest",
+                nodeType: "Group",
                 observer: [
                     {
-                        fieldId: "translation",
+                        fieldId: "opacity",
                         callback: sub(payload)
+                            m.node.addField("_opacityCb", "boolean", false)
+                            m.node.setField("_opacityCb", true)
+                        end sub
+                    },
+                    {
+                        fieldId: "visible",
+                        callback: sub(payload)
+                            m.node.addField("_visibleCb", "boolean", false)
+                            m.node.setField("_visibleCb", true)
+                        end sub
+                    }
+                ]
+            })
+            widget = m.fwInstance.getWidget("multiFieldTest")
+            widget.node.opacity = 0.7
+            widget.node.visible = false
+
+            rooibos_promises_internal_delay(function(ctx as dynamic)
+                widget = ctx.fwInstance.getWidget("multiFieldTest")
+                ctx.assertTrue(widget.node.hasField("_opacityCb") and widget.node.getField("_opacityCb"), "opacity callback should have fired")
+                ctx.assertTrue(widget.node.hasField("_visibleCb") and widget.node.getField("_visibleCb"), "visible callback should have fired")
+                ctx.done()
+            end function, m, 0.05)
+        end function
+
+        @async()
+        @it("multiple observers on same field both fire")
+        function _()
+            m.fwInstance.render({
+                id: "sameFieldTest",
+                nodeType: "Group",
+                observer: [
+                    {
+                        fieldId: "opacity",
+                        callback: sub(payload)
+                            m.node.addField("_cb1", "boolean", false)
+                            m.node.setField("_cb1", true)
                         end sub
                     },
                     {
                         fieldId: "opacity",
                         callback: sub(payload)
+                            m.node.addField("_cb2", "boolean", false)
+                            m.node.setField("_cb2", true)
                         end sub
                     }
                 ]
-            }
+            })
+            widget = m.fwInstance.getWidget("sameFieldTest")
+            widget.node.opacity = 0.3
 
-            m.fwInstance.render(template)
-            widget = m.fwInstance.getWidget("testWidget")
-
-            m.assertNotInvalid(widget)
-            m.assertTrue(true)
+            rooibos_promises_internal_delay(function(ctx as dynamic)
+                widget = ctx.fwInstance.getWidget("sameFieldTest")
+                ctx.assertTrue(widget.node.hasField("_cb1") and widget.node.getField("_cb1"), "first observer should have fired")
+                ctx.assertTrue(widget.node.hasField("_cb2") and widget.node.getField("_cb2"), "second observer should have fired")
+                ctx.done()
+            end function, m, 0.05)
         end function
 
-        @it("observer with initial value parameter")
+        ' =================================================================
+        ' parsePayload
+        ' =================================================================
+
+        @describe("observer parsePayload")
+
+        @async()
+        @it("transforms payload via custom parsePayload function")
         function _()
-            ' Create template with observer that has initial value
-            template = {
-                id: "testWidget",
-                type: "Group",
-                observer: {
-                    fieldId: "translation",
-                    value: [100, 200],
-                    callback: sub(payload)
-                    end sub
-                }
-            }
-
-            m.fwInstance.render(template)
-            widget = m.fwInstance.getWidget("testWidget")
-
-            ' Observer with value parameter should attach without error
-            m.assertNotInvalid(widget)
-            m.assertNotInvalid(widget.node)
-        end function
-
-        @it("observer callback is configured on widget")
-        function _()
-            template = {
-                id: "testWidget",
-                type: "Group",
+            m.fwInstance.render({
+                id: "parseTest",
+                nodeType: "Group",
                 observer: {
                     fieldId: "opacity",
+                    parsePayload: function(payload)
+                        return { percentage: payload.opacity * 100 }
+                    end function,
                     callback: sub(payload)
-                        ' Observer callback
+                        m.node.addField("_parsed", "float", false)
+                        m.node.setField("_parsed", payload.percentage)
                     end sub
                 }
-            }
+            })
+            widget = m.fwInstance.getWidget("parseTest")
+            widget.node.opacity = 0.75
 
-            m.fwInstance.render(template)
-            widget = m.fwInstance.getWidget("testWidget")
-
-            ' Widget should be created with observer attached
-            m.assertNotInvalid(widget)
-            m.assertNotInvalid(widget.node)
+            rooibos_promises_internal_delay(function(ctx as dynamic)
+                widget = ctx.fwInstance.getWidget("parseTest")
+                ctx.assertTrue(widget.node.hasField("_parsed"), "callback should have fired")
+                ctx.assertEqual(widget.node.getField("_parsed"), 75.0)
+                ctx.done()
+            end function, m, 0.05)
         end function
 
-        @it("observer with once flag is removed after first trigger")
+        ' =================================================================
+        ' infoFields
+        ' =================================================================
+
+        @describe("observer infoFields")
+
+        @async()
+        @it("includes additional field values in payload")
         function _()
-            template = {
-                id: "testWidget",
-                type: "Group",
+            m.fwInstance.render({
+                id: "infoFieldsTest",
+                nodeType: "Group",
+                fields: {
+                    translation: [100, 200]
+                },
+                observer: {
+                    fieldId: "opacity",
+                    infoFields: ["translation"],
+                    callback: sub(payload)
+                        m.node.addField("_hasTranslation", "boolean", false)
+                        m.node.setField("_hasTranslation", payload.translation <> invalid)
+                    end sub
+                }
+            })
+            widget = m.fwInstance.getWidget("infoFieldsTest")
+            widget.node.opacity = 0.6
+
+            rooibos_promises_internal_delay(function(ctx as dynamic)
+                widget = ctx.fwInstance.getWidget("infoFieldsTest")
+                ctx.assertTrue(widget.node.hasField("_hasTranslation"), "callback should have fired")
+                ctx.assertTrue(widget.node.getField("_hasTranslation"), "payload should include translation from infoFields")
+                ctx.done()
+            end function, m, 0.05)
+        end function
+
+        ' =================================================================
+        ' once
+        ' =================================================================
+
+        @describe("observer once flag")
+
+        @async()
+        @it("removes observer after first trigger")
+        function _()
+            m.fwInstance.render({
+                id: "onceTest",
+                nodeType: "Group",
                 observer: {
                     fieldId: "opacity",
                     once: true,
                     callback: sub(payload)
-                        ' Observer callback
+                        count = 0
+                        if m.node.hasField("_onceCount")
+                            count = m.node.getField("_onceCount")
+                        else
+                            m.node.addField("_onceCount", "integer", false)
+                        end if
+                        m.node.setField("_onceCount", count + 1)
                     end sub
                 }
-            }
-
-            m.fwInstance.render(template)
-            widget = m.fwInstance.getWidget("testWidget")
-
-            ' Change field to trigger once observer
+            })
+            widget = m.fwInstance.getWidget("onceTest")
             widget.node.opacity = 0.5
-            m.wait(50)
 
-            ' Test passes if no crash (observer should be removed after first trigger)
-            m.assertTrue(true)
+            rooibos_promises_internal_delay(function(ctx as dynamic)
+                widget = ctx.fwInstance.getWidget("onceTest")
+                ctx.assertEqual(widget.node.getField("_onceCount"), 1, "callback should fire on first change")
+
+                ' Second change should NOT trigger callback
+                widget.node.opacity = 0.8
+
+                rooibos_promises_internal_delay(function(ctx2 as dynamic)
+                    widget = ctx2.fwInstance.getWidget("onceTest")
+                    ctx2.assertEqual(widget.node.getField("_onceCount"), 1, "callback should not fire again after once")
+                    ctx2.done()
+                end function, ctx, 0.05)
+            end function, m, 0.05)
         end function
 
-        @it("observer with until condition is removed when condition met")
+        ' =================================================================
+        ' until
+        ' =================================================================
+
+        @describe("observer until condition")
+
+        @async()
+        @it("removes observer when until condition returns true")
         function _()
-            template = {
-                id: "testWidget",
-                type: "Group",
+            m.fwInstance.render({
+                id: "untilTest",
+                nodeType: "Group",
                 observer: {
                     fieldId: "opacity",
                     until: function(payload)
                         return payload.opacity >= 0.8
                     end function,
                     callback: sub(payload)
-                        ' Observer callback
+                        count = 0
+                        if m.node.hasField("_untilCount")
+                            count = m.node.getField("_untilCount")
+                        else
+                            m.node.addField("_untilCount", "integer", false)
+                        end if
+                        m.node.setField("_untilCount", count + 1)
                     end sub
                 }
-            }
+            })
+            widget = m.fwInstance.getWidget("untilTest")
+            widget.node.opacity = 0.3
 
-            m.fwInstance.render(template)
-            widget = m.fwInstance.getWidget("testWidget")
+            rooibos_promises_internal_delay(function(ctx as dynamic)
+                widget = ctx.fwInstance.getWidget("untilTest")
+                ctx.assertEqual(widget.node.getField("_untilCount"), 1, "first change should fire")
 
-            ' Change field multiple times
+                widget.node.opacity = 0.9
+
+                rooibos_promises_internal_delay(function(ctx2 as dynamic)
+                    widget = ctx2.fwInstance.getWidget("untilTest")
+                    ctx2.assertEqual(widget.node.getField("_untilCount"), 2, "until-trigger change should also fire")
+
+                    widget.node.opacity = 0.95
+
+                    rooibos_promises_internal_delay(function(ctx3 as dynamic)
+                        widget = ctx3.fwInstance.getWidget("untilTest")
+                        ctx3.assertEqual(widget.node.getField("_untilCount"), 2, "should not fire after until condition met")
+                        ctx3.done()
+                    end function, ctx2, 0.05)
+                end function, ctx, 0.05)
+            end function, m, 0.05)
+        end function
+
+        ' =================================================================
+        ' initial value
+        ' =================================================================
+
+        @describe("observer initial value")
+
+        @it("sets node field when value is provided")
+        function _()
+            m.fwInstance.render({
+                id: "valueTest",
+                nodeType: "Group",
+                observer: {
+                    fieldId: "customField",
+                    value: "initial",
+                    callback: sub(payload)
+                    end sub
+                }
+            })
+            widget = m.fwInstance.getWidget("valueTest")
+
+            m.assertNotInvalid(widget)
+            m.assertTrue(widget.node.hasField("customField"), "custom field should exist on node")
+            m.assertEqual(widget.node.getField("customField"), "initial")
+        end function
+
+        ' =================================================================
+        ' detach on erase (beforeDestroy)
+        ' =================================================================
+
+        @describe("observer detach lifecycle")
+
+        @async()
+        @it("stops firing after widget is erased")
+        function _()
+            m.fwInstance.render({
+                id: "detachTest",
+                nodeType: "Group",
+                observer: {
+                    fieldId: "opacity",
+                    callback: sub(payload)
+                        count = 0
+                        if m.node.hasField("_detachCount")
+                            count = m.node.getField("_detachCount")
+                        else
+                            m.node.addField("_detachCount", "integer", false)
+                        end if
+                        m.node.setField("_detachCount", count + 1)
+                    end sub
+                }
+            })
+            widget = m.fwInstance.getWidget("detachTest")
+            m.detachNode = widget.node
+
             widget.node.opacity = 0.5
-            m.wait(30)
-            widget.node.opacity = 0.9 ' Should trigger until condition
-            m.wait(30)
 
-            ' Test passes if no crash (observer should be removed when until returns true)
-            m.assertTrue(true)
+            rooibos_promises_internal_delay(function(ctx as dynamic)
+                widget = ctx.fwInstance.getWidget("detachTest")
+                ctx.assertEqual(widget.node.getField("_detachCount"), 1, "callback fires before erase")
+
+                ctx.fwInstance.erase("detachTest")
+                ctx.detachNode.opacity = 0.9
+
+                rooibos_promises_internal_delay(function(ctx2 as dynamic)
+                    ctx2.assertEqual(ctx2.detachNode.getField("_detachCount"), 1, "callback should not fire after erase")
+                    ctx2.done()
+                end function, ctx, 0.05)
+            end function, m, 0.05)
         end function
 
-        @it("observer with parsePayload accepts custom function")
+        ' =================================================================
+        ' widget without observer config
+        ' =================================================================
+
+        @describe("observer edge cases")
+
+        @it("renders widget without observer config")
         function _()
-            template = {
-                id: "testWidget",
-                type: "Group",
-                observer: {
-                    fieldId: "opacity",
-                    parsePayload: function(payload)
-                        return { transformed: payload.opacity * 100 }
-                    end function,
-                    callback: sub(payload)
-                        ' Callback with transformed payload
-                    end sub
-                }
-            }
-
-            m.fwInstance.render(template)
-            widget = m.fwInstance.getWidget("testWidget")
-
-            ' Observer with parsePayload should attach without error
+            m.fwInstance.render({
+                id: "noObsTest",
+                nodeType: "Group"
+            })
+            widget = m.fwInstance.getWidget("noObsTest")
             m.assertNotInvalid(widget)
         end function
 
-        @it("observer with infoFields includes additional data")
-        function _()
-            template = {
-                id: "testWidget",
-                type: "Group",
-                observer: {
-                    fieldId: "opacity",
-                    infoFields: ["translation"],
-                    callback: sub(payload)
-                        ' Callback with extra info
-                    end sub
-                }
-            }
-
-            m.fwInstance.render(template)
-            widget = m.fwInstance.getWidget("testWidget")
-
-            ' Test passes if observer attaches without error
-            m.assertTrue(true)
-        end function
-
-        @it("multiple observers on same field")
-        function _()
-            template = {
-                id: "testWidget",
-                type: "Group",
-                observer: [
-                    {
-                        fieldId: "opacity",
-                        callback: sub(payload)
-                            ' First observer
-                        end sub
-                    },
-                    {
-                        fieldId: "opacity",
-                        callback: sub(payload)
-                            ' Second observer on same field
-                        end sub
-                    }
-                ]
-            }
-
-            m.fwInstance.render(template)
-            widget = m.fwInstance.getWidget("testWidget")
-
-            ' Multiple observers on same field should work
-            m.assertNotInvalid(widget)
-        end function
-
-        @it("handles widget without observer config")
-        function _()
-            template = {
-                id: "testWidget",
-                type: "Group"
-            }
-
-            m.fwInstance.render(template)
-            widget = m.fwInstance.getWidget("testWidget")
-
-            m.assertNotInvalid(widget)
-        end function
-
-        @it("observer with custom id is tracked")
-        function _()
-            template = {
-                id: "testWidget",
-                type: "Group",
-                observer: {
-                    id: "customObserver",
-                    fieldId: "opacity",
-                    callback: sub(payload)
-                    end sub
-                }
-            }
-
-            m.fwInstance.render(template)
-            widget = m.fwInstance.getWidget("testWidget")
-
-            ' Observer should be attached
-            m.assertNotInvalid(widget)
-        end function
-
-        @it("observer with alwaysNotify flag")
-        function _()
-            template = {
-                id: "testWidget",
-                type: "Group",
-                observer: {
-                    fieldId: "opacity",
-                    alwaysNotify: true,
-                    callback: sub(payload)
-                    end sub
-                }
-            }
-
-            m.fwInstance.render(template)
-            widget = m.fwInstance.getWidget("testWidget")
-
-            ' Observer with alwaysNotify should attach
-            m.assertNotInvalid(widget)
-        end function
     end class
 end namespace

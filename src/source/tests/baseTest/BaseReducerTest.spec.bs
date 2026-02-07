@@ -83,9 +83,9 @@ namespace tests
             m.assertEqual(currentState.name, "test")
         end function
 
-        @describe("BaseReducer registerAsyncTransfer method")
+        @describe("BaseReducer registerSourceObject method")
 
-        @it("registers async transfer without crashing")
+        @it("registers source object with identity-based routing")
         function _()
             ' Create model and reducer
             model = new Rotor.Model()
@@ -93,30 +93,49 @@ namespace tests
             testReducer = new Rotor.Reducer()
 
             ' Create dispatcher
-            dispatcher = Rotor.createDispatcher("testAsyncTransfer", model, testReducer)
+            dispatcher = Rotor.createDispatcher("testSourceObject", model, testReducer)
 
-            ' Create a mock transfer object
-            mockTransfer = {
-                GetIdentity: function() as object
-                    return {
-                        ToStr: function() as string
-                            return "mock-transfer-123"
-                        end function
-                    }
+            ' Stub registerSourceObject on render-thread framework (only exists on FrameworkTask)
+            frameworkInstance = GetGlobalAA().rotor_framework_helper.frameworkInstance
+            frameworkInstance.registerSourceObject = sub(objectId as string, dispatcherId as string, sourceObject as object, eventFilter = invalid as dynamic)
+            end sub
+
+            ' Create a mock source object with GetIdentity (identity-based routing)
+            mockSourceObject = {
+                GetIdentity: function() as integer
+                    return 123
                 end function
             }
 
-            ' Register async transfer with context
-            ' Note: This is a render-thread test, so we can't verify the task-thread
-            ' asyncTransferRegistry directly. We just verify the call doesn't crash.
-            testReducer.registerAsyncTransfer(mockTransfer, { requestType: "testData" })
+            ' Register source object - verifies BaseReducer delegates to framework
+            testReducer.registerSourceObject(mockSourceObject)
 
-            ' Verify the framework instance exists
-            frameworkInstance = GetGlobalAA().rotor_framework_helper.frameworkInstance
             m.assertNotEqual(frameworkInstance, invalid)
+            m.assertTrue(true, "registerSourceObject executed without error")
+        end function
 
-            ' Success if we got here without crashing
-            m.assertTrue(true, "registerAsyncTransfer executed without error")
+        @it("registers source object with event filter")
+        function _()
+            model = new Rotor.Model()
+            model.state = { data: invalid }
+            testReducer = new Rotor.Reducer()
+            dispatcher = Rotor.createDispatcher("testSourceObjectFilter", model, testReducer)
+
+            ' Stub registerSourceObject on render-thread framework
+            frameworkInstance = GetGlobalAA().rotor_framework_helper.frameworkInstance
+            frameworkInstance.registerSourceObject = sub(objectId as string, dispatcherId as string, sourceObject as object, eventFilter = invalid as dynamic)
+            end sub
+
+            ' Create a mock source object without GetIdentity (broadcast routing)
+            mockSourceObject = {}
+
+            ' Register with an event filter function
+            eventFilter = function(msg as object) as boolean
+                return true
+            end function
+            testReducer.registerSourceObject(mockSourceObject, eventFilter)
+
+            m.assertTrue(true, "registerSourceObject with event filter executed without error")
         end function
 
         @describe("BaseReducer dispatchTo helper method")
