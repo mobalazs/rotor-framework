@@ -1237,5 +1237,165 @@ namespace tests
             m.assertTrue(true)
         end function
 
+        ' ======================================================================
+        ' TEST SUITE: onDebounceTimer direct call
+        ' ======================================================================
+
+        @describe("onDebounceTimer direct call")
+
+        @it("onDebounceTimer executes pending speech and clears it")
+        function _()
+            widget = m.fwInstance.getWidget("testLabel")
+            m.assertNotInvalid(widget)
+
+            ttsService = widget.tts()
+            ttsService.enable()
+
+            ' Queue pending speech (no flush goes to threshold)
+            ttsService.speak({ say: "Pending debounce test" })
+
+            ' Verify pending is set
+            m.assertNotInvalid(ttsService.pendingSpeech)
+            m.assertEqual(ttsService.pendingSpeech.textToSpeak, "Pending debounce test")
+
+            ' When: Call onDebounceTimer directly (simulates timer firing)
+            ttsService.onDebounceTimer()
+
+            ' Then: pendingSpeech should be cleared
+            m.assertInvalid(ttsService.pendingSpeech)
+
+            ' isPendingProtected should be cleared
+            m.assertFalse(ttsService.isPendingProtected)
+        end function
+
+        @it("onDebounceTimer returns early when no pending speech")
+        function _()
+            widget = m.fwInstance.getWidget("testLabel")
+            m.assertNotInvalid(widget)
+
+            ttsService = widget.tts()
+            ttsService.enable()
+
+            ' Ensure no pending speech
+            m.assertInvalid(ttsService.pendingSpeech)
+
+            ' When: Call onDebounceTimer with no pending
+            ttsService.onDebounceTimer()
+
+            ' Then: Should not crash (early return)
+            m.assertInvalid(ttsService.pendingSpeech)
+        end function
+
+        ' ======================================================================
+        ' TEST SUITE: dontRepeat with enabled TTS
+        ' ======================================================================
+
+        @describe("dontRepeat with enabled TTS")
+
+        @it("dontRepeat skips duplicate speech when TTS is enabled")
+        function _()
+            widget = m.fwInstance.getWidget("testLabel")
+            m.assertNotInvalid(widget)
+
+            ttsService = widget.tts()
+            ttsService.enable()
+
+            ' First call with flush and dontRepeat
+            ttsService.speak({
+                say: "Hello enabled",
+                dontRepeat: true,
+                flush: true
+            })
+
+            ' Let the debounce timer fire to set lastSpeech
+            ttsService.onDebounceTimer()
+
+            firstLastSpeech = ttsService.lastSpeech
+            m.assertEqual(firstLastSpeech, "Hello enabled")
+
+            ' Second call with same text and dontRepeat - should be skipped
+            ttsService.speak({
+                say: "Hello enabled",
+                dontRepeat: true,
+                flush: true
+            })
+
+            ' lastSpeech should remain the same (duplicate was skipped at line 198-202)
+            m.assertEqual(ttsService.lastSpeech, firstLastSpeech)
+        end function
+
+        ' ======================================================================
+        ' TEST SUITE: Invalid say type handling
+        ' ======================================================================
+
+        @describe("invalid say type handling")
+
+        @it("speak with numeric say value does not crash")
+        function _()
+            widget = m.fwInstance.getWidget("testLabel")
+            m.assertNotInvalid(widget)
+
+            ttsService = widget.tts()
+            ttsService.enable()
+
+            ' Speak with numeric say value (not string, not function)
+            ttsService.speak({
+                say: 123
+            })
+
+            ' Should not crash - processSayValue returns "" for non-string/non-function
+            m.assertTrue(true)
+        end function
+
+        @it("speak with boolean say value does not crash")
+        function _()
+            widget = m.fwInstance.getWidget("testLabel")
+            m.assertNotInvalid(widget)
+
+            ttsService = widget.tts()
+            ttsService.enable()
+
+            ' Speak with boolean say value
+            ttsService.speak({
+                say: true
+            })
+
+            ' Should not crash - processSayValue returns "" for non-string/non-function
+            m.assertTrue(true)
+        end function
+
+        ' ======================================================================
+        ' TEST SUITE: speakSingle flush protection with enabled TTS
+        ' ======================================================================
+
+        @describe("speakSingle flush protection with enabled TTS")
+
+        @it("flush is blocked and flag cleared when preventNextFlushFlag is set with enabled TTS")
+        function _()
+            widget = m.fwInstance.getWidget("testLabel")
+            m.assertNotInvalid(widget)
+
+            ttsService = widget.tts()
+            ttsService.enable()
+
+            ' Set protection flag directly
+            ttsService.preventNextFlushFlag = true
+
+            ' Speak with flush - flush should be blocked by protection
+            ttsService.speak({
+                say: "Protected flush test",
+                flush: true
+            })
+
+            ' Let debounce timer fire to execute speech through speakSingle
+            ttsService.onDebounceTimer()
+
+            ' Flag should be cleared after use (line 369)
+            m.assertFalse(ttsService.preventNextFlushFlag)
+
+            ' lastSpeech should be set (speech was executed)
+            m.assertEqual(ttsService.lastSpeech, "Protected flush test")
+        end function
+
     end class
 end namespace

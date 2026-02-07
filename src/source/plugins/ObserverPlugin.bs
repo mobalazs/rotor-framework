@@ -34,56 +34,36 @@ namespace Rotor
         sub new(pluginKey = "observer" as string)
             super()
             m.pluginKey = pluginKey
-        end sub
 
-        ' =============================================================
-        ' LIFECYCLE HOOKS
-        ' =============================================================
-
-        hooks = {
-            ' ---------------------------------------------------------------------
-            ' beforeMount - Attaches observers when widget is mounted
+            ' WORKAROUND: Hooks must be assigned here in the constructor body
+            ' (after super()), NOT as a class-level field initializer.
             '
-            ' Called during widget creation to register all observers defined in the widget config.
+            ' Rooibos code coverage instrumentation (tested up to v6.0.0-alpha.50)
+            ' reorders the compiled constructor so that class-level field initializers
+            ' are placed BEFORE the super() call. Since BasePlugin's constructor sets
+            ' m.hooks = invalid, this causes the parent to overwrite the hooks AA that
+            ' was already set by the field initializer.
             '
-            ' @param {object} scope - Plugin instance (m)
-            ' @param {object} widget - Widget being mounted
-            '
-            beforeMount: sub(scope as object, widget as object)
-                config = widget[scope.pluginKey]
-                scope.attach(widget.node, config, widget)
-            end sub,
-
-            ' ---------------------------------------------------------------------
-            ' beforeUpdate - Updates observers when widget config changes
-            '
-            ' Detaches old observers and attaches new ones based on updated configuration.
-            '
-            ' @param {object} scope - Plugin instance (m)
-            ' @param {object} widget - Widget being updated
-            ' @param {object} newValue - New observer configuration
-            ' @param {object} oldValue - Previous observer configuration
-            '
-            beforeUpdate: sub(scope as object, widget as object, newValue, oldValue = {})
-                if oldValue <> invalid
+            ' Only affects classes with an explicit sub new() + super() AND
+            ' class-level field initializers. Other plugins (FieldsPlugin, FocusPlugin,
+            ' etc.) are not affected because they have no explicit constructor.
+            m.hooks = {
+                beforeMount: sub(scope as object, widget as object)
+                    config = widget[scope.pluginKey]
+                    scope.attach(widget.node, config, widget)
+                end sub,
+                beforeUpdate: sub(scope as object, widget as object, newValue, oldValue = {})
+                    if oldValue <> invalid
+                        scope.detach(widget.node)
+                    end if
+                    widget[scope.pluginKey] = newValue
+                    scope.attach(widget.node, newValue, widget)
+                end sub,
+                beforeDestroy: sub(scope as object, widget as object)
                     scope.detach(widget.node)
-                end if
-                widget[scope.pluginKey] = newValue
-                scope.attach(widget.node, newValue, widget)
-            end sub,
-
-            ' ---------------------------------------------------------------------
-            ' beforeDestroy - Detaches all observers before widget destruction
-            '
-            ' Ensures cleanup of all observers when widget is removed from scene graph.
-            '
-            ' @param {object} scope - Plugin instance (m)
-            ' @param {object} widget - Widget being destroyed
-            '
-            beforeDestroy: sub(scope as object, widget as object)
-                scope.detach(widget.node)
-            end sub
-        }
+                end sub
+            }
+        end sub
 
         ' =============================================================
         ' INITIALIZATION
