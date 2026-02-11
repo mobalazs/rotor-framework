@@ -20,6 +20,7 @@
 
             "consoleOutput": "normal",
             "rootDir": "${workspaceFolder}/out",
+            "outDir": "${workspaceFolder}/out",
             "files": [
                 "source/**/*",
                 "components/**/*",
@@ -55,6 +56,7 @@
 
             "consoleOutput": "normal",
             "rootDir": "${workspaceFolder}/out",
+            "outDir": "${workspaceFolder}/out",
             "files": [
                 "source/**/*",
                 "components/**/*",
