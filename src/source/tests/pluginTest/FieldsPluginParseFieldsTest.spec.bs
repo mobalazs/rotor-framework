@@ -1,0 +1,86 @@
+import "pkg:/source/RotorFramework.bs"
+
+namespace tests
+
+    @SGNode("widgetTest")
+    @suite("FieldsPlugin parseFields")
+    class fieldsPluginParseFieldsSuite extends rooibos.BaseTestSuite
+
+        plugin as Rotor.FieldsPlugin
+
+        protected override function beforeEach()
+            m.plugin = new Rotor.FieldsPlugin()
+        end function
+
+        protected override function afterEach()
+            m.plugin = invalid
+        end function
+
+        ' =================================================================
+        ' @ in email addresses (unresolved keys)
+        ' =================================================================
+
+        @describe("unresolved @ expressions")
+
+        @it("preserves email address when key does not exist in viewModelState")
+        function _()
+            widget = { viewModelState: {} }
+            result = m.plugin.parseFields(widget, {
+                text: "user@example.com"
+            })
+            m.assertEqual(result.text, "user@example.com")
+        end function
+
+        @it("preserves email address alongside resolved @ reference")
+        function _()
+            widget = { viewModelState: { name: "John" } }
+            result = m.plugin.parseFields(widget, {
+                text: "Contact @name at user@example.com"
+            })
+            m.assertEqual(result.text, "Contact John at user@example.com")
+        end function
+
+        @it("preserves multiple unresolved @ expressions")
+        function _()
+            widget = { viewModelState: {} }
+            result = m.plugin.parseFields(widget, {
+                text: "Send to user@example.com or admin@test.org"
+            })
+            m.assertEqual(result.text, "Send to user@example.com or admin@test.org")
+        end function
+
+        ' =================================================================
+        ' valid @ interpolation
+        ' =================================================================
+
+        @describe("valid @ interpolation")
+
+        @it("resolves string value from viewModelState")
+        function _()
+            widget = { viewModelState: { title: "Hello" } }
+            result = m.plugin.parseFields(widget, {
+                text: "@title"
+            })
+            m.assertEqual(result.text, "Hello")
+        end function
+
+        @it("resolves nested key path from viewModelState")
+        function _()
+            widget = { viewModelState: { user: { name: "Alice" } } }
+            result = m.plugin.parseFields(widget, {
+                text: "Hi @user.name"
+            })
+            m.assertEqual(result.text, "Hi Alice")
+        end function
+
+        @it("resolves non-string value and replaces entire field")
+        function _()
+            widget = { viewModelState: { count: 42 } }
+            result = m.plugin.parseFields(widget, {
+                value: "@count"
+            })
+            m.assertEqual(result.value, 42)
+        end function
+
+    end class
+end namespace

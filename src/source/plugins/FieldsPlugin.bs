@@ -149,6 +149,9 @@ namespace Rotor
                             ' Resolve value from key path
                             asset = Rotor.Utils.getValueByKeyPath(source, matchKey)
 
+                            ' Skip unresolved keys (e.g. @ in email addresses)
+                            if asset = invalid then goto nextResult
+
                             ' Handle string vs non-string results
                             if Rotor.Utils.isString(asset)
                                 ' String interpolation - replace in original string
