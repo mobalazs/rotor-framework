@@ -69,11 +69,12 @@ namespace Rotor
         ' @param {object} state - New state to notify listeners about
         '
         sub notifyListeners(state as object)
-            listenerCount = m.listeners.Count()
             listenerIndex = 0
 
             ' Iterate through all listeners
-            while listenerIndex < listenerCount
+            ' Use m.listeners.Count() directly (not cached) to handle external listener
+            ' removal during iteration (e.g., ViewModel destroyed in a callback)
+            while listenerIndex < m.listeners.Count()
                 listener = m.listeners[listenerIndex]
                 scope = listener.listenerScope
 
@@ -116,7 +117,6 @@ namespace Rotor
                         listener.listenerScope = invalid
                         listener.callback = invalid
                         m.listeners.Delete(listenerIndex)
-                        listenerCount--
                     else
                         listenerIndex++
                     end if
