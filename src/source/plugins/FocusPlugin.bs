@@ -1235,7 +1235,7 @@ namespace Rotor
                 foundHID = ""
                 for each HID in possibleFocusItems
                     focusItem = m.get(HID)
-                    if focusItem.id = nodeId
+                    if focusItem?.id = nodeId
                         foundHID = focusItem.HID
                         exit for
                     end if
