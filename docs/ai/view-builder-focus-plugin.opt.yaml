@@ -239,7 +239,7 @@ pipeline:
 stateManagement:
   autoInjected:
     - "viewModelState.isFocused (boolean) - for all focus items"
-    - "viewModelState.isInFocusChain (boolean) - for groups"
+    - "viewModelState.isFocused (boolean) - for groups"
     - "node.isFocused field - on all widgets"
   accessPattern: "Use m.viewModelState.isFocused in field expressions, callbacks for reactive UI updates"
 ```

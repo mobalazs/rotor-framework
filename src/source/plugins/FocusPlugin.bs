@@ -1567,7 +1567,7 @@ namespace Rotor
                 m.isFocused = isFocused
 
                 if m.autoSetIsFocusedState
-                    m.widget.viewModelState.isInFocusChain = isFocused
+                    m.widget.viewModelState.isFocused = isFocused
                 end if
                 m.node.setField("isFocused", isFocused)
                 m.callOnFocusedFnOnWidget(isFocused)
