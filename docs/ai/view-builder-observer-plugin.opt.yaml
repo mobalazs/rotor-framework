@@ -90,18 +90,42 @@ patterns:
       alwaysNotify: true  (triggers callback even if value unchanged)
       callback: sub(payload) -> print "State: " + payload.customState
     }
-  handlerRenderTracking: |
+  renderTrackingAutoSize: |
+    Requires: fields: { enableRenderTracking: true }
     observer: {
       fieldId: "renderTracking"
-      handler: sub() -> m.node.translation = [100, 200]
+      handler: sub()
+        textHeight = m.node.localBoundingRect().height
+        m.getSiblingWidget("background").node.height = textHeight + 40
+      end sub
     }
-    handler called with no arguments - ideal for layout/render triggers
-  handlerTimer: |
+    Most common observer pattern. handler (not callback) for layout calculation.
+  renderTrackingFullCheck: |
     observer: {
-      fieldId: "fire"
-      handler: sub() -> m.getViewModel().onTimerFired()
+      fieldId: "renderTracking"
+      callback: sub(payload)
+        if payload?.renderTracking = "full" then m.startAnimation()
+      end sub
     }
-    handler called with no arguments - ideal for timer callbacks
+    Use callback to check renderTracking value ("full" = fully rendered)
+  multipleObserversSameHandler: |
+    autoSizeHandler = sub() -> recalculate layout
+    observer: [
+      { fieldId: "renderTracking", handler: autoSizeHandler },
+      { fieldId: "text", handler: autoSizeHandler }
+    ]
+    Multiple fields trigger same handler for layout recalculation
+  timerFireOneShot: |
+    { nodeType: "Timer", fields: { repeat: false, duration: 2.0 } }
+    observer: { fieldId: "fire", handler: sub() -> m.getViewModel().onDelayComplete() }
+    handler (not callback) — fire value irrelevant
+  timerFireRepeating: |
+    { nodeType: "Timer", fields: { repeat: true, duration: 1.0 } }
+    observer: { fieldId: "fire", handler: sub() -> m.getViewModel().updateDisplayedTime() }
+    Repeating timer for periodic updates (clock, refresh)
+  timerOnce: |
+    observer: { fieldId: "fire", callback: m.onInitComplete, once: true }
+    Combines once:true with timer for guaranteed single callback
   callbackWithPayload: |
     observer: {
       fieldId: "state"

@@ -3,243 +3,264 @@ ctx: ViewBuilder Focus Plugin
 type: navigation / focus-management
 scope:
   targets:
-    - FocusItem widgets (buttons, cards, menu entries)
-    - FocusGroup containers (menus, carousels, grids)
-  state: viewModelState.isFocused auto-managed
-  challenge: "CTV focus is critical; complex implementations in dynamic apps are challenging. Goal: dynamic runtime-adaptive, intuitive architecture."
+    - FocusItem widgets (buttons, cards, menu entries, input fields)
+    - FocusGroup containers (menus, carousels, grids, panels)
+  state: viewModelState.isFocused auto-managed (configurable via autoSetIsFocusedState)
+  background: "Production-grade focus system developed over multiple years across POC and white-label CTV projects. Evolved into a runtime-adaptive, developer-friendly architecture that handles complex dynamic UIs with minimal configuration."
+  challenge: "CTV focus is the primary input mechanism (no touch/mouse). Complex focus behavior in dynamic apps is challenging. Goal: intuitive, composable, efficient."
+
+capabilities:
+  - "Hierarchical Focus Groups with bubbling/capturing resolution (DOM-event-model inspired)"
+  - "Automatic Spatial Navigation based on real-time widget geometry (supports rotated elements)"
+  - "Static and Dynamic Direction Overrides (functions evaluated at nav time)"
+  - "Focus Memory — auto-remembers/restores last focused item per group (configurable depth)"
+  - "Long-Press Detection with duration timer and handler callbacks"
+  - "Automatic State Management via viewModelState.isFocused (no manual wiring)"
+  - "Programmatic Focus Control (setFocus, triggerKeyPress, enableFocusNavigation)"
+  - "Deep Search Resolution — finds targets at any depth in widget hierarchy"
+  - "Spatial Enter — geometry-aware group entry from specific directions"
+  - "Per-Direction Configuration for spatial enter (AA: { right: true, down: true })"
+  - "Native Focus Bridge for SceneGraph integration (keyboard, video)"
+  - "Disabled Item Handling — skips inactive elements during navigation"
+
+templateKeys:
+  focus: "FocusItem — individual focusable widget. Template key: focus: { ... }"
+  focusGroup: "FocusGroup — container managing child navigation. Template key: focusGroup: { ... }"
+  constraint: "A widget CANNOT have both focus and focusGroup. Plugin validates at mount, logs error if both present."
 
 core:
   strategies:
-    bubbling: "Upward search (child → parent → grandparent) when local nav fails. User: 'I can't go further, ask parents.' Example: UP pressed, no item above → bubbles to parent groups for alternative."
-    capturing: "Downward resolution (group → nested group → focus item) via defaultFocusId. Rescue operation: group/ID → concrete FocusItem. Example: bubbling found 'menuGroup' → capturing descends via defaultFocusId to real item."
-    spatial: "Automatic in-group navigation based on widget positions. ONLY within single group, cannot cross groups."
-    deepSearch: "If defaultFocusId not in immediate children, searches ALL descendants (any depth). Finds deeply nested items automatically."
-  workflow: "User Action → Bubbling(↑ find alternative) → Capturing(↓ resolve target)"
-  capabilities:
-    - "Static direction overrides (up/down/left/right/back)."
-    - "Last-focused tracking per group (auto-saved)."
-    - "Long-press detection with duration and handler callbacks."
-    - "Global enable/disable flags for navigation and long press."
+    bubbling: "Upward search (child → parent → grandparent) when local nav fails. 'I can't go further, ask parents.'"
+    capturing: "Downward resolution (group → nested group → focus item) via defaultFocusId. Converts group/ID → concrete FocusItem."
+    spatial: "Automatic in-group navigation based on widget geometry. ONLY within single group, cannot cross groups."
+    deepSearch: "If defaultFocusId not in immediate children, searches ALL descendants (any depth) for FocusItems and nested Groups."
+  workflow: "User Action → Static Direction → Spatial Nav → Bubbling(↑) → Capturing(↓ resolve target)"
 
 props:
   focusItem:
-    isEnabled: "boolean (default: true) - enable/disable focus capability"
-    enableNativeFocus: "boolean (default: false) - allow native SceneGraph focus"
-    enableSpatialNavigation: "boolean (default: true) - automatic spatial nav"
-    up/down/left/right/back: "string (nodeId) | function() as string | false | true - static directions"
-    onFocusChanged: "sub(isFocused as boolean) - called when focus state changes"
-    onFocus: "sub() - called when widget gains focus"
-    onBlur: "sub() - called when widget loses focus"
-    onSelect: "sub() - called when OK button pressed while focused"
-    longPressHandler: "function(isLongPress as boolean, key as string) as boolean - handle long press, return true if handled"
+    isEnabled: "boolean (default: true) — enable/disable focus capability. Disabled items skipped by spatial nav."
+    enableNativeFocus: "boolean (default: false) — sets native SceneGraph focus on node (for keyboard, video)"
+    enableSpatialNavigation: "boolean (default: FALSE) — opt-in to geometry-based nav within parent group"
+    autoSetIsFocusedState: "boolean (default: true) — auto-manage viewModelState.isFocused and node.isFocused"
+    up/down/left/right/back: "string (nodeId) | function() as string | false | true — direction overrides"
+    onFocusChanged: "sub(isFocused as boolean) — called when focus state changes"
+    onFocus: "sub() — called when widget gains focus"
+    onBlur: "sub() — called when widget loses focus"
+    onSelect: "sub() — called when OK button pressed while focused"
+    longPressHandler: "function(isLongPress as boolean, key as string) as boolean — return true if handled (stops bubbling)"
   focusGroup:
-    defaultFocusId: "string | function() as string - default focus target when group receives focus"
-    lastFocusedHID: "string (auto-managed) - remembers last focused item"
-    enableLastFocusId: "boolean (default: true) - when true, immediate parent stores lastFocusedHID for direct children"
-    enableDeepLastFocusId: "boolean (default: false) - when true, ancestor groups also store lastFocusedHID from ANY descendant depth"
-    enableSpatialEnter: "boolean (default: false) - spatial nav when entering from direction"
-    up/down/left/right/back: "string | function() as string | boolean - group-level navigation"
-    onFocusChanged: "sub(isFocused as boolean) - group focus-chain callback"
+    defaultFocusId: "string | function() as string — default focus target when group receives focus"
+    lastFocusedHID: "string (auto-managed) — remembers last focused item HID"
+    enableLastFocusId: "boolean (default: true) — immediate parent stores lastFocusedHID for direct children"
+    enableDeepLastFocusId: "boolean (default: false) — ancestor groups also store lastFocusedHID from ANY depth"
+    enableSpatialEnter: "boolean | AA (default: false) — spatial nav when entering from direction. AA: { right: true, down: true }"
+    autoSetIsFocusedState: "boolean (default: true) — auto-manage viewModelState.isFocused for focus chain state"
+    up/down/left/right/back: "string | function() as string | boolean — group-level navigation (activated via bubbling)"
+    onFocusChanged: "sub(isFocused as boolean) — group focus-chain callback (true = descendant has focus)"
+    onFocus: "sub() — called when group enters focus chain"
+    onBlur: "sub() — called when group leaves focus chain"
+    longPressHandler: "function(isLongPress as boolean, key as string) as boolean — group-level long press handler"
+
+directionValues:
+  onFocusItem:
+    string: "Static navigation to that node ID — EXITS group immediately"
+    function: "Dynamic, evaluated at runtime — return node ID or boolean"
+    false: "BLOCKS direction (nothing happens, key consumed)"
+    true/empty/undefined: "Falls through to spatial navigation"
+  onFocusGroup:
+    string: "Navigate to that group/item — may EXIT group"
+    function: "Dynamic, evaluated at runtime"
+    true: "BLOCKS exit (stays on current, key consumed)"
+    false/undefined: "Continue bubbling to next ancestor"
 
 resolution:
   priority:
-    1: "Static direction (FocusItem.direction) - EXITS immediately if defined"
-    2: "Spatial navigation inside current group - STAYS in group"
-    3: "BubblingFocus to parent groups - may EXIT via group.direction"
-  directionValues:
-    string: "Static navigation to that node ID"
-    function: "Dynamic, evaluated at runtime (returns node ID or boolean)"
-    false: "Blocks direction (nothing happens)"
-    true/undefined/empty: "Spatial navigation attempts"
-  groupDirectionActivation: "ONLY when: FocusItem has NO static direction AND spatial found NOTHING AND bubbling reaches this group"
-  groupDirectionValues:
-    string: "Navigate to that group/item (may EXIT group)"
-    true: "BLOCKS exit (stays on current element) - treats as valid processed action"
-    false/undefined: "Continue bubbling to next ancestor"
+    1: "Static direction (FocusItem.direction) — EXITS immediately if defined"
+    2: "Spatial navigation inside current group — STAYS in group"
+    3: "BubblingFocus to parent groups — may EXIT via group.direction"
 
 rules:
-  RULE_1: "Widget types: focus:{group:{}} → Group | focus:{} → FocusItem | no focus → not in system"
-  RULE_2: "FocusItem direction values: string=static, function=dynamic, false=block, true/undefined/empty=spatial"
-  RULE_3: "Navigation priority: 1)Static direction 2)Spatial nav (within group) 3)BubblingFocus"
-  RULE_4: "Spatial navigation ONLY works within single group. Cannot cross groups. Searches group.getGroupMembersHIDs()"
-  RULE_5: "Group direction triggers ONLY when: FocusItem NO static direction AND spatial found NOTHING AND bubbling reaches group"
-  RULE_6: "Group direction values: string=navigate(may EXIT), true=BLOCKS(stays), false/undefined=continue bubbling"
+  RULE_1: "Widget types: focus:{} → FocusItem | focusGroup:{} → FocusGroup | none → not in system"
+  RULE_2: "FocusItem direction: string=static, function=dynamic, false=block, true/empty=spatial fallthrough"
+  RULE_3: "Nav priority: 1)Static direction 2)Spatial nav (within group) 3)BubblingFocus"
+  RULE_4: "Spatial nav ONLY within single group. Cannot cross groups. Candidates: FocusItems + child Groups with enableSpatialNavigation:true"
+  RULE_5: "Group direction triggers ONLY when: FocusItem NO static dir AND spatial found NOTHING AND bubbling reaches group"
+  RULE_6: "Group direction: string=navigate(may EXIT), true=BLOCKS(stays), false/undefined=continue bubbling"
   RULE_7: "group.right=true does NOT block internal spatial nav. Only blocks EXITING when spatial finds nothing."
-  RULE_8_methods:
-    method1: "FocusItem explicit direction → EXITS immediately"
+  RULE_8_exitMethods:
+    method1: "FocusItem explicit direction → EXITS immediately (bypasses group config)"
     method2: "Group direction via BubblingFocus → EXITS when spatial fails"
     method3: "Ancestor group direction → EXITS when child groups pass"
-  RULE_9: "group.left=true blocks exit, treats as processed. EXCEPTION: FocusItem explicit directions still work!"
-  RULE_10_flow: "FocusItem(no dir) → Spatial(nothing) → Group.dir? → 'nodeId'=EXIT | true=STOP | false=continue ancestor | no ancestor=stay"
+  RULE_9: "group.left=true blocks exit. EXCEPTION: FocusItem explicit directions still work!"
+  RULE_10_flow: "FocusItem(no dir) → Spatial(nothing) → Group.dir? → 'nodeId'=EXIT | true=STOP | false=continue | no ancestor=stay"
   RULE_11_capturingPriority:
-    1: "group.lastFocusedHID (if exists) [AUTO-SAVED]"
+    1: "group.lastFocusedHID (if exists and still valid) [AUTO-SAVED]"
     2: "group.defaultFocusId [CONFIGURED]"
     3: "Deep search (if defaultFocusId not found immediately)"
-  RULE_11b_focusMemoryConfig:
-    enableLastFocusId: "boolean (default: true) - controls whether immediate parent stores lastFocusedHID"
-    enableDeepLastFocusId: "boolean (default: false) - when true, ancestor groups also store lastFocusedHID"
-    behavior:
-      - "Immediate parent stores lastFocusedHID only if enableLastFocusId: true"
-      - "Ancestor groups store lastFocusedHID only if enableDeepLastFocusId: true"
-    useCase: "Nested groups (mainMenu > subMenu > item) where outer group should remember deeply nested item (set enableDeepLastFocusId: true). To disable focus memory, set enableLastFocusId: false."
-  RULE_12_defaultFocusIdTargets:
-    focusItemId: "Focus goes directly to it"
-    groupId: "Capturing continues on that group"
-    nonExistent: "Deep search attempts"
-  RULE_13_deepSearch:
-    triggers: "CapturingFocus doesn't find defaultFocusId in immediate children AND defaultFocusId not empty"
-    searches:
-      - "All descendant FocusItems (any depth)"
-      - "All nested Groups (any depth, applies their fallback)"
-  RULE_14_spatialEnter: "enableSpatialEnter=true: entering group uses spatial nav from direction. Finds geometrically closest item instead of defaultFocusId. Falls back to defaultFocusId if spatial finds nothing."
+  RULE_11b_focusMemory:
+    enableLastFocusId: "boolean (default: true) — immediate parent stores lastFocusedHID"
+    enableDeepLastFocusId: "boolean (default: false) — ancestors also store lastFocusedHID from any depth"
+    useCase: "Nested groups (mainMenu > subMenu > item): set enableDeepLastFocusId:true on mainMenu to remember deeply nested item."
+  RULE_12: "defaultFocusId targets: FocusItem ID → direct focus | Group ID → recursive capturing | nonExistent → deep search"
+  RULE_13: "Deep search: triggers when defaultFocusId not found in immediate children. Searches all descendant FocusItems and Groups."
+  RULE_14: "enableSpatialEnter: entering group uses spatial nav from direction. Finds closest item, falls back to defaultFocusId. Ignores lastFocusedHID."
   RULE_15_decisionTree: |
     User presses direction key:
       1. FocusItem.direction exists? → Use it (may EXIT group)
       2. Spatial nav finds item? → Navigate (STAYS in group)
       3. BubblingFocus: Group.direction?
-         - "nodeId" → EXIT to that target
-         - true → BLOCK (stay)
-         - undefined → Continue to ancestor
+         → "nodeId" → EXIT to that target
+         → true → BLOCK (stay)
+         → undefined → Continue to ancestor
       4. No more ancestors? → STAY on current item
 
 api:
-  widgetDecorators: "Plugin methods injected DIRECTLY onto widget (NOT under widget.plugins.focus)"
+  injectedMethods: "Methods injected DIRECTLY onto widget (not under widget.plugins.focus)"
   methods:
-    widget.setFocus: "widget.setFocus(id/boolean, enableNativeFocus?) - set focus on widget or by ID"
-    widget.getFocusedWidget: "widget.getFocusedWidget() - returns currently focused widget"
-    widget.enableFocusNavigation: "widget.enableFocusNavigation(enabled) - globally enable/disable navigation"
-    widget.isFocusNavigationEnabled: "widget.isFocusNavigationEnabled() - check if navigation enabled"
-    widget.proceedLongPress: "widget.proceedLongPress() - manually trigger long press action"
-    widget.isLongPressActive: "widget.isLongPressActive() - check if long press active"
-    widget.triggerKeyPress: "widget.triggerKeyPress(key) - simulate key press for testing/programmatic nav"
-    widget.setGroupLastFocusedId: "widget.setGroupLastFocusedId(id) - update lastFocusedHID of widget's focus group. If called on group, updates own lastFocusedHID. If called on focus item, updates parent group's lastFocusedHID."
+    setFocus: "widget.setFocus(command, enableNativeFocus?) — focus self (true), blur (false), or focus by ID (string). Returns boolean."
+    getFocusedWidget: "widget.getFocusedWidget() — returns currently focused widget across entire system"
+    enableFocusNavigation: "widget.enableFocusNavigation(enabled) — globally enable/disable all navigation"
+    isFocusNavigationEnabled: "widget.isFocusNavigationEnabled() — check global navigation state"
+    proceedLongPress: "widget.proceedLongPress() — manually trigger long press navigation action"
+    isLongPressActive: "widget.isLongPressActive() — check if long press active"
+    triggerKeyPress: "widget.triggerKeyPress(key) — simulate key press for testing/programmatic nav"
+    setGroupLastFocusedId: "widget.setGroupLastFocusedId(id) — update lastFocusedHID. On FocusItem: updates parent group. On FocusGroup: updates own."
 
 patterns:
-  simpleButton: |
+  basicButton: |
     focus: {
       onFocusChanged: sub(isFocused)
-        m.node.blendColor = isFocused ? "0xFF0000FF" : "0xFFFFFFFF"
-      end sub
-      onSelect: sub() -> m.getViewModel().handleButtonClick()
+        m.node.blendColor = isFocused ? "0x3399FFFF" : "0xFFFFFFFF"
+      end sub,
+      onSelect: sub() -> m.getViewModel().handleAction()
     }
+  formSpatialNav: |
+    focusGroup: { defaultFocusId: "emailInput" }
+    children: emailInput, passwordInput, loginButton
+      each: focus: { enableSpatialNavigation: true, onSelect: sub() }
+    After keyboard: m.setFocus("passwordInput") / m.setFocus("loginButton")
   sidebarContent: |
-    sidebar: focus.group.right=true (blocks accidental exit)
-    menuItem: focus.right="contentFirst" (explicit exit)
-    content: focus.group.left="sidebar" (return to sidebar)
+    appLayout: focusGroup: {
+      defaultFocusId: function() -> wasContentFocused ? "content" : "menu",
+      onBlur: sub() -> cache which child was focused
+    }
+    menu: focusGroup: { right: "content", back: "content" }
+      menuItems: focus: { onFocus: sub() -> activateSection() }  (passive navigation)
+    content: focusGroup: { left: "menu", defaultFocusId: function() -> activePageId }
+  horizontalCarousel: |
+    focusGroup: {
+      defaultFocusId: function() -> getCurrentCardId(),
+      left: function() -> scrollToPrev() (returns ID or false),
+      right: function() -> scrollToNext(),
+      longPressHandler: function(isLongPress, key) -> handleContinuousScroll(),
+      onBlur: sub() -> pausePreview()
+    }
+  verticalRailCarousel: |
+    focusGroup: {
+      defaultFocusId: function() -> getActiveRailId(),
+      up/down: function() -> navigateToRail(direction),
+      onFocus: sub() -> expandActiveRail(),
+      onBlur: sub() -> collapseAllRails()
+    }
+  cardWithDispatch: |
+    focus: {
+      enableNativeFocus: false,
+      onFocus: sub() -> dispatchCardMetadata(),
+      onSelect: sub() -> openDetailPage()
+    }
   modalLocked: |
-    focus.group: { left:true, right:true, up:true, down:true, back:true }
-    Captures all focus - cannot exit
+    focusGroup: { defaultFocusId: "confirm", left:true, right:true, up:true, down:true, back:true }
+    Captures all focus — no exit possible
   nestedBubbling: |
-    outer: focus.group.down="bottomBar" (catches bubbling)
-    inner: focus.group.down=undefined (no direction - bubbles up)
-  nativeLongPress: |
-    enableNativeFocus: true
-    enableSpatialNavigation: false
-    longPressHandler: sub(isLongPress, key)
-      if isLongPress -> startSmoothScroll() -> return true
-      else -> stopSmoothScroll() -> return false
-  dynamicDirection: |
-    up: function() as string
-      return m.props.isInSpecialMode ? "specialModeButton" : "normalButton"
-    end function
+    outer: focusGroup: { down: "footer" } (catches bubbling)
+    inner: focusGroup: { defaultFocusId: "item1" } (no down → bubbles up)
+  settingsWithSync: |
+    menu + panel bidirectional nav
+    On panel change: m.children.menu.setGroupLastFocusedId("menuItem_" + id)
+    Ensures LEFT from panel focuses correct menu item
+  conditionalFocus: |
+    if entry.isAction -> focus: { onSelect: sub() } (requires OK press)
+    else -> focus: { onFocus: sub() } (activates on navigation)
+  dynamicDirections: |
+    focus: { up: function() -> isExpanded ? "expandedHeader" : "collapsedHeader" }
+    right: function() -> hasDetail ? "detailPanel" : "" (fall through to spatial)
   spatialEnter: |
-    focus.group: {
-      defaultFocusId: "centerItem"
-      enableSpatialEnter: true  (spatial nav when entering)
-      left: "sidebar"  (exit to sidebar)
-    }
-  programmaticControl: |
-    m.setFocus("targetWidget")
-    m.enableFocusNavigation(false) - during animation
-    m.enableFocusNavigation(true) - re-enable after
+    focusGroup: { enableSpatialEnter: true } — closest item when entering
+    Per-direction: enableSpatialEnter: { right: true, down: true }
   deepFocusMemory: |
-    mainNav: focus.group: {
-      defaultFocusId: "subMenu",
-      enableDeepLastFocusId: true,  (remembers ANY depth)
-      right: "content"
-    }
-    subMenu > category > item1, item2, item3
-    When user focuses item3, navigates to content and back,
-    focus returns to item3 (not subMenu or category default)
+    focusGroup: { enableDeepLastFocusId: true } — remembers ANY depth
+    User focuses nested item3 → nav away → return → goes back to item3
   disableFocusMemory: |
-    group: focus.group: {
-      defaultFocusId: "firstItem",
-      enableLastFocusId: false  (always uses default, never remembers)
-    }
+    focusGroup: { enableLastFocusId: false } — always uses defaultFocusId
+  animatedIndicator: |
+    focusGroup: { onFocusChanged: sub(isFocused) -> animate focusBar opacity }
+  transitionControl: |
+    m.enableFocusNavigation(false) — during animation
+    m.enableFocusNavigation(true) — re-enable after
+    m.setFocus("firstItemInNewView")
+  disabledWidget: |
+    focus: { isEnabled: false } — plugin skips during navigation
 
 bestPractices:
-  visualFeedback: "Always handle focus state visually via onFocusChanged. Use blendColor/opacity changes."
-  organizeGroups: "Structure groups based on UI layout and navigation flow. Flat structure insufficient for complex UIs."
-  explicitDirections: "Use explicit directions for critical navigation. Spatial alone may produce unexpected results."
-  defaultFocusId: "Always specify group.defaultFocusId to avoid focus loss."
-  validation: "Check widget validity before programmatic focus: if widget<>invalid and widget.focus<>invalid"
+  visualFeedback: "Always handle focus state visually via onFocusChanged or viewModelState.isFocused in field expressions."
+  defaultFocusId: "Always specify group.defaultFocusId to avoid focus loss on group entry."
+  organizeGroups: "Structure groups based on UI layout and navigation flow. Flat is insufficient for complex UIs."
+  explicitDirections: "Use explicit directions for critical cross-section nav. Spatial alone may be unpredictable."
+  onFocusVsOnSelect: "onFocus for passive selection (preview). onSelect for active confirmation (submit, open, play)."
+  transitionGuard: "Disable focus navigation during animations/transitions to prevent race conditions."
+  dynamicFunctions: "Use functions for defaultFocusId and directions when targets depend on runtime state."
 
 pitfalls:
-  focusLoops: "Circular navigation references between widgets. Solution: Use false to block or plan paths carefully."
-  missingDefaultFocus: "Group without defaultFocusId causes focus loss. Solution: Always specify (RULE #11)."
-  disabledItems: "Attempting to focus isEnabled=false items. Solution: Check isEnabled before programmatic focus."
-  nativeFocusConflicts: "Mixing native SceneGraph focus with plugin focus. Solution: Use enableNativeFocus consistently."
-  groupHierarchyIssues: "Improper parent-child relationships. Solution: Ensure groups contain focus items in widget tree."
-  spatialScopeMisunderstanding: "Expecting spatial nav across groups. Solution: Spatial only within single group (RULE #4), use static to exit."
-  blockingMisunderstanding: "Setting group.right=true expecting to block internal spatial. Solution: Only blocks EXIT, not internal nav (RULE #7)."
-  deepDefaultFocusIdNotFound: "Using defaultFocusId that doesn't exist. Solution: Deep search finds at any depth (RULE #13), verify ID exists."
+  focusLoops: "Circular navigation. Solution: Use false to block or plan paths."
+  missingDefaultFocus: "Group without defaultFocusId → focus loss. Solution: Always specify."
+  disabledItems: "Focusing isEnabled=false items. Solution: Check before programmatic focus."
+  nativeFocusConflicts: "Mixing native/plugin focus. Solution: Use enableNativeFocus consistently."
+  groupHierarchy: "Wrong parent-child relationships. Solution: Ensure groups contain items in tree."
+  spatialScope: "Expecting cross-group spatial nav. Solution: Only within one group (RULE #4)."
+  blockingMisunderstanding: "group.right=true blocking internal spatial. Solution: Only blocks EXIT (RULE #7)."
+  bothFocusAndFocusGroup: "Widget with both keys → silently skipped. Solution: Use one or the other."
+  spatialNavDefault: "Assuming enableSpatialNavigation is true. Solution: Default is FALSE, opt-in explicitly."
 
 troubleshooting:
-  notRespondingToKeys:
-    checks:
-      - "widget.isFocusNavigationEnabled() === false?"
-      - "widget.focus.isEnabled === false?"
-      - "widget.getFocusedWidget() === invalid? (no initial focus set)"
-    debug: |
-      sub debugFocusNavigation()
-        widget = m.getWidget("myButton")
-        if widget.isFocusNavigationEnabled() = false
-          print "Focus navigation disabled globally"
-        if widget.focus.isEnabled = false
-          print "Widget focus disabled"
-        focused = widget.getFocusedWidget()
-        if focused = invalid -> print "No widget has focus - set initial"
+  notResponding:
+    - "widget.isFocusNavigationEnabled() === false? → enableFocusNavigation(true)"
+    - "widget.getFocusedWidget() === invalid? → no initial focus set, call setFocus()"
+    - "widget.focus.isEnabled === false? → item disabled"
   groupNavNotWorking:
-    - "Check defaultFocusId matches existing focus item ID within group (RULE #12)"
-    - "Verify group hierarchy: confirm focus items are children of group widget"
-    - "Test group direction values: false=block, string ID=navigate, true=stay (RULE #6)"
-    - "Check bubbling flow: ensure parent groups have proper direction config (RULE #10)"
-    - "Validate spatial enter: if enableSpatialEnter=true, verify items have valid positions (RULE #14)"
-    - "Check deep search: if defaultFocusId nested deeply, verify exists in hierarchy (RULE #13)"
-  stateNotUpdatingUI:
-    - "Verify callback setup: ensure onFocusChanged properly defined"
-    - "Check viewModelState access: confirm m.viewModelState.isFocused being read correctly"
-    - "Test field expressions: if using field functions, ensure they reference m.viewModelState.isFocused"
-    - "Debug with print: add logging to onFocusChanged to trace state changes"
-    - "Inspect node field: check m.node.isFocused field value directly"
-  unexpectedGroupExit:
-    - "Review RULE #8: understand 3 methods for exiting group"
-    - "Check FocusItem explicit directions: these override group directions (RULE #9 exception)"
-    - "Verify group blocking: use group.direction=true to prevent exit (RULE #6)"
-    - "Test bubbling: trace through RULE #10 flow to see where navigation resolves"
-    - "Check navigation priority: review RULE #3 to understand resolution order"
+    - "Check defaultFocusId matches existing ID within group (RULE #12)"
+    - "Verify items are actual descendants in widget tree"
+    - "Test direction values: true=blocks, string=navigates, false=bubbles (RULE #6)"
+    - "Check bubbling flow through parents (RULE #10)"
+  stateNotUpdating:
+    - "Verify onFocusChanged properly defined"
+    - "Check m.viewModelState.isFocused is being read"
+    - "If autoSetIsFocusedState: false, manage state manually"
+    - "Inspect m.node.isFocused field directly"
+  unexpectedExit:
+    - "Review 3 exit methods (RULE #8)"
+    - "FocusItem explicit directions override group blocking (RULE #9)"
+    - "Check priority: static → spatial → bubbling (RULE #3)"
 
 lifecycle:
-  beforeMount: "Register focus item or group when widget mounts"
-  beforeUpdate: "Remove old focus config, apply new focus config"
-  beforeDestroy: "Unregister focus item/group and cleanup instances"
+  beforeMount: "Register focus item or group when widget mounts. Validates not both focus+focusGroup."
+  beforeUpdate: "Remove old config, merge new config (deepExtendAA), re-register."
+  beforeDestroy: "Unregister item/group, clear global focus if this widget held it."
 
 pipeline:
-  1: "Configuration Parse - plugin determines FocusItem vs FocusGroup"
-  2: "Instance Creation - creates FocusItem or Group instance with configuration"
-  3: "Registration - stores instance in FocusItemStack or GroupStack"
-  4: "Hierarchy Tracking - registers parent-child relationships for bubbling"
-  5: "State Initialization - sets viewModelState.isFocused = false automatically"
-  6: "Focus Application - when focus set, calls onFocusChanged, onFocus/onBlur callbacks"
-  7: "State Update - updates viewModelState.isFocused and node.isFocused field"
-  8: "Navigation Handling - processes key events through static → spatial → bubbling priority"
-  9: "Group Notification - notifies ancestor groups of focus chain changes"
-  10: "Cleanup - removes focus config and instances on widget destroy"
+  1: "Configuration Parse — determines FocusItem (focus:) vs FocusGroup (focusGroup:)"
+  2: "Instance Creation — creates FocusItemClass or GroupClass"
+  3: "Registration — stores in FocusItemStack or GroupStack"
+  4: "Hierarchy Tracking — ancestor groups computed dynamically via HID matching"
+  5: "State Initialization — sets viewModelState.isFocused=false, adds node.isFocused field"
+  6: "Focus Application — calls onFocusChanged, onFocus/onBlur callbacks"
+  7: "State Update — updates viewModelState.isFocused and node.isFocused on items and ancestor groups"
+  8: "Navigation Handling — static → spatial → bubbling priority chain"
+  9: "Group Notification — notifies all affected ancestor groups of focus chain changes"
+  10: "Cleanup — removes config and destroys instances on widget destroy"
 
 stateManagement:
   autoInjected:
-    - "viewModelState.isFocused (boolean) - for all focus items"
-    - "viewModelState.isFocused (boolean) - for groups"
-    - "node.isFocused field - on all widgets"
-  accessPattern: "Use m.viewModelState.isFocused in field expressions, callbacks for reactive UI updates"
+    - "viewModelState.isFocused (boolean) — for all focus items and groups (configurable via autoSetIsFocusedState)"
+    - "node.isFocused field — on all widgets with focus config"
+  accessPattern: "Use m.viewModelState.isFocused in field expressions and callbacks for reactive UI updates"
 ```

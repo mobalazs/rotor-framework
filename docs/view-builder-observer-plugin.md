@@ -238,6 +238,135 @@ The Observer Plugin operates automatically through widget lifecycle:
 }
 ```
 
+### RenderTracking for Dynamic Layout
+
+The `renderTracking` field is one of the most common observer targets. It fires when a SceneGraph node finishes rendering, enabling dynamic layout calculations based on actual rendered dimensions.
+
+To use it, set `enableRenderTracking: true` in the widget's `fields`, then observe `renderTracking`:
+
+```brightscript
+{
+    id: "messageLabel",
+    nodeType: "Label",
+    fields: {
+        text: m.props.message,
+        width: 600,
+        wrap: true,
+        enableRenderTracking: true
+    },
+    observer: {
+        fieldId: "renderTracking",
+        handler: sub()
+            textHeight = m.node.localBoundingRect().height
+            bgHeight = textHeight + 40
+            m.getSiblingWidget("background").node.height = bgHeight
+        end sub
+    }
+}
+```
+
+When you need to check whether the node is fully rendered (not just partially), use `callback` and inspect the payload value:
+
+```brightscript
+observer: {
+    fieldId: "renderTracking",
+    callback: sub(payload)
+        if payload?.renderTracking = "full"
+            m.startAnimation()
+        end if
+    end sub
+}
+```
+
+### Multiple Observers with Shared Handler
+
+Multiple field changes can trigger the same handler — useful when several fields affect layout:
+
+```brightscript
+autoSizeHandler = sub()
+    rect = m.node.localBoundingRect()
+    m.getSiblingWidget("container").node.width = rect.width + 24
+    m.getSiblingWidget("container").node.height = rect.height + 16
+end sub
+
+{
+    id: "buttonLabel",
+    nodeType: "Label",
+    fields: {
+        text: m.props.text,
+        enableRenderTracking: true
+    },
+    observer: [
+        {
+            fieldId: "renderTracking",
+            handler: autoSizeHandler
+        },
+        {
+            fieldId: "text",
+            handler: autoSizeHandler
+        }
+    ]
+}
+```
+
+### Timer Fire Observer
+
+Timer nodes expose a `fire` field that triggers when the timer completes. Use `handler` since the fire value itself is irrelevant:
+
+```brightscript
+' One-shot delay timer
+{
+    id: "delayTimer",
+    nodeType: "Timer",
+    fields: {
+        repeat: false,
+        duration: 2.0
+    },
+    observer: {
+        fieldId: "fire",
+        handler: sub()
+            m.getViewModel().onDelayComplete()
+        end sub
+    }
+}
+
+' Repeating timer (e.g., clock update every second)
+{
+    id: "refreshTimer",
+    nodeType: "Timer",
+    fields: {
+        repeat: true,
+        duration: 1.0
+    },
+    observer: {
+        fieldId: "fire",
+        handler: sub()
+            m.getViewModel().updateDisplayedTime()
+        end sub
+    }
+}
+```
+
+### One-Time Timer with `once`
+
+Combine `once: true` with a timer to guarantee a single callback execution:
+
+```brightscript
+{
+    id: "initTimer",
+    nodeType: "Timer",
+    fields: {
+        duration: 0.5,
+        repeat: false
+    },
+    observer: {
+        fieldId: "fire",
+        callback: m.onInitializationComplete,
+        once: true
+    }
+}
+```
+
 ### Setting Initial Field Value
 
 ```brightscript
