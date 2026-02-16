@@ -7,8 +7,9 @@ scope:
 
 core:
   configuration:
-    single: "observer: { fieldId: 'text', callback: sub(payload) ... end sub }"
-    multi: "observer: [ { fieldId: 'state', ... }, { fieldId: 'position', ... } ]"
+    single_callback: "observer: { fieldId: 'text', callback: sub(payload) ... end sub }"
+    single_handler: "observer: { fieldId: 'renderTracking', handler: sub() ... end sub }"
+    multi: "observer: [ { fieldId: 'state', callback: ... }, { fieldId: 'fire', handler: ... } ]"
   valueTypes:
     singleObject: "One observer per widget"
     array: "Multiple observers per widget"
@@ -16,7 +17,9 @@ core:
 props:
   required:
     fieldId: "string - Name of SceneGraph field to observe"
-    callback: "function - Function called when field changes. sub(payload) or sub(payload) typecast m as Rotor.Widget"
+    callback: "function - Called WITH parsed payload. sub(payload) or sub(payload) typecast m as Rotor.Widget. Mutually exclusive with handler."
+    handler: "function - Called WITHOUT arguments. sub() or sub() typecast m as Rotor.Widget. Mutually exclusive with callback."
+  requiredNote: "One of callback or handler is required. They are mutually exclusive. If neither is provided, the framework throws an error."
   optional:
     id: "string - Custom identifier for observer"
     value: "dynamic - Initial value to set on field"
@@ -50,7 +53,7 @@ pipeline:
   5: "Native Observation - calls node.observeFieldScoped() with routing info"
   6: "Callback Routing - field changes route to correct Observer via callback router"
   7: "Payload Processing - optional parsePayload transformation before callback"
-  8: "Callback Execution - callback executed in widget scope with payload"
+  8: "Callback/Handler Execution - callback executed in widget scope with payload, or handler executed with no arguments"
   9: "Cleanup - observers automatically detached on widget destroy or update"
 
 patterns:
@@ -87,18 +90,40 @@ patterns:
       alwaysNotify: true  (triggers callback even if value unchanged)
       callback: sub(payload) -> print "State: " + payload.customState
     }
+  handlerRenderTracking: |
+    observer: {
+      fieldId: "renderTracking"
+      handler: sub() -> m.node.translation = [100, 200]
+    }
+    handler called with no arguments - ideal for layout/render triggers
+  handlerTimer: |
+    observer: {
+      fieldId: "fire"
+      handler: sub() -> m.getViewModel().onTimerFired()
+    }
+    handler called with no arguments - ideal for timer callbacks
+  callbackWithPayload: |
+    observer: {
+      fieldId: "state"
+      callback: sub(payload) -> if payload.state = "finished" then m.getViewModel().onVideoFinished()
+    }
+    callback called with parsed payload - use when you need the field value
 
 bestPractices:
   useOnceForOneTime: "Use once: true for one-time events. Avoids manual cleanup and memory leaks."
   useParsePayloadToReduceComplexity: "Clean separation: parsePayload transforms data, callback uses transformed data. Reduces callback complexity."
   groupRelatedObservers: "Use array for related observers (state, position). Keeps observers together, prevents forgetting some."
   useUntilForConditional: "Automatic cleanup when condition met. Avoids manual condition checking in callback."
+  useHandlerForNotifications: "Use handler for renderTracking, timer, and notification-style observers where the payload is irrelevant. Avoids unused parameters and makes intent clearer."
+  useCallbackForValues: "Use callback when you need to inspect the changed value (video state, content changes, etc.)."
+  omitParsePayloadWithHandler: "parsePayload still executes when handler is used, but its result is discarded. Omit parsePayload when using handler for clarity."
 
 pitfalls:
   observingNonExistentFields: "Field doesn't exist on node type. Solution: Verify field exists for specific SceneGraph node type."
   memoryLeaks: "Forgetting cleanup outside plugin. Solution: Plugin handles cleanup automatically in lifecycle."
   callbackScopeIssues: "m context in callbacks unclear. Solution: Use typecast m as Rotor.Widget for type safety."
-  missingCallback: "Observer configured without callback function. Solution: Always provide callback property (required)."
+  missingCallbackOrHandler: "Observer configured without callback or handler. Solution: Provide one of callback or handler (mutually exclusive, one required)."
+  crashOnCallbackWithNoParams: "Callback defined as sub() but configured with callback: instead of handler:. Crashes because framework passes payload argument. Solution: Switch to handler: for zero-argument callbacks."
   payloadStructureAssumptions: "Assuming payload format. Solution: Use parsePayload to normalize payload structure."
   heavyCallbackOperations: "Expensive operations in callbacks. Solution: Keep callbacks lightweight, defer heavy work."
 

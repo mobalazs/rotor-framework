@@ -355,6 +355,39 @@ namespace tests
         end function
 
         ' =================================================================
+        ' handler (zero-argument callback)
+        ' =================================================================
+
+        @describe("observer handler")
+
+        @async()
+        @it("fires handler without arguments when observed field changes")
+        function _()
+            m.fwInstance.render({
+                id: "handlerTest",
+                nodeType: "Group",
+                observer: {
+                    fieldId: "opacity",
+                    handler: sub()
+                        m.node.addField("_handlerFired", "boolean", false)
+                        m.node.setField("_handlerFired", true)
+                    end sub
+                }
+            })
+            widget = m.fwInstance.getWidget("handlerTest")
+            m.assertNotInvalid(widget)
+
+            widget.node.opacity = 0.5
+
+            rooibos_promises_internal_delay(function(ctx as dynamic)
+                widget = ctx.fwInstance.getWidget("handlerTest")
+                ctx.assertTrue(widget.node.hasField("_handlerFired"), "handler should have fired")
+                ctx.assertTrue(widget.node.getField("_handlerFired"), "handler should have set _handlerFired to true")
+                ctx.done()
+            end function, m, 0.05)
+        end function
+
+        ' =================================================================
         ' widget without observer config
         ' =================================================================
 

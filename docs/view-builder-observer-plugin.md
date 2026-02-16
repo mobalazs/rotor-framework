@@ -18,7 +18,8 @@ The Observer Plugin provides declarative field observation for SceneGraph nodes.
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
 | `fieldId` | string | Yes | Name of the SceneGraph field to observe |
-| `callback` | function | Yes | Function called when field changes |
+| `callback` | function | *  | Function called with parsed payload when field changes |
+| `handler` | function | *  | Function called without arguments when field changes |
 | `id` | string | No | Custom identifier for the observer |
 | `value` | dynamic | No | Initial value to set on the field |
 | `alwaysNotify` | boolean | No | Trigger callback even if value unchanged (default: true) |
@@ -26,6 +27,8 @@ The Observer Plugin provides declarative field observation for SceneGraph nodes.
 | `until` | function | No | Function returning true when observer should be removed |
 | `parsePayload` | function | No | Transform payload before passing to callback |
 | `infoFields` | array | No | Additional fields to include in callback payload |
+
+> **\*** One of `callback` or `handler` is required. They are mutually exclusive — configure one or the other, not both. If neither is provided, the framework throws an error.
 
 ### Observer Value Examples
 
@@ -58,6 +61,47 @@ The Observer Plugin provides declarative field observation for SceneGraph nodes.
     ]
 }
 ```
+
+### callback vs handler
+
+Use **`callback`** when you need to read the changed field value:
+
+```brightscript
+observer: [{
+    fieldId: "state",
+    callback: sub(payload)
+        if payload.state = "finished"
+            m.getViewModel().onVideoFinished()
+        end if
+    end sub
+}]
+```
+
+- Signature: `sub(payload as object)` or `sub(payload) typecast m as Rotor.Widget`
+- `payload` is an AA containing the changed field value (keyed by `fieldId`) plus any `extraInfo`/`infoFields`
+
+Use **`handler`** when you only need the notification trigger, not the value:
+
+```brightscript
+' renderTracking: reposition after layout completes
+observer: [{
+    fieldId: "renderTracking",
+    handler: sub()
+        m.node.translation = [100, 200]
+    end sub
+}]
+
+' Timer: react to timer fire event
+observer: [{
+    fieldId: "fire",
+    handler: sub()
+        m.getViewModel().onTimerFired()
+    end sub
+}]
+```
+
+- Signature: `sub()` or `sub() typecast m as Rotor.Widget`
+- Ideal for `renderTracking` observers, timer callbacks, and simple refresh triggers
 
 **Usage in Observer Callbacks:**
 
@@ -106,7 +150,7 @@ The Observer Plugin operates automatically through widget lifecycle:
 5. **Native Observation**: Calls `node.observeFieldScoped()` with routing info
 6. **Callback Routing**: Field changes route to correct Observer via callback router
 7. **Payload Processing**: Optional `parsePayload` transformation before callback
-8. **Callback Execution**: Callback executed in widget scope with payload
+8. **Callback/Handler Execution**: `callback` executed in widget scope with payload, or `handler` executed with no arguments
 9. **Cleanup**: Observers automatically detached on widget destroy or update
 
 ## Common Patterns
@@ -277,7 +321,30 @@ observer: { fieldId: "state", callback: m.onStateChange }
 ' (position observer defined elsewhere or forgotten)
 ```
 
-### 4. Use `until` for Conditional Cleanup
+### 4. Use `handler` for Notification-Style Observers
+
+```brightscript
+' Good: handler for renderTracking, timers, and triggers where the value is irrelevant
+observer: {
+    fieldId: "renderTracking",
+    handler: sub()
+        m.node.translation = [100, 200]
+    end sub
+}
+
+' Avoid: callback with an unused parameter
+observer: {
+    fieldId: "renderTracking",
+    callback: sub(payload)
+        ' payload is never used — use handler instead
+        m.node.translation = [100, 200]
+    end sub
+}
+```
+
+> `parsePayload` still executes when `handler` is used, but its result is discarded. Omit `parsePayload` when using `handler` for clarity.
+
+### 5. Use `until` for Conditional Cleanup
 
 ```brightscript
 ' Good: Automatic cleanup when condition met
@@ -315,13 +382,16 @@ observer: {
 3. **Callback Scope Issues**: `m` context in callbacks
    - Solution: Use `typecast m as Rotor.Widget` if needed for type safety
 
-4. **Missing Callback**: Observer configured without callback function
-   - Solution: Always provide `callback` property (required)
+4. **Missing Callback/Handler**: Observer configured without `callback` or `handler`
+   - Solution: Always provide one of `callback` or `handler` (mutually exclusive, one is required)
 
-5. **Payload Structure Assumptions**: Assuming payload format
+5. **Crash on `callback` with No Parameters**: If your function is defined as `sub()` but configured with `callback:` instead of `handler:`, it will crash because the framework passes a payload argument
+   - Solution: Switch to `handler:` for zero-argument callbacks
+
+6. **Payload Structure Assumptions**: Assuming payload format
    - Solution: Use `parsePayload` to normalize payload structure
 
-6. **Heavy Callback Operations**: Expensive operations in callbacks
+7. **Heavy Callback Operations**: Expensive operations in callbacks
    - Solution: Keep callbacks lightweight, defer heavy work
 
 ## Troubleshooting

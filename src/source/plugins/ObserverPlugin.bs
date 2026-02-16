@@ -385,7 +385,7 @@ namespace Rotor
         ' Represents a single observer configuration for a node field.
         '
         ' Responsibilities:
-        '   - Stores observer configuration (callback, conditions, etc.)
+        '   - Stores observer configuration (callback or handler, conditions, etc.)
         '   - Sets up initial field value if provided
         '   - Provides info fields for observeFieldScoped
         '   - Executes callbacks in correct scope
@@ -407,7 +407,8 @@ namespace Rotor
             value as dynamic            ' Initial field value (if any)
             once as boolean             ' Remove observer after first trigger
             until as function           ' Conditional removal function
-            callback as function        ' Callback function to execute
+            callback as dynamic         ' Callback function called WITH payload (mutually exclusive with handler)
+            handler as dynamic          ' Handler function called WITHOUT arguments (mutually exclusive with callback)
             parsePayload as function    ' Payload transformation function
             alwaysNotify as boolean     ' Field alwaysNotify flag
 
@@ -442,9 +443,13 @@ namespace Rotor
                 m.once = config?.once ?? false
                 m.until = config?.until
 
-                ' Set callback (required)
-                m.callback = config?.callback ?? sub() throw "Callback has not configured for observer"
-                end Sub
+                ' Set callback or handler (one required, mutually exclusive)
+                m.callback = config?.callback
+                m.handler = config?.handler
+
+                if m.callback = invalid and m.handler = invalid
+                    throw "Observer requires either 'callback' or 'handler' configuration"
+                end if
 
                 ' Set payload parser (optional)
                 m.parsePayload = config?.parsePayload ?? function(payload)
@@ -498,14 +503,19 @@ namespace Rotor
             ' =============================================================
 
             ' ---------------------------------------------------------------------
-            ' notify - Executes observer callback
+            ' notify - Executes observer callback or handler
             '
-            ' Calls the configured callback function in the correct scope with the payload.
+            ' Calls the configured callback (with payload) or handler (without arguments)
+            ' in the correct widget scope.
             '
-            ' @param {dynamic} payload - Data to pass to callback
+            ' @param {dynamic} payload - Data to pass to callback (ignored for handler)
             '
             sub notify(payload as dynamic)
-                Rotor.Utils.callbackScoped(m.callback, m.listenerScope, payload)
+                if m.handler <> invalid
+                    Rotor.Utils.callbackScoped(m.handler, m.listenerScope)
+                else
+                    Rotor.Utils.callbackScoped(m.callback, m.listenerScope, payload)
+                end if
             end sub
 
             ' =============================================================
