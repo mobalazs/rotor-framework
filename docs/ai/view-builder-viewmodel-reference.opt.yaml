@@ -55,6 +55,37 @@ howItWorks:
     - step: "All child widgets in the tree share the same props and viewModelState references"
     - step: "Widgets can access m.props and m.viewModelState in field expressions and hooks"
     - step: "When ViewModel is destroyed, onDestroyView() is called and references are cleared"
+  rootWidgetRelationship:
+    concept: "ViewModel IS the root widget. The ViewModel class extends Widget, so the ViewModel instance itself becomes the root widget of its template."
+    mechanism: "When template() is called, the returned root-level configuration (nodeType, fields, focus, focusGroup, etc.) is deep-merged into the ViewModel instance."
+    mScope:
+      rootWidgetCallbacks:
+        description: "In root widget callbacks (focus, focusGroup, observer, fields, lifecycle hooks), m refers to the ViewModel instance directly."
+        example: |
+          override function template() as object
+            return {
+              nodeType: "Group",
+              focusGroup: {
+                ' m = this ViewModel (root widget) — call methods directly
+                back: sub() m.goBack() : end sub
+              },
+              children: [...]
+            }
+          end function
+      childWidgetCallbacks:
+        description: "In child widget callbacks, m refers to the child widget. Use m.getViewModel() to access the owning ViewModel."
+        example: |
+          children: [{
+            id: "backButton",
+            nodeType: "Group",
+            focus: {
+              ' m = backButton widget — use getViewModel() to reach the ViewModel
+              onSelect: sub() m.getViewModel().goBack() : end sub
+            }
+          }]
+      childViewModelCallbacks:
+        description: "When a child is itself a ViewModel (nested), use m.getParentViewModel() to access the parent ViewModel."
+    stateSharing: "All child widgets (non-ViewModel) share references to the ViewModel's props and viewModelState. m.props and m.viewModelState work in any widget callback within the tree."
 structure:
   classDefinition: |
     class MyViewModel extends Rotor.ViewModel

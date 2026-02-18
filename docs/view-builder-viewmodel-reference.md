@@ -62,6 +62,50 @@ When `m.render()` is called without arguments on a ViewModel, it automatically c
 9. Widgets can access `m.props` and `m.viewModelState` in field expressions and hooks
 10. When ViewModel is destroyed, `onDestroyView()` is called and references are cleared
 
+### ViewModel as Root Widget
+
+A ViewModel extends the base Widget class, which means **the ViewModel instance IS the root widget** of its template. When `template()` is called, the returned root-level configuration (nodeType, fields, focus, focusGroup, etc.) is deep-merged into the ViewModel instance itself.
+
+This has an important consequence for the `m` scope in callbacks:
+
+**Root widget callbacks** — `m` refers to the ViewModel instance directly:
+
+```brightscript
+override function template() as object
+    return {
+        nodeType: "Group",
+        focusGroup: {
+            ' m = this ViewModel instance (the root widget)
+            ' ViewModel methods can be called directly
+            back: sub() m.goBack() : end sub
+        },
+        children: [...]
+    }
+end function
+```
+
+**Child widget callbacks** — `m` refers to the individual child widget, NOT the ViewModel:
+
+```brightscript
+children: [{
+    id: "backButton",
+    nodeType: "Group",
+    focus: {
+        ' m = the backButton widget
+        ' Use getViewModel() to access the owning ViewModel
+        onSelect: sub() m.getViewModel().goBack() : end sub
+    }
+}]
+```
+
+| Context | `m` refers to | How to access ViewModel |
+|---------|---------------|------------------------|
+| Root widget callbacks (focus, focusGroup, observer, fields, lifecycle) | ViewModel instance | `m` (direct) |
+| Child widget callbacks | The child widget | `m.getViewModel()` |
+| Child ViewModel callbacks (nested ViewModel) | The child ViewModel | `m.getParentViewModel()` for parent |
+
+> **Note:** All child widgets (non-ViewModel) within the template tree share references to the ViewModel's `props` and `viewModelState`. This means `m.props` and `m.viewModelState` work in any widget callback within the tree, regardless of depth.
+
 **Structure:**
 
 ```brightscript
