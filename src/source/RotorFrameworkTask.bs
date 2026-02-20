@@ -88,7 +88,7 @@ namespace Rotor
         port as object
         sourceObjectRegistry = {} ' identity -> { dispatcherId, objectId, eventFilter }
         sourceObjectIdIndex = {} ' objectId -> identity (reverse index for unregistration)
-        sourceObjectTypeRegistry = [] ' [{ dispatcherId, objectId, eventFilter }] - broadcast routing
+        sharedSourceObjects = {} ' typeName -> { sourceObject, subscribers: [{ dispatcherId, eventFilter }] }
         private _eventFilterFn = invalid as dynamic
         onTick as function
 
@@ -134,24 +134,27 @@ namespace Rotor
         end function
 
         ' ---------------------------------------------------------------------
-        ' registerSourceObject - Registers a source object for event routing
+        ' registerSourceObject - Creates and registers a source object for event routing
         '
-        ' Generic registry for any Roku source object. Auto-detects routing mode:
-        '   - Identity-based: If sourceObject implements ifSourceIdentity, routes via
-        '     GetSourceIdentity() on the event (roUrlTransfer, roChannelStore).
-        '   - Broadcast: If sourceObject does NOT implement ifSourceIdentity, broadcasts
-        '     to all registered dispatchers (roDeviceInfo, roInput, roAppManager).
+        ' Creates a Roku source object by type name and auto-detects routing mode:
+        '   - Identity-based: If sourceObject implements GetIdentity, each call creates
+        '     a new instance with unique routing (roUrlTransfer, roChannelStore).
+        '   - Broadcast (singleton): If sourceObject does NOT implement GetIdentity,
+        '     first call creates the instance, subsequent calls return the shared instance
+        '     and add the dispatcher as a subscriber (roDeviceInfo, roInput, roAppManager).
         '
-        ' @param {string} objectId - Unique identifier for this registration
+        ' @param {string} typeName - Roku object type name (e.g. "roUrlTransfer", "roDeviceInfo")
         ' @param {string} dispatcherId - Dispatcher ID that will handle events
-        ' @param {object} sourceObject - The source object (SetMessagePort will be called)
         ' @param {function} eventFilter - Optional filter function. Receives msg, returns boolean.
+        ' @returns {object} The created (or shared) source object
         '
-        public sub registerSourceObject(objectId as string, dispatcherId as string, sourceObject as object, eventFilter = invalid as dynamic)
-            sourceObject.SetMessagePort(m.port)
+        public function registerSourceObject(typeName as string, dispatcherId as string, eventFilter = invalid as dynamic) as object
+            sourceObject = CreateObject(typeName)
             if FindMemberFunction(sourceObject, "GetIdentity") <> invalid
-                ' Identity-based routing
+                ' Identity-based: unique per call
+                sourceObject.SetMessagePort(m.port)
                 identity = sourceObject.GetIdentity().ToStr()
+                objectId = `${dispatcherId}_${identity}`
                 m.sourceObjectRegistry[identity] = {
                     dispatcherId: dispatcherId,
                     objectId: objectId,
@@ -159,34 +162,64 @@ namespace Rotor
                 }
                 m.sourceObjectIdIndex[objectId] = identity
             else
-                ' Broadcast routing
-                m.sourceObjectTypeRegistry.push({
-                    dispatcherId: dispatcherId,
-                    objectId: objectId,
-                    eventFilter: eventFilter
-                })
+                ' Broadcast: singleton per type
+                if m.sharedSourceObjects.DoesExist(typeName)
+                    ' Existing — add subscriber, discard new object
+                    m.sharedSourceObjects[typeName].subscribers.push({
+                        dispatcherId: dispatcherId,
+                        eventFilter: eventFilter
+                    })
+                    return m.sharedSourceObjects[typeName].sourceObject
+                else
+                    ' First — store as shared
+                    sourceObject.SetMessagePort(m.port)
+                    m.sharedSourceObjects[typeName] = {
+                        sourceObject: sourceObject,
+                        subscribers: [{
+                            dispatcherId: dispatcherId,
+                            eventFilter: eventFilter
+                        }]
+                    }
+                end if
             end if
-        end sub
+            return sourceObject
+        end function
 
         ' ---------------------------------------------------------------------
-        ' unregisterSourceObject - Unregisters a port-based object by its objectId
+        ' unregisterSourceObject - Unregisters a source object
         '
-        ' @param {string} objectId - The unique identifier used during registration
+        ' Identity-based objects: removes by identity from registry.
+        ' Broadcast objects: removes dispatcher subscriber, cleans up if no subscribers remain.
         '
-        public sub unregisterSourceObject(objectId as string)
-            ' Try identity-based registry
-            if m.sourceObjectIdIndex.DoesExist(objectId)
-                identity = m.sourceObjectIdIndex[objectId]
-                m.sourceObjectRegistry.Delete(identity)
-                m.sourceObjectIdIndex.Delete(objectId)
-                return
-            end if
-            ' Try broadcast registry
-            for i = m.sourceObjectTypeRegistry.count() - 1 to 0 step -1
-                if m.sourceObjectTypeRegistry[i].objectId = objectId
-                    m.sourceObjectTypeRegistry.Delete(i)
+        ' @param {object} sourceObject - The source object to unregister
+        ' @param {string} dispatcherId - Dispatcher ID that owns this registration
+        '
+        public sub unregisterSourceObject(sourceObject as object, dispatcherId as string)
+            if FindMemberFunction(sourceObject, "GetIdentity") <> invalid
+                ' Identity-based: remove by identity
+                identity = sourceObject.GetIdentity().ToStr()
+                if m.sourceObjectRegistry.DoesExist(identity)
+                    m.sourceObjectRegistry.Delete(identity)
                 end if
-            end for
+                objectId = `${dispatcherId}_${identity}`
+                if m.sourceObjectIdIndex.DoesExist(objectId)
+                    m.sourceObjectIdIndex.Delete(objectId)
+                end if
+            else
+                ' Broadcast: remove subscriber, cleanup if empty
+                typeName = type(sourceObject)
+                if m.sharedSourceObjects.DoesExist(typeName)
+                    shared = m.sharedSourceObjects[typeName]
+                    for i = shared.subscribers.count() - 1 to 0 step -1
+                        if shared.subscribers[i].dispatcherId = dispatcherId
+                            shared.subscribers.Delete(i)
+                        end if
+                    end for
+                    if shared.subscribers.count() = 0
+                        m.sharedSourceObjects.Delete(typeName)
+                    end if
+                end if
+            end if
         end sub
 
         ' ---------------------------------------------------------------------
@@ -300,22 +333,24 @@ namespace Rotor
                             end try
                         end if
 
-                        ' Broadcast to all non-identity registered dispatchers
+                        ' Broadcast to shared source object subscribers
                         if not routed
-                            for each entry in m.sourceObjectTypeRegistry
-                                ' Apply event filter if provided
-                                allowed = true
-                                if entry.eventFilter <> invalid
-                                    m._eventFilterFn = entry.eventFilter
-                                    allowed = m._eventFilterFn(msg)
-                                end if
-
-                                if allowed
-                                    dispatcherInstance = m.dispatcherProvider.get(entry.dispatcherId)
-                                    if dispatcherInstance <> invalid
-                                        dispatcherInstance.onSourceEvent(msg)
+                            for each typeName in m.sharedSourceObjects
+                                shared = m.sharedSourceObjects[typeName]
+                                for each subscriber in shared.subscribers
+                                    allowed = true
+                                    if subscriber.eventFilter <> invalid
+                                        m._eventFilterFn = subscriber.eventFilter
+                                        allowed = m._eventFilterFn(msg)
                                     end if
-                                end if
+
+                                    if allowed
+                                        dispatcherInstance = m.dispatcherProvider.get(subscriber.dispatcherId)
+                                        if dispatcherInstance <> invalid
+                                            dispatcherInstance.onSourceEvent(msg)
+                                        end if
+                                    end if
+                                end for
                             end for
                         end if
                     end if
@@ -385,7 +420,7 @@ namespace Rotor
         public sub destroy()
             m.sourceObjectRegistry.clear()
             m.sourceObjectIdIndex.clear()
-            m.sourceObjectTypeRegistry.clear()
+            m.sharedSourceObjects.clear()
             m.dispatcherProvider.destroy()
 
             globalScope = GetGlobalAA()

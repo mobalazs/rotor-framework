@@ -26,11 +26,11 @@ api:
     syntax: "dispatcher.addListener({ mapStateToProps, allowUpdate, callback, once })"
     description: "Subscribe to state changes. mapStateToProps updates props from state. allowUpdate filters when callback fires. callback or callbackWithState executes on update. once removes listener after first trigger."
   registerSourceObject:
-    syntax: "m.registerSourceObject(sourceObject, eventFilter)"
-    description: "Register any Roku source object (roUrlTransfer, roDeviceInfo, roChannelStore, roInput, etc.) for event routing. Task thread only — source objects require a task thread message port. Framework auto-sets port and auto-detects routing mode: identity-based (GetIdentity) for 1:1 routing, broadcast for objects without identity. Optional eventFilter function filters events for broadcast objects. Events routed to onSourceEvent(). Available in BaseReducer."
+    syntax: "m.registerSourceObject(typeName, eventFilter) as object"
+    description: "Creates and registers a Roku source object by type name. Framework manages object creation, port assignment, and event routing. Task thread only. Takes typeName string (e.g. 'roUrlTransfer', 'roDeviceInfo') — framework calls CreateObject(typeName) internally. Returns the created (or shared) source object. Auto-detects routing mode: identity-based (GetIdentity, e.g. roUrlTransfer) creates new instance per call with 1:1 routing; broadcast (no GetIdentity, e.g. roDeviceInfo) is singleton per type — first call creates, subsequent calls return shared instance and add dispatcher as subscriber. Optional eventFilter function filters events. Events routed to onSourceEvent(). Available in BaseReducer."
   unregisterSourceObject:
     syntax: "m.unregisterSourceObject(sourceObject)"
-    description: "Unregister a previously registered source object. Available in BaseReducer."
+    description: "Unregister a previously registered source object. Identity-based: removes by identity from registry. Broadcast: removes dispatcher subscriber; cleans up shared object when no subscribers remain. Available in BaseReducer."
   onCreateDispatcher:
     syntax: "override sub onCreateDispatcher()"
     description: "Lifecycle hook called after dispatcher is fully registered. Override to perform initialization that requires dispatcher to be set up (e.g., registering broadcast source objects like roDeviceInfo)."
@@ -57,9 +57,8 @@ examples:
           end function,
           function(intent, state) ' Async HTTP
             if intent.type = "LOAD_COUNT"
-              transfer = CreateObject("roUrlTransfer")
+              transfer = m.registerSourceObject("roUrlTransfer")
               transfer.SetUrl("https://api.example.com/count")
-              m.registerSourceObject(transfer)
               transfer.AsyncGetToString()
               return invalid ' halt reducer
             end if
@@ -122,17 +121,17 @@ examples:
 patterns:
   middleware:
     - "Logger middleware demonstrating pass-through. Logs intent then returns intent to continue."
-    - "Async HTTP middleware using registerSourceObject() for roUrlTransfer tracking. Framework auto-sets port and routes response to onSourceEvent()."
+    - "Async HTTP middleware using registerSourceObject('roUrlTransfer') — framework creates object, sets port, routes response to onSourceEvent()."
   reducer:
     - "Intent types INCREMENT, COUNT_LOADED mutating count and lastUpdated."
     - "Reducer returns modified state object. All mutations happen in reducer on task thread."
     - "Use m.getState() helper in reducers to access current state directly without callback."
   sourceObjects:
-    - "Call m.registerSourceObject(sourceObject) for identity-based objects (roUrlTransfer, roChannelStore) — framework auto-sets port and routes by GetSourceIdentity()."
-    - "Call m.registerSourceObject(sourceObject, eventFilter) for broadcast objects (roDeviceInfo, roInput) — eventFilter function filters relevant events."
+    - "Call m.registerSourceObject('roUrlTransfer') for identity-based objects — framework creates new instance per call, sets port, routes by GetSourceIdentity(). Returns the created object."
+    - "Call m.registerSourceObject('roDeviceInfo', eventFilter) for broadcast objects — singleton per type. First call creates instance, subsequent calls return shared instance and add dispatcher as subscriber. eventFilter filters relevant events."
     - "Register broadcast objects in onCreateDispatcher() lifecycle hook; identity-based objects can be registered in middleware."
     - "Framework routes all events to reducer's onSourceEvent(msg as object)."
-    - "Call m.unregisterSourceObject(sourceObject) to clean up when no longer needed."
+    - "Call m.unregisterSourceObject(sourceObject) to clean up. Broadcast: removes dispatcher subscriber, cleans up when no subscribers remain."
     - "Dispatch new intent from onSourceEvent() to update state."
   renderIntegration:
     - "ViewModel onCreateView obtains dispatcher via m.getDispatcher(name)."
@@ -146,8 +145,8 @@ patterns:
     - "m.dispatch(intent) - dispatch intent to own dispatcher"
     - "m.dispatchTo(id, intent) - dispatch intent to another dispatcher by ID"
     - "m.getStateFrom(id) - get state from another dispatcher by ID"
-    - "m.registerSourceObject(sourceObject, eventFilter) - register port-based object for event routing (identity-based or broadcast)"
-    - "m.unregisterSourceObject(sourceObject) - unregister a port-based object"
+    - "m.registerSourceObject(typeName, eventFilter) - create and register source object by type name; returns created (or shared) object"
+    - "m.unregisterSourceObject(sourceObject) - unregister a source object"
   dispatcherAccessibility:
     taskThread: "Dispatchers created via Rotor.createDispatcher() on task thread are globally accessible from render thread and other task threads."
     renderThread: "Dispatchers created on render thread are technically accessible but rarely recommended for cross-thread use. Use for complex component internal state or local UI coordination."
@@ -166,7 +165,7 @@ rules:
   - "Create dispatchers in task thread for global access; render-thread dispatchers are local-use only."
   - "All state mutations happen in reducers on task thread. Never mutate state in render thread."
   - "Use middleware for async work; return invalid to stop reducer execution."
-  - "Register source objects with m.registerSourceObject(). Framework auto-sets port and handles routing (identity-based or broadcast)."
+  - "Register source objects with m.registerSourceObject(typeName). Framework creates object, sets port, handles routing (identity-based or broadcast singleton)."
   - "Filter listener updates with allowUpdate or once: true to reduce churn and improve performance."
   - "Maintain single source of truth per dispatcher/model pair. Multiple components can subscribe to same dispatcher."
   - "Use clear, descriptive intent types (e.g., 'INCREMENT', 'LOAD_DATA', 'SET_USER')."
@@ -176,13 +175,13 @@ pitfalls:
   - "Avoid mutating state directly in render thread. Always dispatch intents."
   - "Render-thread dispatchers should rarely be consumed cross-thread."
   - "Don't perform state mutations in middleware; middleware is for async operations only."
-  - "Forgetting to call m.registerSourceObject() before async operations prevents framework event routing."
+  - "Forgetting to call m.registerSourceObject(typeName) before async operations prevents framework event routing."
   - "Forgetting to remove listeners can cause memory leaks. Use once: true for one-time operations."
 bestPractices:
   - "Keep models focused on specific domains (e.g., user, content, settings)."
   - "Use clear, descriptive intent types."
-  - "Use m.registerSourceObject() for port-based objects (roUrlTransfer, roDeviceInfo, etc.) to enable automatic event routing."
-  - "Use eventFilter with broadcast objects (roDeviceInfo, roInput) to filter relevant events in onSourceEvent()."
+  - "Use m.registerSourceObject(typeName) for source objects — framework creates and manages the object. Returns the created (or shared) instance."
+  - "Use eventFilter with broadcast objects (roDeviceInfo, roInput) to filter relevant events in onSourceEvent(). Broadcast objects are singletons shared across dispatchers."
   - "Use m.getState() in reducers to access current state without callback."
   - "Use m.dispatchTo() and m.getStateFrom() in widgets and reducers for concise cross-dispatcher access."
   - "Filter listener updates with allowUpdate when needed for performance."

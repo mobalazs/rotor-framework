@@ -43,12 +43,9 @@ class CounterReducer extends Reducer
             ' Async HTTP middleware using registerSourceObject
             function(intent, state) as Intent
                 if intent.type = "LOAD_COUNT"
-                    ' Create async transfer
-                    transfer = CreateObject("roUrlTransfer")
+                    ' Framework creates the object, sets port, routes by identity
+                    transfer = m.registerSourceObject("roUrlTransfer")
                     transfer.SetUrl("https://api.example.com/count")
-
-                    ' Register with framework (auto-sets port, auto-routes by identity)
-                    m.registerSourceObject(transfer)
 
                     ' Start async request
                     transfer.AsyncGetToString()
@@ -179,10 +176,14 @@ m.dispatcher.addListener({
 
 #### registerSourceObject
 
-Registers any Roku port-based object (`roUrlTransfer`, `roDeviceInfo`, `roChannelStore`, `roInput`, etc.) with the framework for automatic event routing. **Only available on the task thread** — source objects require a task thread message port for event routing. The framework auto-detects the routing mode:
+Creates and registers a Roku source object by type name for automatic event routing. The framework manages object creation, message port assignment, and event routing. **Only available on the task thread** — source objects require a task thread message port for event routing.
 
-- **Identity-based routing**: Objects with `GetIdentity()` (e.g., `roUrlTransfer`, `roChannelStore`) — events are routed 1:1 to the registering dispatcher via `GetSourceIdentity()`.
-- **Broadcast routing**: Objects without `GetIdentity()` (e.g., `roDeviceInfo`, `roInput`, `roAppManager`) — events are broadcast to all dispatchers that registered broadcast-type objects. Use `eventFilter` to filter relevant events.
+**Syntax:** `m.registerSourceObject(typeName, eventFilter)` → returns the created (or shared) source object
+
+The framework auto-detects the routing mode based on the object type:
+
+- **Identity-based routing**: Objects with `GetIdentity()` (e.g., `roUrlTransfer`, `roChannelStore`) — a new instance is created per call. Events are routed 1:1 to the registering dispatcher via `GetSourceIdentity()`.
+- **Broadcast routing (singleton)**: Objects without `GetIdentity()` (e.g., `roDeviceInfo`, `roInput`, `roAppManager`) — the first call creates the instance, subsequent calls return the **shared singleton** and add the dispatcher as a subscriber. Use `eventFilter` to filter relevant events. This eliminates duplicate instances when multiple reducers need the same broadcast source.
 
 **Identity-based example (roUrlTransfer):**
 
@@ -190,11 +191,9 @@ Registers any Roku port-based object (`roUrlTransfer`, `roDeviceInfo`, `roChanne
 ' In reducer middleware
 function(intent, state) as Intent
     if intent.type = "FETCH_DATA"
-        transfer = CreateObject("roUrlTransfer")
+        ' Framework creates object, sets port, routes by identity
+        transfer = m.registerSourceObject("roUrlTransfer")
         transfer.SetUrl("https://api.example.com/data")
-
-        ' Register with framework (auto-sets port, routes by identity)
-        m.registerSourceObject(transfer)
 
         ' Start async request
         transfer.AsyncGetToString()
@@ -210,13 +209,11 @@ end function
 ```brightscript
 ' In onCreateDispatcher lifecycle hook
 override sub onCreateDispatcher()
-    deviceInfo = CreateObject("roDeviceInfo")
-    deviceInfo.EnableLinkStatusEvent(true)
-
-    ' Register with event filter (only process linkStatus events)
-    m.registerSourceObject(deviceInfo, function(msg as object) as boolean
+    ' Framework creates (or returns shared) instance, sets port
+    m.deviceInfo = m.registerSourceObject("roDeviceInfo", function(msg as object) as boolean
         return msg.GetInfo()?.linkStatus <> invalid
     end function)
+    m.deviceInfo.EnableLinkStatusEvent(true)
 end sub
 ```
 
@@ -242,8 +239,9 @@ end sub
 
 **Benefits:**
 - Unified API for all Roku source objects (HTTP, device info, input, etc.)
-- No need to manually call `SetMessagePort()` — the framework handles it
+- No need to manually call `CreateObject()` or `SetMessagePort()` — the framework handles both
 - Identity-based objects are routed precisely; broadcast objects use `eventFilter` for filtering
+- Broadcast objects are singletons — multiple reducers share one instance, eliminating duplicate event dispatching
 - No need to create separate Task nodes for async operations
 
 ## Complete Example
@@ -397,7 +395,7 @@ Each dispatcher maintains one model as the single source of truth for its domain
 
 - Keep models focused on specific domains (e.g., user, content, settings)
 - Use clear, descriptive intent types
-- **Use `m.registerSourceObject()` for source objects** (`roUrlTransfer`, `roDeviceInfo`, etc.) to enable automatic event routing
+- **Use `m.registerSourceObject(typeName)` for source objects** (`roUrlTransfer`, `roDeviceInfo`, etc.) — the framework creates and manages the object for you
 - **Use `eventFilter` with broadcast objects** (e.g., `roDeviceInfo`) to filter relevant events in `onSourceEvent()`
 - **Use `m.getState()` in reducers** to access current state directly without callback
 - **Use `m.dispatchTo()` and `m.getStateFrom()`** in widgets and reducers for concise cross-dispatcher access

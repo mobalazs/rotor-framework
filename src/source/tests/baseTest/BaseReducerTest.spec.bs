@@ -97,21 +97,16 @@ namespace tests
 
             ' Stub registerSourceObject on render-thread framework (only exists on FrameworkTask)
             frameworkInstance = GetGlobalAA().rotor_framework_helper.frameworkInstance
-            frameworkInstance.registerSourceObject = sub(objectId as string, dispatcherId as string, sourceObject as object, eventFilter = invalid as dynamic)
-            end sub
+            frameworkInstance.registerSourceObject = function(typeName as string, dispatcherId as string, eventFilter = invalid as dynamic) as object
+                return { mockType: typeName }
+            end function
 
-            ' Create a mock source object with GetIdentity (identity-based routing)
-            mockSourceObject = {
-                GetIdentity: function() as integer
-                    return 123
-                end function
-            }
-
-            ' Register source object - verifies BaseReducer delegates to framework
-            testReducer.registerSourceObject(mockSourceObject)
+            ' Register source object by type name - verifies BaseReducer delegates to framework
+            result = testReducer.registerSourceObject("roUrlTransfer")
 
             m.assertNotEqual(frameworkInstance, invalid)
-            m.assertTrue(true, "registerSourceObject executed without error")
+            m.assertNotEqual(result, invalid)
+            m.assertEqual(result.mockType, "roUrlTransfer")
         end function
 
         @it("registers source object with event filter")
@@ -123,19 +118,18 @@ namespace tests
 
             ' Stub registerSourceObject on render-thread framework
             frameworkInstance = GetGlobalAA().rotor_framework_helper.frameworkInstance
-            frameworkInstance.registerSourceObject = sub(objectId as string, dispatcherId as string, sourceObject as object, eventFilter = invalid as dynamic)
-            end sub
-
-            ' Create a mock source object without GetIdentity (broadcast routing)
-            mockSourceObject = {}
+            frameworkInstance.registerSourceObject = function(typeName as string, dispatcherId as string, eventFilter = invalid as dynamic) as object
+                return { mockType: typeName }
+            end function
 
             ' Register with an event filter function
             eventFilter = function(msg as object) as boolean
                 return true
             end function
-            testReducer.registerSourceObject(mockSourceObject, eventFilter)
+            result = testReducer.registerSourceObject("roDeviceInfo", eventFilter)
 
-            m.assertTrue(true, "registerSourceObject with event filter executed without error")
+            m.assertNotEqual(result, invalid)
+            m.assertEqual(result.mockType, "roDeviceInfo")
         end function
 
         @describe("BaseReducer dispatchTo helper method")

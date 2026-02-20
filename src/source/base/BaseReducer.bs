@@ -191,23 +191,21 @@ namespace Rotor
         ' =============================================================
 
         ' ---------------------------------------------------------------------
-        ' registerSourceObject - Registers a source object with the framework
+        ' registerSourceObject - Creates and registers a source object with the framework
         '
-        ' Helper method for registering any Roku source object (roUrlTransfer,
-        ' roDeviceInfo, roChannelStore, etc.). The framework will call
-        ' SetMessagePort and route events to this reducer's onSourceEvent.
-        ' Routing mode is auto-detected: identity-based if sourceObject has GetIdentity(),
-        ' broadcast otherwise.
+        ' Creates a Roku source object by type name. The framework manages object
+        ' creation, message port assignment, and event routing.
+        ' - Identity-based types (roUrlTransfer, roChannelStore): new instance per call
+        ' - Broadcast types (roDeviceInfo, roInput): singleton, shared across dispatchers
         '
-        ' @param {object} sourceObject - The source object
+        ' @param {string} typeName - Roku object type (e.g. "roUrlTransfer", "roDeviceInfo")
         ' @param {function} eventFilter - Optional filter function. Receives msg, returns boolean.
+        ' @returns {object} The created (or shared) source object
         '
-        sub registerSourceObject(sourceObject as object, eventFilter = invalid as dynamic)
+        function registerSourceObject(typeName as string, eventFilter = invalid as dynamic) as object
             frameworkInstance = GetGlobalAA().rotor_framework_helper.frameworkInstance
-
-            objectId = m.getSourceObjectId(sourceObject)
-            frameworkInstance.registerSourceObject(objectId, m.dispatcherId, sourceObject, eventFilter)
-        end sub
+            return frameworkInstance.registerSourceObject(typeName, m.dispatcherId, eventFilter)
+        end function
 
         ' ---------------------------------------------------------------------
         ' unregisterSourceObject - Unregisters a source object from the framework
@@ -216,30 +214,8 @@ namespace Rotor
         '
         sub unregisterSourceObject(sourceObject as object)
             frameworkInstance = GetGlobalAA().rotor_framework_helper.frameworkInstance
-            objectId = m.getSourceObjectId(sourceObject)
-            frameworkInstance.unregisterSourceObject(objectId)
+            frameworkInstance.unregisterSourceObject(sourceObject, m.dispatcherId)
         end sub
-
-        ' =============================================================
-        ' ASYNC CALLBACK
-        ' =============================================================
-
-        ' ---------------------------------------------------------------------
-        ' getSourceObjectId - Generates unique objectId for a source object
-        '
-        ' Identity-based objects (roUrlTransfer, etc.): dispatcherId + GetIdentity()
-        ' Broadcast objects (roDeviceInfo, etc.): dispatcherId + type name
-        '
-        ' @param {object} sourceObject - The source object
-        ' @returns {string} Unique objectId
-        '
-        private function getSourceObjectId(sourceObject as object) as string
-            if FindMemberFunction(sourceObject, "GetIdentity") <> invalid
-                return `${m.dispatcherId}_${sourceObject.GetIdentity()}`
-            else
-                return `${m.dispatcherId}_${type(sourceObject)}`
-            end if
-        end function
 
         ' ---------------------------------------------------------------------
         ' onSourceEvent - Callback for source object events

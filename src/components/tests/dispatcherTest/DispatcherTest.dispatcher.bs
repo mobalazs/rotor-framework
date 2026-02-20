@@ -56,8 +56,7 @@ namespace test
         deviceInfo as object
 
         override sub onCreateDispatcher()
-            m.deviceInfo = CreateObject("roDeviceInfo")
-            m.registerSourceObject(m.deviceInfo, function(msg as object) as boolean
+            m.deviceInfo = m.registerSourceObject("roDeviceInfo", function(msg as object) as boolean
                 return true
             end function)
         end sub
@@ -102,10 +101,9 @@ namespace test
         transfer as object
 
         override sub onCreateDispatcher()
-            m.transfer = CreateObject("roUrlTransfer")
+            m.transfer = m.registerSourceObject("roUrlTransfer")
             m.transfer.SetCertificatesFile("common:/certs/ca-bundle.crt")
             m.transfer.InitClientCertificates()
-            m.registerSourceObject(m.transfer)
             ' Fire a POST to a non-routable address — will fail fast with roUrlEvent
             m.transfer.SetUrl("https://127.0.0.1:1/fake")
             m.transfer.AsyncPostFromString("test")

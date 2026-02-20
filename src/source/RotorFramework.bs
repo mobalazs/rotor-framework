@@ -336,14 +336,15 @@ namespace Rotor
         ' ---------------------------------------------------------------------
         ' registerSourceObject - Not available on render thread
         '
-        public sub registerSourceObject(objectId as string, dispatcherId as string, sourceObject as object, eventFilter = invalid as dynamic)
-            throw "registerSourceObject() is only available on the task thread. Source objects require a task thread message port for event routing."
-        end sub
+        public function registerSourceObject(typeName as string, dispatcherId as string, eventFilter = invalid as dynamic) as object
+            throw "registerSourceObject() is only available on the task thread."
+            return invalid
+        end function
 
         ' ---------------------------------------------------------------------
         ' unregisterSourceObject - Not available on render thread
         '
-        public sub unregisterSourceObject(objectId as string)
+        public sub unregisterSourceObject(sourceObject as object, dispatcherId as string)
             throw "unregisterSourceObject() is only available on the task thread."
         end sub
 
