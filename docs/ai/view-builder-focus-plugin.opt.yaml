@@ -47,6 +47,7 @@ props:
     onBlur: "sub() — called when widget loses focus"
     onSelect: "sub() — called when OK button pressed while focused"
     longPressHandler: "function(isLongPress as boolean, key as string) as boolean — return true if handled (stops bubbling)"
+    keyPressHandler: "function(key as string) as boolean — handle non-navigation keys (play, pause, rewind, etc.). Return true if handled (stops bubbling to ancestor groups)"
   focusGroup:
     defaultFocusId: "string | function() as string — default focus target when group receives focus"
     lastFocusedHID: "string (auto-managed) — remembers last focused item HID"
@@ -58,6 +59,7 @@ props:
     onFocus: "sub() — called when group enters focus chain"
     onBlur: "sub() — called when group leaves focus chain"
     longPressHandler: "function(isLongPress as boolean, key as string) as boolean — group-level long press handler"
+    keyPressHandler: "function(key as string) as boolean — group-level handler for non-navigation keys. Receives keys not handled by focused item's keyPressHandler. Return true to stop bubbling"
 
 directionValues:
   onFocusItem:

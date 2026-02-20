@@ -117,6 +117,7 @@ This means `defaultFocusId: "deepItem"` will find `"deepItem"` even if it's 3+ l
 | `onBlur` | `sub()` | `invalid` | Called when the widget loses focus |
 | `onSelect` | `sub()` | `invalid` | Called when the OK button is pressed while the widget is focused |
 | `longPressHandler` | `function(isLongPress as boolean, key as string) as boolean` | `invalid` | Handle long-press events. Return `true` if handled (stops bubbling to ancestor groups). |
+| `keyPressHandler` | `function(key as string) as boolean` | `invalid` | Handle non-navigation key presses (play, pause, rewind, fastforward, replay, options, etc.). Called for any key that is not a direction key or OK. Return `true` if handled (stops bubbling to ancestor groups). |
 
 ## FocusGroup Configuration Properties
 
@@ -132,6 +133,7 @@ This means `defaultFocusId: "deepItem"` will find `"deepItem"` even if it's 3+ l
 | `onFocus` | `sub()` | `invalid` | Called when a descendant gains focus (group enters focus chain) |
 | `onBlur` | `sub()` | `invalid` | Called when all descendants lose focus (group leaves focus chain) |
 | `longPressHandler` | `function(isLongPress as boolean, key as string) as boolean` | `invalid` | Handle long-press events at group level. Return `true` to stop propagation. |
+| `keyPressHandler` | `function(key as string) as boolean` | `invalid` | Handle non-navigation key presses at group level. Receives keys that were not handled by the focused FocusItem's `keyPressHandler`. Return `true` to stop bubbling to ancestor groups. |
 
 ---
 
@@ -781,6 +783,74 @@ A toggle that displays device state but cannot be interacted with:
     }
 }
 ```
+
+### Video Player with Media Key Handling
+
+A video player widget that handles media remote keys (play, pause, rewind, etc.) via `keyPressHandler`:
+
+```brightscript
+{
+    id: "videoPlayer",
+    nodeType: "Video",
+    focus: {
+        enableNativeFocus: true,
+        keyPressHandler: function(key as string) as boolean
+            if key = "play"
+                m.togglePlayPause()
+                return true
+            else if key = "rewind"
+                m.seekBackward(10)
+                return true
+            else if key = "fastforward"
+                m.seekForward(10)
+                return true
+            end if
+            return false  ' Let unhandled keys bubble up
+        end function,
+        onSelect: sub()
+            m.togglePlayPause()  ' OK button also toggles play/pause
+        end sub
+    }
+}
+```
+
+Group-level `keyPressHandler` as a fallback for all widgets in a section:
+
+```brightscript
+{
+    id: "mediaSection",
+    nodeType: "Group",
+    focusGroup: {
+        defaultFocusId: "mediaList",
+        keyPressHandler: function(key as string) as boolean
+            if key = "options"
+                m.showOptionsMenu()
+                return true
+            end if
+            return false
+        end function
+    }
+}
+```
+
+Key techniques:
+- **FocusItem `keyPressHandler`** handles media keys specific to the focused widget
+- **FocusGroup `keyPressHandler`** provides fallback handling for the entire section
+- **Returning `false`** allows the event to bubble to ancestor groups
+- **Navigation keys** (up/down/left/right/back/OK) are NOT routed through `keyPressHandler` — they use the standard navigation system
+
+### Using `onKeyEvent` in MainScene
+
+Call the FocusPlugin's `onKeyEventHandler` directly from your MainScene and return the `handled` boolean:
+
+```brightscript
+' In your MainScene component:
+function onKeyEvent(key as string, press as boolean) as boolean
+    return m.appFramework.plugins.focus.onKeyEventHandler(key, press).handled
+end function
+```
+
+This ensures only actually handled keys return `true` — unhandled keys return `false` so Roku can process them normally. A common mistake is `return true` for all keys, which swallows media keys (play, pause, rewind, etc.).
 
 ---
 

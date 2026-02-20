@@ -72,3 +72,10 @@ sub helloWorldSample()
         }]
     })
 end sub
+
+' Delegate key events to the framework's focus plugin.
+' Returns true only when the key was actually handled (navigation, OK, or keyPressHandler).
+' Unhandled keys return false so Roku can process them normally.
+function onKeyEvent(key as string, press as boolean) as boolean
+    return m.appFramework.plugins.focus.onKeyEventHandler(key, press).handled
+end function

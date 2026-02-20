@@ -776,6 +776,24 @@ namespace Rotor
             end if
         end sub
 
+        function delegateKeyPress(key as string) as boolean
+            focused = m.getFocusedItem()
+            if focused = invalid then return false
+
+            handled = focused.callKeyPressHandler(key)
+            if handled then return true
+
+            ' Bubble through ancestor groups
+            focusChainGroups = m.findAncestorGroups(focused.HID)
+            for each groupHID in focusChainGroups
+                group = m.groupStack.get(groupHID)
+                handled = group.callKeyPressHandler(key)
+                if handled then return true
+            end for
+
+            return false
+        end function
+
         sub delegateLongPressChanged(isLongPress as boolean, key as string)
             focused = m.getFocusedItem()
             handled = focused.callLongPressHandler(isLongPress, key)
@@ -1101,6 +1119,11 @@ namespace Rotor
 
                     return m.parseOnKeyEventResult(key, true, true)
 
+                else
+                    ' Non-navigation, non-OK key → delegate to keyPressHandler
+                    handled = m.delegateKeyPress(key)
+                    return m.parseOnKeyEventResult(key, handled, false)
+
                 end if
             end if
 
@@ -1300,6 +1323,7 @@ namespace Rotor
 
                 m.onFocusChanged = config.onFocusChanged
                 m.longPressHandler = config.longPressHandler
+                m.keyPressHandler = config.keyPressHandler
                 m.onFocus = config.onFocus
                 m.onBlur = config.onBlur
 
@@ -1322,6 +1346,7 @@ namespace Rotor
             onFocus as dynamic
             onBlur as dynamic
             longPressHandler as dynamic
+            keyPressHandler as dynamic
             node as object
             widget as object
 
@@ -1392,6 +1417,14 @@ namespace Rotor
                 end if
             end function
 
+            function callKeyPressHandler(key as string) as boolean
+                if Rotor.Utils.isFunction(m.keyPressHandler)
+                    return Rotor.Utils.callbackScoped(m.keyPressHandler, m.widget, key)
+                else
+                    return false
+                end if
+            end function
+
             sub destroy()
                 m.widget = invalid
                 m.node = invalid
@@ -1399,6 +1432,7 @@ namespace Rotor
                 m.onFocus = invalid
                 m.onBlur = invalid
                 m.longPressHandler = invalid
+                m.keyPressHandler = invalid
             end sub
 
         end class
