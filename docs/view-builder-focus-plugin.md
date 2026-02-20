@@ -870,6 +870,7 @@ FocusItem (no direction) → Spatial nav (nothing) → Group.direction?
 1. `group.lastFocusedHID` (if exists and still valid) [AUTO-SAVED]
 2. `group.defaultFocusId` [CONFIGURED]
 3. Deep search (if defaultFocusId not found in immediate children)
+4. **Child member fallback** — if no `defaultFocusId` is configured, picks an available group member (focusItem) so focus is not lost. Note: the selection order is non-deterministic (depends on internal associative array iteration), so `defaultFocusId` is always recommended for predictable behavior.
 
 ### RULE #11b: Focus Memory Configuration
 
@@ -883,6 +884,8 @@ When set to `false`, the group **never stores** `lastFocusedHID`. This means `de
 With the default `enableLastFocusId: true`, `defaultFocusId` (and its function) is only evaluated on the **first** entry into the group. After that, the stored `lastFocusedHID` takes priority and `defaultFocusId` is bypassed entirely.
 
 Use case: Set `enableLastFocusId: false` when the group should always resolve focus dynamically (e.g., a spotlight rail that always starts from the first item, or a group where the entry point depends on runtime state).
+
+**Note:** If `enableLastFocusId: false` is combined with no `defaultFocusId`, the group will always fall back to the child-member fallback on every entry — effectively always picking a non-deterministic member. This is rarely useful; always pair `enableLastFocusId: false` with a `defaultFocusId` (preferably a function) for meaningful dynamic behavior.
 
 **`enableDeepLastFocusId`** use case: In nested groups (e.g., `mainMenu > subMenu > menuItem`), if you want the outer `mainMenu` to remember which deeply nested `menuItem` was last focused, set `enableDeepLastFocusId: true` on `mainMenu`.
 
@@ -944,7 +947,7 @@ Alternatively, use the injected `m.isFocused()` method in field expressions for 
 
 ### 2. Always Specify `defaultFocusId` for Groups
 
-A group without `defaultFocusId` can cause focus loss when focus enters the group:
+A group without `defaultFocusId` will fall back to picking an available child member, but the selection order is **non-deterministic** (depends on internal associative array iteration). Always specify `defaultFocusId` for predictable entry behavior:
 
 ```brightscript
 ' Always provide an entry point
@@ -1002,7 +1005,7 @@ focusGroup: {
 | Pitfall | Symptom | Solution |
 |---------|---------|----------|
 | **Focus Loops** | Focus cycles between two widgets endlessly | Use `false` to block directions or carefully plan navigation paths |
-| **Missing `defaultFocusId`** | Focus is lost when entering a group | Always specify `defaultFocusId` (RULE #11) |
+| **Missing `defaultFocusId`** | Focus goes to a non-deterministic child member when entering a group | Always specify `defaultFocusId` for predictable behavior (RULE #11). The child-member fallback prevents focus loss but does not guarantee order. |
 | **Focusing disabled items** | `setFocus` returns false, nothing happens | Check `isEnabled` before programmatic focus; provide visual disabled state |
 | **Native focus conflicts** | Unexpected focus jumps or lost input | Use `enableNativeFocus` consistently; avoid mixing native and plugin focus |
 | **Group hierarchy issues** | Navigation doesn't work as expected | Ensure groups properly contain focus items in the widget tree |

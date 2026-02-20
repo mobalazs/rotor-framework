@@ -2799,5 +2799,41 @@ namespace tests
             m.assertTrue(r1Widget.node.hasFocus())
         end function
 
+        @describe("first child fallback")
+
+        @it("focuses first child when group has no defaultFocusId")
+        function _()
+            template = {
+                id: "fallbackRoot",
+                nodeType: "Group",
+                focusGroup: {},
+                children: [
+                    {
+                        id: "fallbackChild1",
+                        nodeType: "Rectangle",
+                        fields: { width: 100, height: 50 },
+                        focus: {}
+                    },
+                    {
+                        id: "fallbackChild2",
+                        nodeType: "Rectangle",
+                        fields: { width: 100, height: 50, translation: [150, 0] },
+                        focus: {}
+                    }
+                ]
+            }
+
+            m.fwInstance.destroy()
+            m.fwInstance = new Rotor.Framework()
+            m.fwInstance.render(template)
+
+            rootWidget = m.fwInstance.getWidget("fallbackRoot")
+            rootWidget.setFocus()
+
+            focusedWidget = m.fwInstance.plugins.focus.getFocusedWidget()
+            m.assertNotInvalid(focusedWidget)
+            m.assertTrue(focusedWidget.id = "fallbackChild1" or focusedWidget.id = "fallbackChild2")
+        end function
+
         end class
 end namespace

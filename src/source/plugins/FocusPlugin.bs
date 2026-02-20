@@ -1552,8 +1552,9 @@ namespace Rotor
                     defaultFocusId = m.defaultFocusId
                 end if
 
+                focusItemsHIDlist = m.getGroupMembersHIDs()
+
                 if defaultFocusId <> ""
-                    focusItemsHIDlist = m.getGroupMembersHIDs()
                     if focusItemsHIDlist.Count() > 0
                         ' Try find valid HID in focusItems by node id
                         focusItemHID = m.findHIDinFocusItemsByNodeId(defaultFocusId, focusItemsHIDlist)
@@ -1564,6 +1565,11 @@ namespace Rotor
                     ' If not found as focusItem, return defaultFocusId string
                     ' so capturingFocus_recursively can try to resolve it as a group
                     return defaultFocusId
+                end if
+
+                ' Last resort: pick the first available member of the group
+                if focusItemsHIDlist.Count() > 0
+                    return focusItemsHIDlist[0]
                 end if
 
                 return HID

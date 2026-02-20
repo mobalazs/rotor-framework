@@ -95,10 +95,11 @@ rules:
     1: "group.lastFocusedHID (if exists and still valid) [AUTO-SAVED]"
     2: "group.defaultFocusId [CONFIGURED]"
     3: "Deep search (if defaultFocusId not found immediately)"
+    4: "Child member fallback — if no defaultFocusId, picks an available group member. Order is non-deterministic (AA iteration). defaultFocusId always recommended."
   RULE_11b_focusMemory:
     enableLastFocusId: "boolean (default: true) — when true, stores lastFocusedHID; on re-entry lastFocusedHID takes priority over defaultFocusId. When false, defaultFocusId is ALWAYS used on every focus entry (function is called every time), making focus resolution fully dynamic."
     enableDeepLastFocusId: "boolean (default: false) — ancestors also store lastFocusedHID from any depth"
-    useCase_enableLastFocusId_false: "Spotlight rail always starting from first item, or group where entry point depends on runtime state."
+    useCase_enableLastFocusId_false: "Spotlight rail always starting from first item, or group where entry point depends on runtime state. Note: if combined with no defaultFocusId, always falls back to non-deterministic child member on every entry. Always pair with a defaultFocusId (preferably a function)."
     useCase_enableDeepLastFocusId: "Nested groups (mainMenu > subMenu > item): set enableDeepLastFocusId:true on mainMenu to remember deeply nested item."
   RULE_12: "defaultFocusId targets: FocusItem ID → direct focus | Group ID → recursive capturing | nonExistent → deep search"
   RULE_13: "Deep search: triggers when defaultFocusId not found in immediate children. Searches all descendant FocusItems and Groups."
@@ -203,7 +204,7 @@ patterns:
 
 bestPractices:
   visualFeedback: "Always handle focus state visually via onFocusChanged or m.isFocused() in field expressions."
-  defaultFocusId: "Always specify group.defaultFocusId to avoid focus loss on group entry."
+  defaultFocusId: "Always specify group.defaultFocusId. Without it, child-member fallback picks a non-deterministic member (no focus loss, but unpredictable order)."
   organizeGroups: "Structure groups based on UI layout and navigation flow. Flat is insufficient for complex UIs."
   explicitDirections: "Use explicit directions for critical cross-section nav. Spatial alone may be unpredictable."
   onFocusVsOnSelect: "onFocus for passive selection (preview). onSelect for active confirmation (submit, open, play)."
@@ -212,7 +213,7 @@ bestPractices:
 
 pitfalls:
   focusLoops: "Circular navigation. Solution: Use false to block or plan paths."
-  missingDefaultFocus: "Group without defaultFocusId → focus loss. Solution: Always specify."
+  missingDefaultFocus: "Group without defaultFocusId → non-deterministic child member fallback (not focus loss, but unpredictable order). Solution: Always specify defaultFocusId."
   disabledItems: "Focusing isEnabled=false items. Solution: Check before programmatic focus."
   nativeFocusConflicts: "Mixing native/plugin focus. Solution: Use enableNativeFocus consistently."
   groupHierarchy: "Wrong parent-child relationships. Solution: Ensure groups contain items in tree."
