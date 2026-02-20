@@ -50,7 +50,7 @@ props:
   focusGroup:
     defaultFocusId: "string | function() as string — default focus target when group receives focus"
     lastFocusedHID: "string (auto-managed) — remembers last focused item HID"
-    enableLastFocusId: "boolean (default: true) — immediate parent stores lastFocusedHID for direct children"
+    enableLastFocusId: "boolean (default: true) — when true, stores lastFocusedHID and uses it on re-entry (bypassing defaultFocusId). When false, defaultFocusId is ALWAYS evaluated on every focus entry — if it's a function, it's called every time."
     enableDeepLastFocusId: "boolean (default: false) — ancestor groups also store lastFocusedHID from ANY depth"
     enableSpatialEnter: "boolean | AA (default: false) — spatial nav when entering from direction. AA: { right: true, down: true }"
     up/down/left/right/back: "string | function() as string | boolean — group-level navigation (activated via bubbling)"
@@ -96,9 +96,10 @@ rules:
     2: "group.defaultFocusId [CONFIGURED]"
     3: "Deep search (if defaultFocusId not found immediately)"
   RULE_11b_focusMemory:
-    enableLastFocusId: "boolean (default: true) — immediate parent stores lastFocusedHID"
+    enableLastFocusId: "boolean (default: true) — when true, stores lastFocusedHID; on re-entry lastFocusedHID takes priority over defaultFocusId. When false, defaultFocusId is ALWAYS used on every focus entry (function is called every time), making focus resolution fully dynamic."
     enableDeepLastFocusId: "boolean (default: false) — ancestors also store lastFocusedHID from any depth"
-    useCase: "Nested groups (mainMenu > subMenu > item): set enableDeepLastFocusId:true on mainMenu to remember deeply nested item."
+    useCase_enableLastFocusId_false: "Spotlight rail always starting from first item, or group where entry point depends on runtime state."
+    useCase_enableDeepLastFocusId: "Nested groups (mainMenu > subMenu > item): set enableDeepLastFocusId:true on mainMenu to remember deeply nested item."
   RULE_12: "defaultFocusId targets: FocusItem ID → direct focus | Group ID → recursive capturing | nonExistent → deep search"
   RULE_13: "Deep search: triggers when defaultFocusId not found in immediate children. Searches all descendant FocusItems and Groups."
   RULE_14: "enableSpatialEnter: entering group uses spatial nav from direction. Finds closest item, falls back to defaultFocusId. Ignores lastFocusedHID."
@@ -190,7 +191,7 @@ patterns:
     focusGroup: { enableDeepLastFocusId: true } — remembers ANY depth
     User focuses nested item3 → nav away → return → goes back to item3
   disableFocusMemory: |
-    focusGroup: { enableLastFocusId: false } — always uses defaultFocusId
+    focusGroup: { enableLastFocusId: false } — defaultFocusId is ALWAYS evaluated on every entry (never bypassed by lastFocusedHID). If defaultFocusId is a function, it runs every time.
   animatedIndicator: |
     focusGroup: { onFocusChanged: sub(isFocused) -> animate focusBar opacity }
   transitionControl: |

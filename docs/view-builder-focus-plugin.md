@@ -124,7 +124,7 @@ This means `defaultFocusId: "deepItem"` will find `"deepItem"` even if it's 3+ l
 |----------|------|---------|-------------|
 | `defaultFocusId` | string \| `function() as string` | `""` | Default focus target when the group receives focus. Can be a static node ID or a function evaluated at resolution time. |
 | `lastFocusedHID` | string | `""` (auto-managed) | Automatically remembers the last focused item's HID within this group |
-| `enableLastFocusId` | boolean | `true` | When true, the immediate parent group stores `lastFocusedHID` for direct children |
+| `enableLastFocusId` | boolean | `true` | When `true`, the group stores `lastFocusedHID` and uses it on re-entry (bypassing `defaultFocusId`). When `false`, `defaultFocusId` is always evaluated on every focus entry — making it fully dynamic if it's a function. |
 | `enableDeepLastFocusId` | boolean | `false` | When true, ancestor groups also store `lastFocusedHID` from ANY descendant depth |
 | `enableSpatialEnter` | boolean \| object | `false` | Enable spatial navigation when entering the group from a direction. Can be a boolean (all directions) or per-direction AA: `{ right: true, down: true }` |
 | `up` / `down` / `left` / `right` / `back` | string \| function \| boolean | `""` | Group-level navigation directions (activated via bubbling) |
@@ -876,7 +876,15 @@ FocusItem (no direction) → Spatial nav (nothing) → Group.direction?
 - **`enableLastFocusId`** (default: `true`) — Controls whether the **immediate parent** group stores `lastFocusedHID`
 - **`enableDeepLastFocusId`** (default: `false`) — When true, **ancestor groups** also store `lastFocusedHID` from ANY descendant depth
 
-Use case: In nested groups (e.g., `mainMenu > subMenu > menuItem`), if you want the outer `mainMenu` to remember which deeply nested `menuItem` was last focused, set `enableDeepLastFocusId: true` on `mainMenu`.
+**Important: The effect of `enableLastFocusId: false`**
+
+When set to `false`, the group **never stores** `lastFocusedHID`. This means `defaultFocusId` is **always** used when the group receives focus — every single time, not just on the initial entry. If `defaultFocusId` is a function, it will be **called on every focus entry**, making it fully dynamic.
+
+With the default `enableLastFocusId: true`, `defaultFocusId` (and its function) is only evaluated on the **first** entry into the group. After that, the stored `lastFocusedHID` takes priority and `defaultFocusId` is bypassed entirely.
+
+Use case: Set `enableLastFocusId: false` when the group should always resolve focus dynamically (e.g., a spotlight rail that always starts from the first item, or a group where the entry point depends on runtime state).
+
+**`enableDeepLastFocusId`** use case: In nested groups (e.g., `mainMenu > subMenu > menuItem`), if you want the outer `mainMenu` to remember which deeply nested `menuItem` was last focused, set `enableDeepLastFocusId: true` on `mainMenu`.
 
 ### RULE #12: DefaultFocusId Targets
 
