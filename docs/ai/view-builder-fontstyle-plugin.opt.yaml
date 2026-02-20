@@ -114,7 +114,7 @@ patterns:
     end function
   highlightOnFocus: |
     fontStyle: function() as object
-      if m.viewModelState.isFocused
+      if m.isFocused()
         return { uri: "pkg:/fonts/Roboto-Bold.ttf", size: 36 }  (bold when focused)
       else
         return { uri: "pkg:/fonts/Roboto-Regular.ttf", size: 32 }

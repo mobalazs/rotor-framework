@@ -90,6 +90,7 @@ namespace Rotor
         ' Focus Plugin Methods (from FocusPlugin.bs)
         optional enableFocusNavigation as function    ' Enable focus navigation
         optional isFocusNavigationEnabled as function ' Check if focus enabled
+        optional isFocused as function                ' Check if widget is focused
         optional setFocus as function                 ' Set focus on widget
         optional getFocusedWidget as function         ' Get currently focused widget
         optional proceedLongPress as function         ' Trigger long press

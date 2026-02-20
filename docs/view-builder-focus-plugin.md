@@ -17,7 +17,7 @@ The Focus Plugin was developed over multiple years across several proof-of-conce
 - **Static and Dynamic Direction Overrides** with support for functions evaluated at navigation time
 - **Focus Memory** that automatically remembers and restores the last focused item per group, with configurable depth
 - **Long-Press Detection** with duration-based timer and handler callbacks for continuous scroll or special actions
-- **Automatic State Management** through `viewModelState.isFocused` — no manual state wiring required
+- **Focus State Query** via injected `isFocused()` widget method — always reflects current focus state
 - **Programmatic Focus Control** via injected widget methods (`setFocus`, `triggerKeyPress`, `enableFocusNavigation`)
 - **Deep Search Resolution** that finds focus targets at any depth in the widget hierarchy
 - **Spatial Enter** for geometry-aware group entry from specific directions
@@ -111,7 +111,6 @@ This means `defaultFocusId: "deepItem"` will find `"deepItem"` even if it's 3+ l
 | `isEnabled` | boolean | `true` | Enable/disable focus capability. Disabled items are skipped by both manual and spatial navigation. |
 | `enableNativeFocus` | boolean | `false` | When true, sets native SceneGraph focus on the underlying node (needed for keyboard input, video players, etc.) |
 | `enableSpatialNavigation` | boolean | `false` | Opt-in to automatic geometry-based navigation within the parent group |
-| `autoSetIsFocusedState` | boolean | `true` | When true, automatically manages `viewModelState.isFocused` and `node.isFocused`. Set to false for custom state handling. |
 | `up` / `down` / `left` / `right` / `back` | string \| function \| boolean | `""` | Static or dynamic navigation direction (see Direction Values) |
 | `onFocusChanged` | `sub(isFocused as boolean)` | `invalid` | Called when focus state changes (receives true on focus, false on blur) |
 | `onFocus` | `sub()` | `invalid` | Called when the widget gains focus |
@@ -128,7 +127,6 @@ This means `defaultFocusId: "deepItem"` will find `"deepItem"` even if it's 3+ l
 | `enableLastFocusId` | boolean | `true` | When true, the immediate parent group stores `lastFocusedHID` for direct children |
 | `enableDeepLastFocusId` | boolean | `false` | When true, ancestor groups also store `lastFocusedHID` from ANY descendant depth |
 | `enableSpatialEnter` | boolean \| object | `false` | Enable spatial navigation when entering the group from a direction. Can be a boolean (all directions) or per-direction AA: `{ right: true, down: true }` |
-| `autoSetIsFocusedState` | boolean | `true` | When true, automatically manages `viewModelState.isFocused` for the group based on its focus chain state |
 | `up` / `down` / `left` / `right` / `back` | string \| function \| boolean | `""` | Group-level navigation directions (activated via bubbling) |
 | `onFocusChanged` | `sub(isFocused as boolean)` | `invalid` | Called when the group's focus chain state changes (true = a descendant has focus) |
 | `onFocus` | `sub()` | `invalid` | Called when a descendant gains focus (group enters focus chain) |
@@ -175,9 +173,9 @@ Direction properties (`up`, `down`, `left`, `right`, `back`) accept different va
 2. **Instance Creation** — Creates `FocusItemClass` or `GroupClass` instance with configuration
 3. **Registration** — Stores instance in `FocusItemStack` or `GroupStack`
 4. **Hierarchy Tracking** — Ancestor group relationships are computed dynamically via HID matching
-5. **State Initialization** — Sets `viewModelState.isFocused = false` and adds `node.isFocused` field automatically
+5. **State Initialization** — Adds `node.isFocused` field automatically. For ViewModel widgets only (`isViewModel = true`), also initializes `viewModelState.isFocused` to `false` if it does not already exist. Simple child widgets are excluded because they share the parent ViewModel's `viewModelState` by reference, which would cause conflicts.
 6. **Focus Application** — When focus is set, calls `onFocusChanged`, `onFocus`/`onBlur` callbacks
-7. **State Update** — Updates `viewModelState.isFocused` and `node.isFocused` field on both items and ancestor groups
+7. **State Update** — Updates `node.isFocused` on all focus-configured widgets. Updates `viewModelState.isFocused` only on ViewModel widgets. Use the injected `m.isFocused()` method for reliable per-widget focus queries.
 8. **Navigation Handling** — Processes key events through static → spatial → bubbling priority chain
 9. **Group Notification** — Notifies all affected ancestor groups of focus chain changes
 10. **Cleanup** — Removes focus config and destroys instances on widget destroy
@@ -190,6 +188,7 @@ Widgets with focus configuration automatically receive these methods:
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
+| `isFocused` | `function() as boolean` | Check if this widget is focused (FocusItem) or in focus chain (Group). For widgets without focus config, returns `false`. |
 | `setFocus` | `function(command, enableNativeFocus?) as boolean` | Focus current widget (`true`), blur it (`false`), or focus another widget by ID (string). Returns `true` if focus changed. |
 | `getFocusedWidget` | `function() as object` | Returns the currently focused widget instance across the entire focus system |
 | `enableFocusNavigation` | `sub(enabled = true)` | Globally enable/disable all focus navigation (useful during animations or transitions) |
@@ -220,7 +219,7 @@ The simplest focus configuration — a button with visual feedback and selection
                 m.node.blendColor = "0xFFFFFFFF"
                 m.node.opacity = 0.8
             end if
-            ' Note: m.viewModelState.isFocused is updated automatically
+            ' Tip: use m.isFocused() to query focus state
         end sub,
         onSelect: sub()
             m.getViewModel().handleAction()
@@ -301,7 +300,7 @@ A classic CTV layout with a left-side menu and right-side content area:
             return m.viewModelState.wasContentFocused ? "contentArea" : "sideMenu"
         end function,
         onBlur: sub()
-            m.viewModelState.wasContentFocused = m.children?.contentArea?.viewModelState?.isFocused = true
+            m.viewModelState.wasContentFocused = m.children?.contentArea?.node?.isFocused = true
         end sub
     },
     children: [
@@ -933,7 +932,7 @@ focus: {
 }
 ```
 
-Alternatively, use `viewModelState.isFocused` in field expressions for reactive updates without explicit callbacks.
+Alternatively, use the injected `m.isFocused()` method in field expressions for reactive updates without explicit callbacks.
 
 ### 2. Always Specify `defaultFocusId` for Groups
 
@@ -1039,8 +1038,7 @@ end if
 ### Focus State Not Updating UI
 
 - Verify `onFocusChanged` callback is properly defined
-- Check that `m.viewModelState.isFocused` is being read (auto-managed by default)
-- If `autoSetIsFocusedState: false`, you must manage state manually
+- Use `m.isFocused()` to query focus state programmatically
 - Inspect `m.node.isFocused` field value directly for debugging
 
 ### Unexpected Group Exit Behavior

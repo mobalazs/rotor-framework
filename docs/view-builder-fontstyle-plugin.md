@@ -56,7 +56,7 @@ The FontStyle Plugin provides declarative font management for Label nodes. It en
 
     ' Function expression - dynamic based on state
     fontStyle: function() as object typecast m as Rotor.Widget
-        if m.viewModelState.isFocused
+        if m.isFocused()
             return UI.fontStyles.H1_aa
         else
             return UI.fontStyles.body_aa
@@ -240,7 +240,7 @@ UI.components = {
     fontStyle: function() as object
         baseFont = {
             uri: "pkg:/fonts/Roboto-Medium.ttf",
-            size: m.viewModelState.isFocused ? 24 : 18
+            size: m.isFocused() ? 24 : 18
         }
         return baseFont
     end function,

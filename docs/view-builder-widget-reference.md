@@ -88,6 +88,7 @@ Widgets with focus configuration automatically receive these methods (see [Focus
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
+| `isFocused` | `function() as boolean` | Check if this widget is focused (FocusItem) or in focus chain (Group) |
 | `setFocus` | `function(id as string \| isFocused as boolean, enableNativeFocus = false as boolean) as boolean` | Set focus on current widget (boolean) or target widget (string ID) |
 | `getFocusedWidget` | `function() as object` | Returns currently focused widget instance |
 | `enableFocusNavigation` | `sub(enabled = true as boolean)` | Globally enable/disable focus navigation |

@@ -170,7 +170,7 @@ The Fields Plugin operates automatically through widget lifecycle:
         width: 200,
         height: 60,
         color: function() as string
-            if m.viewModelState.isFocused
+            if m.isFocused()
                 return "#FF5500"  ' Orange when focused
             else if m.props.isSelected
                 return "#0055FF"  ' Blue when selected
@@ -184,7 +184,7 @@ The Fields Plugin operates automatically through widget lifecycle:
         fields: {
             text: m.props.label,
             color: function() as string
-                return m.viewModelState.isFocused ? "#FFFFFF" : "#000000"
+                return m.isFocused() ? "#FFFFFF" : "#000000"
             end function,
             horizAlign: "center",
             vertAlign: "center",
@@ -357,13 +357,13 @@ fields: {
     nodeType: "Rectangle",
     focus: {
         onFocusChanged: sub(isFocused)
-            ' Focus plugin auto-updates viewModelState.isFocused
+            ' Focus state queryable via m.isFocused()
         end sub
     },
     fields: {
         color: function() as string
             ' React to focus state changes
-            return m.viewModelState.isFocused ? "#FF5500" : "#CCCCCC"
+            return m.isFocused() ? "#FF5500" : "#CCCCCC"
         end function
     }
 }

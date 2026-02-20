@@ -5,7 +5,7 @@ scope:
   targets:
     - FocusItem widgets (buttons, cards, menu entries, input fields)
     - FocusGroup containers (menus, carousels, grids, panels)
-  state: viewModelState.isFocused auto-managed (configurable via autoSetIsFocusedState)
+  state: "Focus state queryable via injected isFocused() widget method. node.isFocused field auto-managed."
   background: "Production-grade focus system developed over multiple years across POC and white-label CTV projects. Evolved into a runtime-adaptive, developer-friendly architecture that handles complex dynamic UIs with minimal configuration."
   challenge: "CTV focus is the primary input mechanism (no touch/mouse). Complex focus behavior in dynamic apps is challenging. Goal: intuitive, composable, efficient."
 
@@ -15,7 +15,7 @@ capabilities:
   - "Static and Dynamic Direction Overrides (functions evaluated at nav time)"
   - "Focus Memory — auto-remembers/restores last focused item per group (configurable depth)"
   - "Long-Press Detection with duration timer and handler callbacks"
-  - "Automatic State Management via viewModelState.isFocused (no manual wiring)"
+  - "Focus State Query via injected isFocused() widget method"
   - "Programmatic Focus Control (setFocus, triggerKeyPress, enableFocusNavigation)"
   - "Deep Search Resolution — finds targets at any depth in widget hierarchy"
   - "Spatial Enter — geometry-aware group entry from specific directions"
@@ -41,7 +41,6 @@ props:
     isEnabled: "boolean (default: true) — enable/disable focus capability. Disabled items skipped by spatial nav."
     enableNativeFocus: "boolean (default: false) — sets native SceneGraph focus on node (for keyboard, video)"
     enableSpatialNavigation: "boolean (default: FALSE) — opt-in to geometry-based nav within parent group"
-    autoSetIsFocusedState: "boolean (default: true) — auto-manage viewModelState.isFocused and node.isFocused"
     up/down/left/right/back: "string (nodeId) | function() as string | false | true — direction overrides"
     onFocusChanged: "sub(isFocused as boolean) — called when focus state changes"
     onFocus: "sub() — called when widget gains focus"
@@ -54,7 +53,6 @@ props:
     enableLastFocusId: "boolean (default: true) — immediate parent stores lastFocusedHID for direct children"
     enableDeepLastFocusId: "boolean (default: false) — ancestor groups also store lastFocusedHID from ANY depth"
     enableSpatialEnter: "boolean | AA (default: false) — spatial nav when entering from direction. AA: { right: true, down: true }"
-    autoSetIsFocusedState: "boolean (default: true) — auto-manage viewModelState.isFocused for focus chain state"
     up/down/left/right/back: "string | function() as string | boolean — group-level navigation (activated via bubbling)"
     onFocusChanged: "sub(isFocused as boolean) — group focus-chain callback (true = descendant has focus)"
     onFocus: "sub() — called when group enters focus chain"
@@ -117,6 +115,7 @@ rules:
 api:
   injectedMethods: "Methods injected DIRECTLY onto widget (not under widget.plugins.focus)"
   methods:
+    isFocused: "widget.isFocused() — returns true if focused (FocusItem) or in focus chain (Group). Returns false for widgets without focus config."
     setFocus: "widget.setFocus(command, enableNativeFocus?) — focus self (true), blur (false), or focus by ID (string). Returns boolean."
     getFocusedWidget: "widget.getFocusedWidget() — returns currently focused widget across entire system"
     enableFocusNavigation: "widget.enableFocusNavigation(enabled) — globally enable/disable all navigation"
@@ -202,7 +201,7 @@ patterns:
     focus: { isEnabled: false } — plugin skips during navigation
 
 bestPractices:
-  visualFeedback: "Always handle focus state visually via onFocusChanged or viewModelState.isFocused in field expressions."
+  visualFeedback: "Always handle focus state visually via onFocusChanged or m.isFocused() in field expressions."
   defaultFocusId: "Always specify group.defaultFocusId to avoid focus loss on group entry."
   organizeGroups: "Structure groups based on UI layout and navigation flow. Flat is insufficient for complex UIs."
   explicitDirections: "Use explicit directions for critical cross-section nav. Spatial alone may be unpredictable."
@@ -233,8 +232,7 @@ troubleshooting:
     - "Check bubbling flow through parents (RULE #10)"
   stateNotUpdating:
     - "Verify onFocusChanged properly defined"
-    - "Check m.viewModelState.isFocused is being read"
-    - "If autoSetIsFocusedState: false, manage state manually"
+    - "Use m.isFocused() to query focus state"
     - "Inspect m.node.isFocused field directly"
   unexpectedExit:
     - "Review 3 exit methods (RULE #8)"
@@ -251,16 +249,17 @@ pipeline:
   2: "Instance Creation — creates FocusItemClass or GroupClass"
   3: "Registration — stores in FocusItemStack or GroupStack"
   4: "Hierarchy Tracking — ancestor groups computed dynamically via HID matching"
-  5: "State Initialization — sets viewModelState.isFocused=false, adds node.isFocused field"
+  5: "State Initialization — adds node.isFocused field. For ViewModel widgets only (isViewModel=true), also initializes viewModelState.isFocused to false. Simple child widgets are excluded because they share the parent's viewModelState by reference."
   6: "Focus Application — calls onFocusChanged, onFocus/onBlur callbacks"
-  7: "State Update — updates viewModelState.isFocused and node.isFocused on items and ancestor groups"
+  7: "State Update — updates node.isFocused on all focus-configured widgets. Updates viewModelState.isFocused only on ViewModel widgets. Use m.isFocused() for reliable per-widget focus queries."
   8: "Navigation Handling — static → spatial → bubbling priority chain"
   9: "Group Notification — notifies all affected ancestor groups of focus chain changes"
   10: "Cleanup — removes config and destroys instances on widget destroy"
 
 stateManagement:
   autoInjected:
-    - "viewModelState.isFocused (boolean) — for all focus items and groups (configurable via autoSetIsFocusedState)"
     - "node.isFocused field — on all widgets with focus config"
-  accessPattern: "Use m.viewModelState.isFocused in field expressions and callbacks for reactive UI updates"
+    - "viewModelState.isFocused — ONLY on ViewModel widgets (isViewModel=true). Not set on simple child widgets because they share the parent's viewModelState by reference, which would cause conflicts."
+  widgetMethod: "m.isFocused() — returns true if focused (FocusItem) or in focus chain (Group). Recommended for all widgets. Works reliably on both ViewModels and simple widgets."
+  accessPattern: "Use m.isFocused() in field expressions and callbacks for reactive UI updates"
 ```

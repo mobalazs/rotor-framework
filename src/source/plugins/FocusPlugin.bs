@@ -378,7 +378,29 @@ namespace Rotor
                         parentGroup.setLastFocusedHID(resolvedHID)
                     end if
                 end if
-            end sub
+            end sub,
+
+            ' ---------------------------------------------------------------------
+            ' isFocused - Checks if this widget currently has focus
+            '
+            ' For a FocusItem: returns whether this item is the focused element
+            ' For a Group: returns whether any descendant within this group has focus (is in focus chain)
+            ' For widgets without focus config: returns false
+            '
+            ' @returns {boolean} True if focused (or in focus chain for groups), false otherwise
+            '
+            isFocused: function() as boolean
+                plugin = m.getFrameworkInstance().plugins[PRIMARY_FOCUS_PLUGIN_KEY]
+                focusItem = plugin.focusItemStack.get(m.HID)
+                if focusItem <> invalid
+                    return focusItem.isFocused
+                end if
+                group = plugin.groupStack.get(m.HID)
+                if group <> invalid
+                    return group.isFocused
+                end if
+                return false
+            end function
 
         }
 
@@ -1256,7 +1278,6 @@ namespace Rotor
 
         class BaseFocusConfig
 
-            autoSetIsFocusedState as boolean
             staticDirection as object
 
             sub new (config as object)
@@ -1267,8 +1288,6 @@ namespace Rotor
                 m.widget = config.widget
                 m.node = m.widget.node
                 m.isFocused = config.isFocused ?? false
-
-                m.autoSetIsFocusedState = config.autoSetIsFocusedState ?? true
 
                 m.isEnabled = config.isEnabled ?? true
                 m.enableSpatialNavigation = config.enableSpatialNavigation ?? false
@@ -1286,9 +1305,8 @@ namespace Rotor
 
                 Rotor.Utils.setCustomFields(m.node, { "isFocused": false }, true, true)
 
-                ' convenience (usually this is used on viewModelState)
-                if false = m.widget.viewModelState.DoesExist("isFocused") and true = m.autoSetIsFocusedState
-                    m.widget.viewModelState.isFocused = false ' as default
+                if m.widget.isViewModel = true and not m.widget.viewModelState.DoesExist("isFocused")
+                    m.widget.viewModelState.isFocused = false
                 end if
 
             end sub
@@ -1565,11 +1583,8 @@ namespace Rotor
                 if m.isFocused = isFocused then return
 
                 m.isFocused = isFocused
-
-                if m.autoSetIsFocusedState
-                    m.widget.viewModelState.isFocused = isFocused
-                end if
                 m.node.setField("isFocused", isFocused)
+                if m.widget.isViewModel = true then m.widget.viewModelState.isFocused = isFocused
                 m.callOnFocusedFnOnWidget(isFocused)
             end sub
 
@@ -1686,12 +1701,8 @@ namespace Rotor
                 if m.isFocused = isFocused then return
 
                 m.isFocused = isFocused
-
-                if m.autoSetIsFocusedState
-                    m.widget.viewModelState.isFocused = isFocused
-                end if
-
                 m.node.setField("isFocused", isFocused)
+                if m.widget.isViewModel = true then m.widget.viewModelState.isFocused = isFocused
 
                 if enableNativeFocus or m.enableNativeFocus
                     m.node.setFocus(isFocused)

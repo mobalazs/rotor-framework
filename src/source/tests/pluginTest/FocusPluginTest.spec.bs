@@ -56,7 +56,7 @@ namespace tests
             focusedWidget = l1Widget.getFocusedWidget()
             m.assertNotInvalid(focusedWidget)
             m.assertEqual(focusedWidget.id, "L1")
-            m.assertTrue(focusedWidget.viewModelState.isFocused)
+            m.assertTrue(focusedWidget.isFocused())
         end function
 
         ' ======================================================================
@@ -320,7 +320,7 @@ namespace tests
             focusedWidget = deepSearchGroup.getFocusedWidget()
             m.assertNotInvalid(focusedWidget)
             m.assertEqual(focusedWidget.id, "DeepTarget")
-            m.assertTrue(focusedWidget.viewModelState.isFocused)
+            m.assertTrue(focusedWidget.isFocused())
         end function
 
         @it("validates DeepTarget exists in the widget tree")
@@ -348,7 +348,7 @@ namespace tests
             focusedWidget = nestedGroupTestParent.getFocusedWidget()
             m.assertNotInvalid(focusedWidget)
             m.assertEqual(focusedWidget.id, "FinalTarget")
-            m.assertTrue(focusedWidget.viewModelState.isFocused)
+            m.assertTrue(focusedWidget.isFocused())
         end function
 
         @it("validates NestedTargetGroup exists in the widget tree")
@@ -2642,6 +2642,161 @@ namespace tests
             ' Timer should be invalid
             m.assertInvalid(focusPlugin.longPressTimer)
             m.assertInvalid(focusPlugin.widgetTree)
+        end function
+
+        ' ======================================================================
+        ' TEST SUITE: isFocused() widget method
+        ' ======================================================================
+
+        @describe("isFocused widget method")
+
+        @it("returns true for focused FocusItem")
+        function _()
+            ' Given: L1 has focus (set in beforeEach)
+            l1Widget = m.fwInstance.getWidget("L1")
+
+            ' Then: isFocused should return true
+            m.assertTrue(l1Widget.isFocused())
+        end function
+
+        @it("returns false for unfocused FocusItem")
+        function _()
+            ' Given: L1 has focus, L2 does not
+            l2Widget = m.fwInstance.getWidget("L2")
+
+            ' Then: isFocused should return false for L2
+            m.assertFalse(l2Widget.isFocused())
+        end function
+
+        @it("returns true for group in focus chain")
+        function _()
+            ' Given: L1 has focus, GroupL2 is its ancestor group
+            groupL2Widget = m.fwInstance.getWidget("GroupL2")
+
+            ' Then: isFocused should return true (group is in focus chain)
+            m.assertTrue(groupL2Widget.isFocused())
+        end function
+
+        @it("returns false for group not in focus chain")
+        function _()
+            ' Given: L1 has focus, GroupR2 is not in focus chain
+            groupR2Widget = m.fwInstance.getWidget("GroupR2")
+
+            ' Then: isFocused should return false
+            m.assertFalse(groupR2Widget.isFocused())
+        end function
+
+        @it("updates correctly after focus change")
+        function _()
+            ' Given: L1 has focus
+            l1Widget = m.fwInstance.getWidget("L1")
+            r1Widget = m.fwInstance.getWidget("R1")
+            m.assertTrue(l1Widget.isFocused())
+            m.assertFalse(r1Widget.isFocused())
+
+            ' When: Move focus to R1
+            r1Widget.setFocus()
+
+            ' Then: L1 should no longer be focused, R1 should be
+            m.assertFalse(l1Widget.isFocused())
+            m.assertTrue(r1Widget.isFocused())
+        end function
+
+        @it("viewModelState.isFocused is not set on non-ViewModel widgets")
+        function _()
+            ' Note: widgets in this template are NOT ViewModels
+            ' viewModelState.isFocused should NOT be initialized for them
+            l1Widget = m.fwInstance.getWidget("L1")
+
+            ' Then: viewModelState.isFocused should NOT exist (L1 is not a ViewModel)
+            m.assertFalse(l1Widget.viewModelState.DoesExist("isFocused"))
+        end function
+
+        ' ======================================================================
+        ' TEST SUITE: Long press widget methods
+        ' ======================================================================
+
+        @describe("long press widget methods")
+
+        @it("isLongPressActive returns false by default")
+        function _()
+            l1Widget = m.fwInstance.getWidget("L1")
+            m.assertFalse(l1Widget.isLongPressActive())
+        end function
+
+        @it("proceedLongPress returns result object")
+        function _()
+            l1Widget = m.fwInstance.getWidget("L1")
+            result = l1Widget.proceedLongPress()
+            m.assertNotInvalid(result)
+            m.assertFalse(result.handled)
+        end function
+
+        ' ======================================================================
+        ' TEST SUITE: checkLongPressState key release
+        ' ======================================================================
+
+        @describe("long press state management")
+
+        @it("key release resets long press state")
+        function _()
+            focusPlugin = m.fwInstance.plugins.focus
+            ' Enable long press feature for this test
+            focusPlugin.enableLongPressFeature = true
+
+            ' When: Simulate key release (press = false)
+            focusPlugin.checkLongPressState("right", false)
+
+            ' Then: Long press state should be reset
+            m.assertFalse(focusPlugin.isLongPress)
+            m.assertEqual(focusPlugin.longPressKey, "")
+        end function
+
+        @it("proceedLongPress returns handled=false when navigation disabled")
+        function _()
+            focusPlugin = m.fwInstance.plugins.focus
+            focusPlugin.enableFocusNavigation = false
+
+            result = focusPlugin.proceedLongPress()
+            m.assertFalse(result.handled)
+
+            ' Restore
+            focusPlugin.enableFocusNavigation = true
+        end function
+
+        ' ======================================================================
+        ' TEST SUITE: setFocus on invisible widget
+        ' ======================================================================
+
+        @describe("setFocus edge cases - visibility and native focus")
+
+        @it("setFocus returns false for invisible widget")
+        function _()
+            ' Given: Make R1 invisible
+            r1Widget = m.fwInstance.getWidget("R1")
+            r1Widget.node.visible = false
+
+            ' When: Try to focus R1
+            result = r1Widget.setFocus()
+
+            ' Then: Should fail
+            m.assertFalse(result)
+
+            ' Cleanup
+            r1Widget.node.visible = true
+        end function
+
+        @it("setFocus with enableNativeFocus sets native focus on node")
+        function _()
+            ' Given: R1 with native focus enabled
+            r1Widget = m.fwInstance.getWidget("R1")
+
+            ' When: Focus R1 with enableNativeFocus
+            result = r1Widget.setFocus(true, true)
+
+            ' Then: Should succeed and node should have native focus
+            m.assertTrue(result)
+            m.assertTrue(r1Widget.node.hasFocus())
         end function
 
         end class

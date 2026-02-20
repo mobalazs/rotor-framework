@@ -43,6 +43,7 @@ core:
       scope: "All widgets in ViewModel"
       mutability: "Mutable"
       description: "Shared state, available as m.viewModelState in all widgets"
+      note: "FocusPlugin auto-manages viewModelState.isFocused ONLY on ViewModel widgets (isViewModel=true). Simple child widgets are excluded because they share the parent's viewModelState by reference, which would cause conflicts. Use m.isFocused() for reliable per-widget focus queries."
 howItWorks:
   workflow:
     - step: "ViewModel class is instantiated"
@@ -126,7 +127,6 @@ example:
       }
 
       viewModelState = {
-        isFocused: false,
         clickCount: 0
       }
 
@@ -141,7 +141,7 @@ example:
               height: 60,
               color: function() as string
                 typecast m as Rotor.ViewModel
-                if m.viewModelState.isFocused
+                if m.isFocused()
                   return "#FF5500"
                 else if m.props.enabled
                   return "#0055FF"
@@ -183,7 +183,7 @@ example:
       viewModel: ButtonViewModel
     })
 patterns:
-  buttonExample: "Template returns Group with Rectangle + Label. Background color responds to props.enabled and viewModelState.isFocused."
+  buttonExample: "Template returns Group with Rectangle + Label. Background color responds to props.enabled and isFocused()."
   stateSharing: "Child widgets access m.props and m.viewModelState for coordinated updates. All children share same references."
   autoRerender: "Default onUpdateView() calls m.render() which re-renders template(). Override to customize or skip for performance."
   propsConfiguration: "Pass props during render. Props are read-only within ViewModel."

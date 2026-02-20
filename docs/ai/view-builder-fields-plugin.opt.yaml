@@ -78,12 +78,12 @@ patterns:
   buttonWithFocusState: |
     fields: {
       color: function() as string
-        if m.viewModelState.isFocused -> return "#FF5500"  (orange when focused)
+        if m.isFocused() -> return "#FF5500"  (orange when focused)
         else if m.props.isSelected -> return "#0055FF"  (blue when selected)
         else -> return "#CCCCCC"  (gray default)
       end function
     }
-    Label text color: function() -> return m.viewModelState.isFocused ? "#FFFFFF" : "#000000"
+    Label text color: function() -> return m.isFocused() ? "#FFFFFF" : "#000000"
   listItemDynamicContent: |
     fields: {
       title: `@l10n.items.${m.props.itemKey}.title`  (dynamic i18n lookup)

@@ -50,6 +50,8 @@ When `m.render()` is called without arguments on a ViewModel, it automatically c
 | `props` | All widgets in ViewModel | Read-only | Configuration passed during render, available as `m.props` in all widgets |
 | `viewModelState` | All widgets in ViewModel | Mutable | Shared state, available as `m.viewModelState` in all widgets |
 
+> **Note:** The FocusPlugin automatically manages `viewModelState.isFocused` only on ViewModel widgets (`isViewModel = true`). It is initialized to `false` if not already present and updated when focus state changes. Simple child widgets within a ViewModel template do NOT get this behavior because they share the parent ViewModel's `viewModelState` by reference, which would cause conflicts. Use the injected `m.isFocused()` widget method for reliable per-widget focus queries on any widget.
+
 **How it works:**
 1. ViewModel class is instantiated
 2. ViewModel's root widget is added to virtual tree
@@ -150,7 +152,6 @@ class ButtonViewModel extends Rotor.ViewModel
     }
 
     viewModelState = {
-        isFocused: false,
         clickCount: 0
     }
 
@@ -164,7 +165,7 @@ class ButtonViewModel extends Rotor.ViewModel
                     width: 200,
                     height: 60,
                     color: function() as string typecast m as Rotor.ViewModel
-                        if m.viewModelState.isFocused
+                        if m.isFocused()
                             return "#FF5500"
                         else if m.props.enabled
                             return "#0055FF"
