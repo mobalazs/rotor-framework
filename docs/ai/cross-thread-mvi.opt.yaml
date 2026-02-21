@@ -93,7 +93,7 @@ examples:
   renderThreadUsage: |
     class CounterView extends Rotor.ViewModel
       override sub onCreateView()
-        m.dispatcher = m.getDispatcher("counter")
+        m.dispatcher = m.connectDispatcher("counter")
         m.dispatcher.getState(sub(props, state)
           props.count = state.count
         end sub)
@@ -134,7 +134,7 @@ patterns:
     - "Call m.unregisterSourceObject(sourceObject) to clean up. Broadcast: removes dispatcher subscriber, cleans up when no subscribers remain."
     - "Dispatch new intent from onSourceEvent() to update state."
   renderIntegration:
-    - "ViewModel onCreateView obtains dispatcher via m.getDispatcher(name)."
+    - "ViewModel onCreateView connects to dispatcher via m.connectDispatcher(name)."
     - "getState binds initial state to props."
     - "addListener subscribes to state changes with mapStateToProps."
     - "callback updates UI via m.render on state change."

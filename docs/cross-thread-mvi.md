@@ -105,7 +105,7 @@ Rotor.createDispatcher("counter", model, reducer)
 Sends intents to trigger state changes. Can be called from any thread:
 
 ```brightscript
-dispatcher = m.getDispatcher("counter")
+dispatcher = m.connectDispatcher("counter")
 
 ' Dispatch intent
 dispatcher.dispatch({
@@ -269,7 +269,7 @@ namespace ViewModels
     class CounterView extends Rotor.ViewModel
 
         override sub onCreateView()
-            m.dispatcher = m.getDispatcher("counter")
+            m.dispatcher = m.connectDispatcher("counter")
 
             ' Get initial state
             m.dispatcher.getState(sub(props, state)
@@ -344,8 +344,8 @@ end namespace
 ### Task Thread Dispatchers
 
 Dispatchers created in a task thread using `Rotor.createDispatcher()` are globally accessible:
-- Accessible from the render thread via `m.getDispatcher(name)`
-- Accessible from any other task thread via `m.getDispatcher(name)`
+- Accessible from the render thread via `m.connectDispatcher(name)`
+- Accessible from any other task thread via `m.connectDispatcher(name)`
 - Enable true cross-thread communication and state synchronization
 
 ### Render Thread Dispatchers

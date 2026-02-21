@@ -32,7 +32,7 @@ namespace tests
 
         @it("propagates render-thread dispatch to ancestor view")
         function _()
-            m.fooDispatcher = m.fwInstance.getDispatcher("fooDispatcher")
+            m.fooDispatcher = m.fwInstance.connectDispatcher("fooDispatcher")
             rootWidget = m.fwInstance.getRootWidget()
             ancestorWidget = m.fwInstance.getWidget("ancestorViewModel")
             descendantWidget = m.fwInstance.getWidget("descendantViewModel")

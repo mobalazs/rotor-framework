@@ -60,9 +60,12 @@ namespace Rotor
         end sub
 
         ' ---------------------------------------------------------------------
-        ' destroy - Cleans up the dispatcher facade by removing all listeners and clearing references
+        ' release - Releases this dispatcher facade by removing all listeners and clearing references
         '
-        public sub destroy()
+        ' Note: This does not destroy the underlying dispatcher — only releases
+        ' the facade's connection (listenerId + scope binding). One-way operation.
+        '
+        public sub release()
             m.removeAllListenersByListenerId()
             m.listenerScope = invalid
             m.dispatcherInstance = invalid

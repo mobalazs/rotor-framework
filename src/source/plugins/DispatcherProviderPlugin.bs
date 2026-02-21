@@ -71,7 +71,7 @@ namespace Rotor
                 if dispatcherFacades.Count() > 0
                     for each dispatcherFacadeKey in dispatcherFacades
                         dispatcherFacadeInstance = dispatcherFacades[dispatcherFacadeKey]
-                        dispatcherFacadeInstance.destroy()
+                        dispatcherFacadeInstance.release()
                         widget.viewModelState[scope.pluginKey][dispatcherFacadeKey] = invalid
                     end for
                 end if

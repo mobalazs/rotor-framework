@@ -73,7 +73,7 @@ namespace Rotor
 
         ' Framework Integration
         getFrameworkInstance as function ' Get framework instance
-        getDispatcher as function        ' Get dispatcher facade by ID
+        connectDispatcher as function    ' Connect to dispatcher facade by ID
         dispatchTo as function           ' Dispatch intent to dispatcher by ID
         getStateFrom as function         ' Get state from dispatcher by ID
         animator as function             ' Get animator factory

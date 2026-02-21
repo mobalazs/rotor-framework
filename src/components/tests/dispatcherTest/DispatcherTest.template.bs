@@ -20,7 +20,7 @@ class AncestorViewModel extends Rotor.ViewModel
     override sub onCreateView()
 
         ' Get fooDispatcher Dispatcher (if not created above)
-        fooDispatcher = m.getDispatcher("fooDispatcher")
+        fooDispatcher = m.connectDispatcher("fooDispatcher")
 
         ' Get current state of fooDispatcher
         fooDispatcher.getState(sub(props, state)

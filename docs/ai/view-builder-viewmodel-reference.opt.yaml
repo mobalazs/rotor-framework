@@ -169,7 +169,7 @@ example:
         print "ButtonViewModel created"
 
         ' Access dispatcher state using getState helper (available in ViewModels)
-        dispatcher = m.getDispatcher("appState")
+        dispatcher = m.connectDispatcher("appState")
         currentState = dispatcher.getState()
 
         ' Or use m.getStateFrom() convenience method

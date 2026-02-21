@@ -183,10 +183,10 @@ publicMethods:
     parameters: "-"
     return: "object"
     description: "Get root SceneGraph node"
-  getDispatcher:
+  connectDispatcher:
     parameters: "dispatcherId (string)"
     return: "object"
-    description: "Get dispatcher by ID"
+    description: "Connect to dispatcher by ID"
   animator:
     parameters: "animatorId (dynamic)"
     return: "object"

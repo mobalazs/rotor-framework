@@ -113,21 +113,21 @@ injectedMethods:
       return: "void"
       description: "Destroy widgets"
   stateManagement:
-    getDispatcher:
-      syntax: "getDispatcher(id)"
+    connectDispatcher:
+      syntax: "connectDispatcher(id)"
       parameters: ["id (string)"]
       return: "object"
-      description: "Get dispatcher by ID"
+      description: "Connect to dispatcher by ID"
     dispatchTo:
       syntax: "dispatchTo(id, intent)"
       parameters: ["id (string)", "intent (object)"]
       return: "void"
-      description: "Dispatch intent to dispatcher by ID. Convenience method equivalent to getDispatcher(id).dispatch(intent)"
+      description: "Dispatch intent to dispatcher by ID. Convenience method equivalent to connectDispatcher(id).dispatch(intent)"
     getStateFrom:
       syntax: "getStateFrom(id, [mapStateToProps])"
       parameters: ["id (string)", "mapStateToProps (function, optional)"]
       return: "object"
-      description: "Get state from dispatcher by ID. Optional mapStateToProps callback for state mapping. Convenience method equivalent to getDispatcher(id).getState(mapStateToProps)"
+      description: "Get state from dispatcher by ID. Optional mapStateToProps callback for state mapping. Convenience method equivalent to connectDispatcher(id).getState(mapStateToProps)"
   animation:
     animator:
       syntax: "animator(id)"
@@ -265,8 +265,8 @@ stateManagement:
       id: "stateWidget",
       viewModel: ViewModels.StateExample,
       onMountWidget: sub()
-        ' Get dispatcher
-        dispatcher = m.getDispatcher("dataState")
+        ' Connect to dispatcher
+        dispatcher = m.connectDispatcher("dataState")
 
         ' Listen to state changes
         dispatcher.addListener({

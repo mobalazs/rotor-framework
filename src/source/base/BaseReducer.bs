@@ -27,7 +27,7 @@ namespace Rotor
         port as object                  ' Framework port for async operations
 
         ' Dispatcher integration
-        getDispatcher as function       ' Get dispatcher facade by ID
+        connectDispatcher as function   ' Connect to dispatcher facade by ID
         getState as function            ' Get dispatcher's model state
         dispatch as function            ' Dispatch intent to owner dispatcher
         dispatchTo as function          ' Dispatch intent to dispatcher by ID
@@ -49,8 +49,8 @@ namespace Rotor
             frameworkInstance = GetGlobalAA().rotor_framework_helper.frameworkInstance
             m.port = frameworkInstance.port
 
-            ' Inject getDispatcher method
-            m.getDispatcher = function(dispatcherId as string) as object
+            ' Inject connectDispatcher method
+            m.connectDispatcher = function(dispatcherId as string) as object
                 return GetGlobalAA().rotor_framework_helper.frameworkInstance.dispatcherProvider.getFacade(dispatcherId, m)
             end function
 
@@ -66,13 +66,13 @@ namespace Rotor
 
             ' Inject dispatchTo method for dispatching intents to other dispatchers
             m.dispatchTo = sub(dispatcherId as string, dispatchObject as object)
-                dispatcherFacade = m.getDispatcher(dispatcherId)
+                dispatcherFacade = m.connectDispatcher(dispatcherId)
                 dispatcherFacade.dispatch(dispatchObject)
             end sub
 
             ' Inject getStateFrom method for accessing state from other dispatchers
             m.getStateFrom = function(dispatcherId as string, mapStateToProps = invalid as dynamic)
-                dispatcherFacade = m.getDispatcher(dispatcherId)
+                dispatcherFacade = m.connectDispatcher(dispatcherId)
                 return dispatcherFacade.getState(mapStateToProps)
             end function
         end sub

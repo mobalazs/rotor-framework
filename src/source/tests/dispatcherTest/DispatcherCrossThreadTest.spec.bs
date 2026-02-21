@@ -81,7 +81,7 @@ namespace tests
             m.assertNotEqual(ancestorWidget, invalid)
             m.assertNotEqual(descendantWidget, invalid)
 
-            fooDispatcher = m.fwInstance.getDispatcher("fooDispatcher")
+            fooDispatcher = m.fwInstance.connectDispatcher("fooDispatcher")
             fooDispatcherState = fooDispatcher.getState()
             m.assertEqual(fooDispatcherState.hitCounter, 0)
             m.assertEqual(fooDispatcherState.foo, "bar")
@@ -92,7 +92,7 @@ namespace tests
         @async()
         @it("propagates child dispatch to ancestor view")
         function _()
-            fooDispatcher = m.fwInstance.getDispatcher("fooDispatcher")
+            fooDispatcher = m.fwInstance.connectDispatcher("fooDispatcher")
             ancestorWidget = m.fwInstance.getWidget("ancestorViewModel")
             descendantWidget = m.fwInstance.getWidget("descendantViewModel")
 
@@ -104,7 +104,7 @@ namespace tests
                 ancestorWidget = ctx.fwInstance.getWidget("ancestorViewModel")
                 ctx.assertEqual(ancestorWidget.props.foo, "baz")
 
-                fooDispatcher = ctx.fwInstance.getDispatcher("fooDispatcher")
+                fooDispatcher = ctx.fwInstance.connectDispatcher("fooDispatcher")
                 hitCounter = fooDispatcher.getState().hitCounter
                 ctx.assertEqual(hitCounter, 1)
 
@@ -118,7 +118,7 @@ namespace tests
         @async()
         @it("routes roDeviceInfo caption mode events to reducer via onSourceEvent")
         function _()
-            sourceDispatcher = m.fwInstance.getDispatcher("sourceObjectDispatcher")
+            sourceDispatcher = m.fwInstance.connectDispatcher("sourceObjectDispatcher")
             m.assertNotInvalid(sourceDispatcher)
 
             ' Capture baseline — roDeviceInfo may fire an initial event when bound to port
@@ -139,7 +139,7 @@ namespace tests
 
             ' Wait for event to propagate through task thread
             rooibos_promises_internal_delay(function(ctx as dynamic)
-                sourceDispatcher = ctx.fwInstance.getDispatcher("sourceObjectDispatcher")
+                sourceDispatcher = ctx.fwInstance.connectDispatcher("sourceObjectDispatcher")
                 state = sourceDispatcher.getState()
                 ctx.assertTrue(state.eventCount > ctx.baselineEventCount, "onSourceEvent should have been called after CC toggle")
                 ctx.assertEqual(state.ccMode, ctx.expectedCCMode)
@@ -155,14 +155,14 @@ namespace tests
         @async()
         @it("unregisters source object and stops receiving events")
         function _()
-            sourceDispatcher = m.fwInstance.getDispatcher("sourceObjectDispatcher")
+            sourceDispatcher = m.fwInstance.connectDispatcher("sourceObjectDispatcher")
 
             ' Dispatch unregister intent to task thread
             sourceDispatcher.dispatch({ type: IntentTypes.UNREGISTER_SOURCE_OBJECT })
 
             ' Wait for unregister to propagate, then toggle CC and verify no new events
             rooibos_promises_internal_delay(function(ctx as dynamic)
-                sourceDispatcher = ctx.fwInstance.getDispatcher("sourceObjectDispatcher")
+                sourceDispatcher = ctx.fwInstance.connectDispatcher("sourceObjectDispatcher")
                 state = sourceDispatcher.getState()
                 ctx.assertTrue(state.unregistered = true, "source object should be unregistered")
                 eventCountAfterUnregister = state.eventCount
@@ -179,7 +179,7 @@ namespace tests
                 ctx.originalCCMode = currentMode
 
                 rooibos_promises_internal_delay(function(ctx2 as dynamic)
-                    sourceDispatcher = ctx2.fwInstance.getDispatcher("sourceObjectDispatcher")
+                    sourceDispatcher = ctx2.fwInstance.connectDispatcher("sourceObjectDispatcher")
                     state = sourceDispatcher.getState()
                     ctx2.assertEqual(state.eventCount, ctx2.eventCountAfterUnregister, "eventCount should not increase after unregister")
 
@@ -197,12 +197,12 @@ namespace tests
         @async(5000)
         @it("routes roUrlEvent to reducer via GetSourceIdentity")
         function _()
-            transferDispatcher = m.fwInstance.getDispatcher("transferDispatcher")
+            transferDispatcher = m.fwInstance.connectDispatcher("transferDispatcher")
             m.assertNotInvalid(transferDispatcher)
 
             ' POST was fired in onCreateDispatcher — wait for roUrlEvent response
             rooibos_promises_internal_delay(function(ctx as dynamic)
-                transferDispatcher = ctx.fwInstance.getDispatcher("transferDispatcher")
+                transferDispatcher = ctx.fwInstance.connectDispatcher("transferDispatcher")
                 state = transferDispatcher.getState()
                 ctx.assertTrue(state.responseCount > 0, "onSourceEvent should have received roUrlEvent")
                 ctx.assertTrue(state.responseCode <> 0, "responseCode should be non-zero (negative = connection error)")
@@ -214,14 +214,14 @@ namespace tests
         @async(5000)
         @it("unregisters roUrlTransfer and stops routing events")
         function _()
-            transferDispatcher = m.fwInstance.getDispatcher("transferDispatcher")
+            transferDispatcher = m.fwInstance.connectDispatcher("transferDispatcher")
 
             ' Unregister the transfer source object
             transferDispatcher.dispatch({ type: IntentTypes.UNREGISTER_TRANSFER })
 
             ' Wait for unregister to propagate
             rooibos_promises_internal_delay(function(ctx as dynamic)
-                transferDispatcher = ctx.fwInstance.getDispatcher("transferDispatcher")
+                transferDispatcher = ctx.fwInstance.connectDispatcher("transferDispatcher")
                 state = transferDispatcher.getState()
                 ctx.assertTrue(state.unregistered = true, "transfer should be unregistered")
                 countAfterUnregister = state.responseCount
@@ -232,7 +232,7 @@ namespace tests
                 ctx.countAfterUnregister = countAfterUnregister
 
                 rooibos_promises_internal_delay(function(ctx2 as dynamic)
-                    transferDispatcher = ctx2.fwInstance.getDispatcher("transferDispatcher")
+                    transferDispatcher = ctx2.fwInstance.connectDispatcher("transferDispatcher")
                     state = transferDispatcher.getState()
                     ctx2.assertEqual(state.responseCount, ctx2.countAfterUnregister, "responseCount should not increase after unregister")
 
@@ -246,12 +246,12 @@ namespace tests
         @async()
         @it("invokes onTick callback at specified interval")
         function _()
-            sourceDispatcher = m.fwInstance.getDispatcher("sourceObjectDispatcher")
+            sourceDispatcher = m.fwInstance.connectDispatcher("sourceObjectDispatcher")
             baselineTickCount = sourceDispatcher.getState().tickCount
 
             ' Wait 350ms — with waitMs=100, onTick should fire at least twice
             rooibos_promises_internal_delay(function(ctx as dynamic)
-                sourceDispatcher = ctx.fwInstance.getDispatcher("sourceObjectDispatcher")
+                sourceDispatcher = ctx.fwInstance.connectDispatcher("sourceObjectDispatcher")
                 tickCount = sourceDispatcher.getState().tickCount
                 ctx.assertTrue(tickCount > ctx.baselineTickCount, "onTick should have incremented tickCount")
 
@@ -265,7 +265,7 @@ namespace tests
         function _()
             ' Dispatcher was created in setup()
             ' Get dispatcher facade - should synchronize automatically
-            renderDispatcher = m.fwInstance.getDispatcher("renderThreadDispatcher")
+            renderDispatcher = m.fwInstance.connectDispatcher("renderThreadDispatcher")
 
             ' Should be valid (synchronized)
             m.assertNotInvalid(renderDispatcher)
@@ -286,7 +286,7 @@ namespace tests
         @async()
         @it("ignores BLOCK_BY_MIDDLEWARE intents")
         function _()
-            fooDispatcher = m.fwInstance.getDispatcher("fooDispatcher")
+            fooDispatcher = m.fwInstance.connectDispatcher("fooDispatcher")
             fooDispatcher.dispatch({
                 type: IntentTypes.BLOCK_BY_MIDDLEWARE,
                 payload: {
@@ -295,7 +295,7 @@ namespace tests
             })
             ' Start async test: validate BLOCK_BY_MIDDLEWARE
             rooibos_promises_internal_delay(function(ctx as dynamic)
-                fooDispatcher = ctx.fwInstance.getDispatcher("fooDispatcher")
+                fooDispatcher = ctx.fwInstance.connectDispatcher("fooDispatcher")
                 hitCounter = fooDispatcher.getState().hitCounter
                 ctx.assertEqual(hitCounter, 1, "state.hitCounter should not change when IntentTypes.BLOCK_BY_MIDDLEWARE")
 

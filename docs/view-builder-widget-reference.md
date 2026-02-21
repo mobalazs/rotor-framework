@@ -72,7 +72,7 @@ Every widget automatically receives these methods:
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `getDispatcher` | `function(id as string) as object` | Get dispatcher by ID |
+| `connectDispatcher` | `function(id as string) as object` | Connect to dispatcher by ID |
 | `dispatchTo` | `sub(id as string, intent as object)` | Dispatch intent to dispatcher by ID |
 | `getStateFrom` | `function(id as string, mapStateToProps = invalid as dynamic) as object` | Get state from dispatcher by ID |
 
@@ -393,8 +393,8 @@ m.erase([
     id: "stateWidget",
     viewModel: ViewModels.StateExample,
     onMountWidget: sub()
-        ' Get dispatcher
-        dispatcher = m.getDispatcher("dataState")
+        ' Connect to dispatcher
+        dispatcher = m.connectDispatcher("dataState")
 
         ' Listen to state changes
         dispatcher.addListener({

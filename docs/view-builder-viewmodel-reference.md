@@ -194,7 +194,7 @@ class ButtonViewModel extends Rotor.ViewModel
         print "ButtonViewModel created"
 
         ' Access dispatcher state using convenience methods
-        dispatcher = m.getDispatcher("appState")
+        dispatcher = m.connectDispatcher("appState")
         currentState = dispatcher.getState()
 
         ' Or use m.getStateFrom() convenience method

@@ -124,12 +124,15 @@ namespace Rotor
         ' =====================================================================
 
         ' ---------------------------------------------------------------------
-        ' getDispatcher - Gets dispatcher facade by ID
+        ' connectDispatcher - Creates a new dispatcher facade connection by ID
+        '
+        ' Each call creates a unique facade with its own listenerId and scope binding.
+        ' Use facade.release() when done to clean up listeners.
         '
         ' @param {string} dispatcherId - Dispatcher identifier
         ' @returns {object} Dispatcher facade instance
         '
-        public function getDispatcher(dispatcherId as string) as object
+        public function connectDispatcher(dispatcherId as string) as object
             return m.dispatcherProvider.getFacade(dispatcherId, GetGlobalAA())
         end function
 
