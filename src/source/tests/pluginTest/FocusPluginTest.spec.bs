@@ -2836,12 +2836,12 @@ namespace tests
         end function
 
         ' ======================================================================
-        ' TEST SUITE: keyPressHandler - non-navigation key delegation
+        ' TEST SUITE: keyPressHandler - local, all keys, fires before navigation
         ' ======================================================================
 
-        @describe("keyPressHandler - non-navigation key delegation")
+        @describe("keyPressHandler - local, fires for all keys before navigation")
 
-        @it("keyPressHandler is called on focused FocusItem for non-navigation key")
+        @it("keyPressHandler is called on focused FocusItem for media key")
         function _()
             ' Given: A focused item with keyPressHandler
             template = {
@@ -2871,21 +2871,21 @@ namespace tests
             widget = m.fwInstance.getWidget("kphItem")
             widget.setFocus()
 
-            ' When: Press a non-navigation key
+            ' When: Press a media key
             widget.triggerKeyPress("play")
 
             ' Then: keyPressHandler should have been called with the key
             m.assertEqual(widget.lastKeyPress, "play")
         end function
 
-        @it("keyPressHandler bubbles to FocusGroup when FocusItem has no handler")
+        @it("non-nav key bubbles to group even when FocusItem has no handler")
         function _()
-            ' Given: FocusItem without handler, group with handler
+            ' Given: FocusItem WITHOUT keyPressHandler, group with handler
             template = {
-                id: "kphBubbleRoot",
+                id: "kphNoBubbleRoot",
                 nodeType: "Group",
                 focusGroup: {
-                    defaultFocusId: "kphBubbleItem",
+                    defaultFocusId: "kphNoBubbleItem",
                     keyPressHandler: function(key as string) as boolean
                         m.lastGroupKey = key
                         return true
@@ -2893,7 +2893,7 @@ namespace tests
                 },
                 children: [
                     {
-                        id: "kphBubbleItem",
+                        id: "kphNoBubbleItem",
                         nodeType: "Rectangle",
                         fields: { width: 100, height: 50 },
                         focus: {}
@@ -2906,40 +2906,85 @@ namespace tests
             m.fwInstance.render(template)
             m.fwInstance.plugins.focus.enableLongPressFeature = false
 
-            widget = m.fwInstance.getWidget("kphBubbleItem")
+            widget = m.fwInstance.getWidget("kphNoBubbleItem")
             widget.setFocus()
 
-            ' When: Press a non-navigation key
-            widget.triggerKeyPress("pause")
+            ' When: Press a media key (FocusItem has no handler, but group does)
+            result = m.fwInstance.plugins.focus.onKeyEventHandler("pause", true)
 
-            ' Then: Group's keyPressHandler should have been called
-            groupWidget = m.fwInstance.getWidget("kphBubbleRoot")
+            ' Then: Group's keyPressHandler should have been called via bubbling
+            groupWidget = m.fwInstance.getWidget("kphNoBubbleRoot")
             m.assertEqual(groupWidget.lastGroupKey, "pause")
+            m.assertTrue(result.handled)
         end function
 
-        @it("keyPressHandler return true stops bubbling to parent group")
+        @it("keyPressHandler return true blocks direction key navigation")
         function _()
-            ' Given: FocusItem with handler returning true, group with handler
+            ' Given: Two items with spatial nav, first has handler that consumes all keys
             template = {
-                id: "kphStopRoot",
+                id: "kphBlockNavRoot",
                 nodeType: "Group",
-                focusGroup: {
-                    defaultFocusId: "kphStopItem",
-                    keyPressHandler: function(key as string) as boolean
-                        m.groupHandlerCalled = true
-                        return true
-                    end function
-                },
+                focusGroup: { defaultFocusId: "kphBlockItem1" },
                 children: [
                     {
-                        id: "kphStopItem",
+                        id: "kphBlockItem1",
+                        nodeType: "Rectangle",
+                        fields: { width: 100, height: 50, translation: [0, 0] },
+                        focus: {
+                            enableSpatialNavigation: true,
+                            keyPressHandler: function(key as string) as boolean
+                                m.handledKey = key
+                                return true
+                            end function
+                        }
+                    },
+                    {
+                        id: "kphBlockItem2",
+                        nodeType: "Rectangle",
+                        fields: { width: 100, height: 50, translation: [200, 0] },
+                        focus: { enableSpatialNavigation: true }
+                    }
+                ]
+            }
+
+            m.fwInstance.destroy()
+            m.fwInstance = new Rotor.Framework()
+            m.fwInstance.render(template)
+            m.fwInstance.plugins.focus.enableLongPressFeature = false
+
+            widget1 = m.fwInstance.getWidget("kphBlockItem1")
+            widget1.setFocus()
+
+            ' When: Press RIGHT — handler returns true, so navigation should NOT happen
+            result = m.fwInstance.plugins.focus.onKeyEventHandler("right", true)
+
+            ' Then: Key was consumed, focus stayed on item1
+            m.assertTrue(result.handled)
+            m.assertEqual(widget1.handledKey, "right")
+            focusedWidget = m.fwInstance.plugins.focus.getFocusedWidget()
+            m.assertEqual(focusedWidget.id, "kphBlockItem1")
+        end function
+
+        @it("keyPressHandler return true blocks onSelect for OK key")
+        function _()
+            ' Given: A focused item with keyPressHandler that consumes OK + onSelect callback
+            template = {
+                id: "kphBlockOKRoot",
+                nodeType: "Group",
+                focusGroup: { defaultFocusId: "kphBlockOKItem" },
+                children: [
+                    {
+                        id: "kphBlockOKItem",
                         nodeType: "Rectangle",
                         fields: { width: 100, height: 50 },
                         focus: {
                             keyPressHandler: function(key as string) as boolean
-                                m.itemHandlerCalled = true
+                                m.handlerCalledWith = key
                                 return true
-                            end function
+                            end function,
+                            onSelect: sub()
+                                m.onSelectCalled = true
+                            end sub
                         }
                     }
                 ]
@@ -2950,21 +2995,66 @@ namespace tests
             m.fwInstance.render(template)
             m.fwInstance.plugins.focus.enableLongPressFeature = false
 
-            widget = m.fwInstance.getWidget("kphStopItem")
+            widget = m.fwInstance.getWidget("kphBlockOKItem")
             widget.setFocus()
 
-            ' When: Press a non-navigation key
-            widget.triggerKeyPress("rewind")
+            ' When: Press OK — handler returns true
+            result = m.fwInstance.plugins.focus.onKeyEventHandler("OK", true)
 
-            ' Then: Item handler was called but group handler was NOT
-            m.assertTrue(widget.itemHandlerCalled)
-            groupWidget = m.fwInstance.getWidget("kphStopRoot")
-            m.assertInvalid(groupWidget.groupHandlerCalled)
+            ' Then: handler consumed the key, onSelect was NOT called
+            m.assertTrue(result.handled)
+            m.assertEqual(widget.handlerCalledWith, "OK")
+            m.assertInvalid(widget.onSelectCalled)
         end function
 
-        @it("framework.onKeyEvent returns correct handled boolean")
+        @it("keyPressHandler return false allows normal navigation to proceed")
         function _()
-            ' Given: A focused item with keyPressHandler
+            ' Given: Two items with spatial nav, handler returns false for direction keys
+            template = {
+                id: "kphPassNavRoot",
+                nodeType: "Group",
+                focusGroup: { defaultFocusId: "kphPassItem1" },
+                children: [
+                    {
+                        id: "kphPassItem1",
+                        nodeType: "Rectangle",
+                        fields: { width: 100, height: 50, translation: [0, 0] },
+                        focus: {
+                            enableSpatialNavigation: true,
+                            keyPressHandler: function(key as string) as boolean
+                                return false ' Don't consume — let navigation proceed
+                            end function
+                        }
+                    },
+                    {
+                        id: "kphPassItem2",
+                        nodeType: "Rectangle",
+                        fields: { width: 100, height: 50, translation: [200, 0] },
+                        focus: { enableSpatialNavigation: true }
+                    }
+                ]
+            }
+
+            m.fwInstance.destroy()
+            m.fwInstance = new Rotor.Framework()
+            m.fwInstance.render(template)
+            m.fwInstance.plugins.focus.enableLongPressFeature = false
+
+            widget1 = m.fwInstance.getWidget("kphPassItem1")
+            widget1.setFocus()
+
+            ' When: Press RIGHT — handler returns false, so navigation should proceed
+            result = m.fwInstance.plugins.focus.onKeyEventHandler("right", true)
+
+            ' Then: Focus moved to item2
+            m.assertTrue(result.handled)
+            focusedWidget = m.fwInstance.plugins.focus.getFocusedWidget()
+            m.assertEqual(focusedWidget.id, "kphPassItem2")
+        end function
+
+        @it("onKeyEventHandler returns correct handled boolean for keyPressHandler")
+        function _()
+            ' Given: A focused item with keyPressHandler that only handles "play"
             template = {
                 id: "fwKeyRoot",
                 nodeType: "Group",
@@ -3000,7 +3090,53 @@ namespace tests
             m.assertFalse(result.handled)
         end function
 
-        @it("non-navigation key without handler returns handled=false")
+        @it("non-nav key bubbles to ancestor group when FocusItem handler returns false")
+        function _()
+            ' Given: FocusItem with handler returning false, group with handler
+            template = {
+                id: "kphBubbleRoot",
+                nodeType: "Group",
+                focusGroup: {
+                    defaultFocusId: "kphBubbleItem",
+                    keyPressHandler: function(key as string) as boolean
+                        m.groupHandledKey = key
+                        return true
+                    end function
+                },
+                children: [
+                    {
+                        id: "kphBubbleItem",
+                        nodeType: "Rectangle",
+                        fields: { width: 100, height: 50 },
+                        focus: {
+                            keyPressHandler: function(key as string) as boolean
+                                m.itemSawKey = key
+                                return false ' Not handled → bubble to group
+                            end function
+                        }
+                    }
+                ]
+            }
+
+            m.fwInstance.destroy()
+            m.fwInstance = new Rotor.Framework()
+            m.fwInstance.render(template)
+            m.fwInstance.plugins.focus.enableLongPressFeature = false
+
+            widget = m.fwInstance.getWidget("kphBubbleItem")
+            widget.setFocus()
+
+            ' When: Press a media key — item returns false, group should catch it
+            result = m.fwInstance.plugins.focus.onKeyEventHandler("replay", true)
+
+            ' Then: Both item and group saw the key, result is handled
+            m.assertEqual(widget.itemSawKey, "replay")
+            groupWidget = m.fwInstance.getWidget("kphBubbleRoot")
+            m.assertEqual(groupWidget.groupHandledKey, "replay")
+            m.assertTrue(result.handled)
+        end function
+
+        @it("key without handler returns handled=false")
         function _()
             ' Given: A focused item with NO keyPressHandler
             template = {
@@ -3025,61 +3161,11 @@ namespace tests
             widget = m.fwInstance.getWidget("noHandlerItem")
             widget.setFocus()
 
-            ' When: Press a non-navigation key
+            ' When: Press a media key with no handler
             result = m.fwInstance.plugins.focus.onKeyEventHandler("play", true)
 
             ' Then: Should return false (no handler registered)
             m.assertFalse(result.handled)
-        end function
-
-        @it("navigation keys are still handled normally alongside keyPressHandler")
-        function _()
-            ' Given: A focused item with keyPressHandler
-            template = {
-                id: "navAndKphRoot",
-                nodeType: "Group",
-                focusGroup: {
-                    defaultFocusId: "navItem1",
-                    left: true,
-                    right: true
-                },
-                children: [
-                    {
-                        id: "navItem1",
-                        nodeType: "Rectangle",
-                        fields: { width: 100, height: 50, translation: [0, 0] },
-                        focus: {
-                            keyPressHandler: function(key as string) as boolean
-                                m.customKeyHandled = key
-                                return true
-                            end function
-                        }
-                    },
-                    {
-                        id: "navItem2",
-                        nodeType: "Rectangle",
-                        fields: { width: 100, height: 50, translation: [200, 0] },
-                        focus: {
-                            enableSpatialNavigation: true
-                        }
-                    }
-                ]
-            }
-
-            m.fwInstance.destroy()
-            m.fwInstance = new Rotor.Framework()
-            m.fwInstance.render(template)
-            m.fwInstance.plugins.focus.enableLongPressFeature = false
-
-            widget1 = m.fwInstance.getWidget("navItem1")
-            widget1.setFocus()
-
-            ' When: Press OK (navigation key) - should still call onSelect path, NOT keyPressHandler
-            result = m.fwInstance.plugins.focus.onKeyEventHandler("OK", true)
-            m.assertTrue(result.handled)
-
-            ' And: keyPressHandler should NOT have been called for OK
-            m.assertInvalid(widget1.customKeyHandled)
         end function
 
         end class

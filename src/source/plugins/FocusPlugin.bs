@@ -780,10 +780,7 @@ namespace Rotor
             focused = m.getFocusedItem()
             if focused = invalid then return false
 
-            handled = focused.callKeyPressHandler(key)
-            if handled then return true
-
-            ' Bubble through ancestor groups
+            ' Bubble through ancestor groups (focused item already checked by caller)
             focusChainGroups = m.findAncestorGroups(focused.HID)
             for each groupHID in focusChainGroups
                 group = m.groupStack.get(groupHID)
@@ -902,7 +899,7 @@ namespace Rotor
                 currentAncestors = m.findAncestorGroups(m.globalFocusHID)
                 newAncestors = m.findAncestorGroups(newHID)
                 if currentAncestors.Count() > 0 and newAncestors.Count() > 0
-                    if currentAncestors[0] = newAncestors[0] then newHID = ""
+                    if currentAncestors[0] = newAncestors[0] and newHID <> m.globalFocusHID then newHID = ""
                 end if
             end if
 
@@ -1043,6 +1040,14 @@ namespace Rotor
 
             if true = press
 
+                ' keyPressHandler: local (no bubbling), fires for all keys before navigation
+                focusedItem = m.focusItemStack.get(m.globalFocusHID)
+                if focusedItem <> invalid and focusedItem.keyPressHandler <> invalid
+                    if true = Rotor.Utils.callbackScoped(focusedItem.keyPressHandler, focusedItem.widget, key)
+                        return m.parseOnKeyEventResult(key, true, false)
+                    end if
+                end if
+
                 if -1 < Rotor.Utils.findInArray([
                         Rotor.Const.Direction.UP,
                         Rotor.Const.Direction.RIGHT,
@@ -1119,12 +1124,10 @@ namespace Rotor
 
                     return m.parseOnKeyEventResult(key, true, true)
 
-                else
-                    ' Non-navigation, non-OK key → delegate to keyPressHandler
-                    handled = m.delegateKeyPress(key)
-                    return m.parseOnKeyEventResult(key, handled, false)
-
                 end if
+
+                ' Unhandled key (not direction, not OK) → bubble through ancestor groups
+                if m.delegateKeyPress(key) then return m.parseOnKeyEventResult(key, true, false)
             end if
 
             return m.parseOnKeyEventResult(key, false, false)
@@ -1643,7 +1646,7 @@ namespace Rotor
             sub new (config as object)
                 super(config)
 
-                m.onSelect = config.onSelect ?? ""
+                m.onSelect = config.onSelect ?? config.ok ?? ""
                 m.enableNativeFocus = config.enableNativeFocus ?? false
             end sub
 
