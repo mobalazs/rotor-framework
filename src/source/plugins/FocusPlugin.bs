@@ -793,6 +793,8 @@ namespace Rotor
 
         sub delegateLongPressChanged(isLongPress as boolean, key as string)
             focused = m.getFocusedItem()
+            if focused = invalid then return
+
             handled = focused.callLongPressHandler(isLongPress, key)
             if handled then return
 
