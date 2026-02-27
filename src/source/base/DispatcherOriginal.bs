@@ -5,12 +5,12 @@ namespace Rotor
     ' =====================================================================
     ' createDispatcher - Factory function for creating dispatchers
     '
-    ' Creates a dispatcher instance and returns its facade for external use.
+    ' Creates and registers a dispatcher instance. Does NOT return a value.
+    ' Use connectDispatcher(id) to get a dispatcher reference after creation.
     '
     ' @param {string} customDispatcherId - Dispatcher identifier
     ' @param {Model} modelInstance - Model holding state
     ' @param {Reducer} reducerInstance - Reducer for state transitions
-    ' @returns {Dispatcher} Dispatcher facade instance
     ' =====================================================================
     sub createDispatcher(customDispatcherId as string, modelInstance as Model, reducerInstance as Reducer)
         m.dispatcherInstance = new Rotor.DispatcherOriginal(customDispatcherId, modelInstance, reducerInstance)

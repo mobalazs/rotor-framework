@@ -15,7 +15,7 @@ core:
 api:
   createDispatcher:
     syntax: "Rotor.createDispatcher(name, model, reducer)"
-    description: "Register dispatcher with unique name, model, reducer. Task thread dispatchers are globally accessible. Render thread dispatchers are local-use only."
+    description: "Register dispatcher with unique name, model, reducer. Does NOT return a value (it is a sub, not a function). Use connectDispatcher(name) to get a reference after creation. Task thread dispatchers are globally accessible. Render thread dispatchers are local-use only."
   dispatch:
     syntax: "dispatcher.dispatch({ type: intentType, payload: data })"
     description: "Send intents from any thread; payload optional. Triggers middleware then reducer."

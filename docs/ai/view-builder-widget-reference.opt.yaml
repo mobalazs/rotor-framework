@@ -303,11 +303,13 @@ stateManagement:
       end sub
     }
   createDispatcher: |
-    ' Create new dispatcher in widget
+    ' Create and register a new dispatcher (does NOT return a value — use connectDispatcher to get a reference)
     onMountWidget: sub()
       model = new Models.LocalStateModel()
       reducer = new Reducers.LocalStateReducer()
       Rotor.createDispatcher("localState", model, reducer)
+      ' To dispatch or read state, use connectDispatcher:
+      ' dispatcher = m.connectDispatcher("localState")
     end sub
 internationalization:
   defaultAccess: |
