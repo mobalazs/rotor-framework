@@ -308,6 +308,29 @@ namespace Rotor
         end function
 
         ' ---------------------------------------------------------------------
+        ' dispatchTo - Dispatches an intent to a specific dispatcher by ID
+        '
+        ' @param {string} dispatcherId - Target dispatcher identifier
+        ' @param {object} dispatchObject - Intent object to dispatch
+        '
+        public sub dispatchTo(dispatcherId as string, dispatchObject as object)
+            dispatcherFacade = m.connectDispatcher(dispatcherId)
+            dispatcherFacade.dispatch(dispatchObject)
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' getStateFrom - Gets current state from a specific dispatcher by ID
+        '
+        ' @param {string} dispatcherId - Target dispatcher identifier
+        ' @param {dynamic} [mapStateToProps=invalid] - Optional state mapping function
+        ' @returns {object} Current state from the target dispatcher
+        '
+        public function getStateFrom(dispatcherId as string, mapStateToProps = invalid as dynamic) as object
+            dispatcherFacade = m.connectDispatcher(dispatcherId)
+            return dispatcherFacade.getState(mapStateToProps)
+        end function
+
+        ' ---------------------------------------------------------------------
         ' animator - Gets animator factory for creating animations
         '
         ' @param {dynamic} animatorId - Animator identifier

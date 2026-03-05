@@ -134,5 +134,66 @@ namespace tests
             m.assertEqual(state2.hitCounter, 2)
         end function
 
+        @describe("framework instance dispatcher shortcuts")
+
+        @it("dispatchTo dispatches intent via framework instance")
+        function _()
+            ' Get initial state
+            initialState = m.fwInstance.getStateFrom("fooDispatcher")
+            m.assertEqual(initialState.foo, "bar")
+
+            ' Dispatch using framework instance
+            m.fwInstance.dispatchTo("fooDispatcher", {
+                type: IntentTypes.UPDATE_FOO,
+                payload: { foo: "frameworkDispatch" }
+            })
+
+            ' Verify state changed
+            newState = m.fwInstance.getStateFrom("fooDispatcher")
+            m.assertEqual(newState.foo, "frameworkDispatch")
+        end function
+
+        @it("getStateFrom returns current state via framework instance")
+        function _()
+            ' Get state using framework instance convenience method
+            fooState = m.fwInstance.getStateFrom("fooDispatcher")
+
+            m.assertNotEqual(fooState, invalid)
+            m.assertEqual(fooState.foo, "bar")
+            m.assertEqual(fooState.hitCounter, 0)
+        end function
+
+        @it("getStateFrom returns state with mapStateToProps via framework instance")
+        function _()
+            ' Get state with mapStateToProps as invalid
+            fooState = m.fwInstance.getStateFrom("fooDispatcher", invalid)
+
+            m.assertNotEqual(fooState, invalid)
+            m.assertEqual(fooState.foo, "bar")
+            m.assertEqual(fooState.hitCounter, 0)
+        end function
+
+        @it("dispatchTo and getStateFrom work together via framework instance")
+        function _()
+            ' Multiple dispatches via framework instance
+            m.fwInstance.dispatchTo("fooDispatcher", {
+                type: IntentTypes.UPDATE_FOO,
+                payload: { foo: "fwValue1" }
+            })
+
+            state1 = m.fwInstance.getStateFrom("fooDispatcher")
+            m.assertEqual(state1.foo, "fwValue1")
+            m.assertEqual(state1.hitCounter, 1)
+
+            m.fwInstance.dispatchTo("fooDispatcher", {
+                type: IntentTypes.UPDATE_FOO,
+                payload: { foo: "fwValue2" }
+            })
+
+            state2 = m.fwInstance.getStateFrom("fooDispatcher")
+            m.assertEqual(state2.foo, "fwValue2")
+            m.assertEqual(state2.hitCounter, 2)
+        end function
+
     end class
 end namespace
