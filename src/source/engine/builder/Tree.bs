@@ -37,8 +37,8 @@ namespace Rotor.ViewBuilder
             m.getFrameworkInstance().builder.render(payloads, params)
         end sub
 
-        sub erase(payloads as dynamic, shouldSkipNodePool)
-            m.getFrameworkInstance().builder.erase(payloads, m.parentHID, shouldSkipNodePool)
+        sub erase(payloads as dynamic)
+            m.getFrameworkInstance().builder.erase(payloads, m.parentHID)
         end sub
 
         sub destroy()

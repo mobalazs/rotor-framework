@@ -33,7 +33,6 @@ framework = new Rotor.Framework({
 | `tasks` | array | No | List of task node names to synchronize with the render thread. When specified, the render queue waits for all tasks to signal ready before flushing. |
 | `onReady` | function | No | Callback function invoked after tasks are synced and the render queue is flushed. Called in global scope. |
 | `readyFieldId` | string | No | Field name to add to the root node that will be set to `true` after tasks are synced and render queue is flushed. Useful for triggering observers. |
-| `nodePool` | array | No | Array of node pool configurations for pre-instantiating SceneGraph nodes. Supports: Group, Rectangle, Poster, Label. Format: `[{ nodeType: "Label", count: 50 }]` |
 | `plugins` | array | No | List of plugin instances to register. Default plugins are automatically included. Custom plugins are not documented yet. |
 | `allowNativeAudioGuide` | boolean | No | Whether to allow native AudioGuide when TTS service is enabled. If `true`, rootNode.muteAudioGuide is **not** set. If `false` (default), native AudioGuide is muted when TTS is enabled. |
 | `debug` | object | No | Debug configuration options. |
@@ -101,31 +100,6 @@ sub init()
 end sub
 ```
 
-## Node Pool Configuration
-
-Pre-instantiate SceneGraph nodes to improve runtime rendering performance. The node pool allows you to configure the desired quantity of frequently used node types.
-
-**Supported Node Types:**
-- `Group` - Container nodes for grouping widgets
-- `Rectangle` - Rectangular shapes and backgrounds
-- `Poster` - Image display nodes
-- `Label` - Text display nodes
-
-### Node Pool Example
-
-```brightscript
-framework = new Rotor.Framework({
-    nodePool: [
-        { nodeType: "Label", count: 50 },       ' Pre-create 50 labels
-        { nodeType: "Rectangle", count: 30 },   ' Pre-create 30 rectangles
-        { nodeType: "Poster", count: 20 },      ' Pre-create 20 posters
-        { nodeType: "Group", count: 10 }        ' Pre-create 10 groups
-    ]
-})
-```
-
-**Note:** Only the four supported node types (Group, Rectangle, Poster, Label) can be added to the node pool. Custom component types are not supported.
-
 ## Plugin Configuration
 
 The framework includes the following default plugins:
@@ -145,7 +119,7 @@ Creating custom plugins is possible, but currently not documented. If you need t
 | Method | Parameters | Return | Description |
 |--------|------------|--------|-------------|
 | `render` | `payload` (object), `params` (object, optional) | void | Render or update widgets |
-| `erase` | `payload` (dynamic), `shouldSkipNodePool` (boolean, optional) | void | Destroy widgets |
+| `erase` | `payload` (dynamic) | void | Destroy widgets |
 | `findWidgets` | `searchPattern` (string) | object | Find widgets by pattern |
 | `getWidget` | `searchPattern` (string) | object | Get widget by ID or pattern |
 | `getTopWidgets` | `matchingPattern` (string, optional) | object | Get top-level widgets |

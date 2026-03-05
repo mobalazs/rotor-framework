@@ -211,9 +211,6 @@ namespace Rotor.ViewBuilder
             else if process.hookType = Rotor.Const.LifeCycleHookType.REMOVE_CHILD
                 parentNode = widget.parent.node
                 parentNode.removeChild(widget.node)
-                if process?.shouldSkipNodePool = invalid or process.shouldSkipNodePool = false
-                    widget.node = m.frameworkInstance.builder.nodePool.releaseNodeBranch(widget.node)
-                end if
                 widget.node = invalid
 
             else if process.hookType = Rotor.Const.LifeCycleHookType.MOUNTED

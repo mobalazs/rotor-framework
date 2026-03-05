@@ -23,16 +23,6 @@ configurationOptions:
       type: "string"
       required: false
       description: "Field name added to root node, set to true after tasks synced and render queue flushed. Useful for triggering observers."
-    nodePool:
-      type: "array"
-      required: false
-      format: "[{ nodeType: 'Label', count: 50 }]"
-      supportedTypes:
-        - "Group: Container nodes"
-        - "Rectangle: Shapes and backgrounds"
-        - "Poster: Image display"
-        - "Label: Text display"
-      description: "Pre-instantiate SceneGraph nodes for performance. Only 4 types supported. Custom components not supported."
     plugins:
       type: "array"
       required: false
@@ -117,31 +107,6 @@ taskSynchronization:
             taskName: "DataTask"
         }
     end sub
-nodePool:
-  supportedTypes:
-    - "Group"
-    - "Rectangle"
-    - "Poster"
-    - "Label"
-  format: "[{ nodeType: 'Type', count: <number> }]"
-  example: |
-    framework = new Rotor.Framework({
-        nodePool: [
-            { nodeType: "Label", count: 50 },
-            { nodeType: "Rectangle", count: 30 },
-            { nodeType: "Poster", count: 20 },
-            { nodeType: "Group", count: 10 }
-        ]
-    })
-  api: |
-    ' Get node pool info
-    poolInfo = framework.getNodePoolInfo()
-
-    ' Add more nodes at runtime
-    framework.presetNodePool({
-        nodePool: [{ nodeType: "Group", count: 5 }]
-    })
-  note: "Only 4 supported types. Custom component types not supported."
 plugins:
   default:
     - "FieldsPlugin: Dynamic field expressions and interpolation"
@@ -156,7 +121,7 @@ publicMethods:
     return: "void"
     description: "Render or update widgets"
   erase:
-    parameters: "payload (dynamic), shouldSkipNodePool (boolean, optional)"
+    parameters: "payload (dynamic)"
     return: "void"
     description: "Destroy widgets"
   findWidgets:
@@ -196,8 +161,7 @@ lifecycle:
   - "2. Subsystem Setup: Builder, I18n service, Animator, DispatcherProvider initialized"
   - "3. Device Info: Device information collected and stored"
   - "4. Plugin Registration: Default and custom plugins registered"
-  - "5. Node Pool: Nodes pre-instantiated if configured"
-  - "6. Render Queue Active: Any render() calls queued internally"
+  - "5. Render Queue Active: Any render() calls queued internally"
   - "7. Task Sync (if configured): Framework waits for all tasks to signal ready"
   - "8. Render Queue Flush: All queued render operations execute in order"
   - "9. Ready State: onReady callback invoked, readyFieldId set to true"
@@ -211,10 +175,6 @@ bestPractices:
     withOnReady: "Use onReady when you need to run logic after sync completes"
     immediate: "Use enableRenderBeforeReady: true for loading screens (static UI only)"
     note: "Render queue handles timing automatically. Use onReady only for additional logic after sync. Use enableRenderBeforeReady only for static UI."
-  nodePool:
-    good: "Pre-create frequently used node types based on actual usage"
-    avoid: "Don't over-allocate node pool - wastes memory"
-    note: "Only Group, Rectangle, Poster, Label supported"
 troubleshooting:
   rendersNotAppearing:
     problem: "UI doesn't render when expected"
@@ -225,10 +185,6 @@ troubleshooting:
     problem: "onReady callback never executes"
     cause: "One or more tasks not signaling ready state"
     solution: "Verify all tasks send sync signal: m.top.rotorSync = { type: 'TASK_READY', taskName: 'YourTaskName' }"
-  memoryIssues:
-    problem: "Application uses too much memory"
-    cause: "Node pool too large"
-    solution: "Reduce node pool sizes based on actual usage"
 frameworkProperties:
   subsystems:
     - "builder: ViewBuilder instance"
@@ -249,16 +205,12 @@ rules:
   - "Render calls are queued automatically until tasks ready"
   - "Use enableRenderBeforeReady: true only for static UI (loading screens)"
   - "Don't use task features (dispatchers, task data) with enableRenderBeforeReady"
-  - "Use node pool for frequently created nodes only (Group, Rectangle, Poster, Label)"
-  - "Don't over-allocate node pool - wastes memory"
   - "Default plugins automatically included"
   - "Custom plugins not documented - contact author if needed"
 pitfalls:
   - "Creating multiple framework instances causes conflicts"
   - "Forgetting to send task ready signals causes render queue to wait indefinitely"
   - "Using task features with enableRenderBeforeReady causes errors"
-  - "Over-allocating node pool wastes memory"
-  - "Using unsupported node types in node pool (only 4 types supported)"
 nextSteps:
   - "Widget Reference: Complete Widget properties, methods, and usage patterns"
   - "ViewBuilder Overview: High-level architecture and concepts"

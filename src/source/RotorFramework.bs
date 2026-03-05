@@ -59,10 +59,6 @@ namespace Rotor
     '**   - readyFieldId (string, optional): Field name to add to the root node that will be set to
     '**                                       true when the framework is ready. Useful for triggering
     '**                                       observers when initialization completes.
-    '**   - nodePool (array, optional): Array of node pool configurations for pre-instantiating
-    '**                                  SceneGraph nodes to improve rendering performance.
-    '**                                  Supported types: Group, Rectangle, Poster, Label
-    '**                                  Format: [{ nodeType: "Label", count: 10 }, ...]
     '**   - debug (object): Debug configuration options
     '**       - autoSetNodeId (boolean): Automatically set node IDs for debugging (default: false)
     '**   - plugins (array): List of plugin instances to register with the framework.
@@ -76,11 +72,7 @@ namespace Rotor
     '**       readyFieldId: "appReady",
     '**       onReady: sub()
     '**           print "Framework ready!"
-    '**       end sub,
-    '**       nodePool: [
-    '**           { nodeType: "Label", count: 20 },
-    '**           { nodeType: "Rectangle", count: 10 }
-    '**       ]
+    '**       end sub
     '**   })
     '==========================================================================
     class Framework
@@ -93,7 +85,6 @@ namespace Rotor
             onReady: invalid, ' @function (optional)
             rootNode: invalid, ' @sgNode   (optional)
             readyFieldId: invalid, ' @string   (optional)
-            nodePool: invalid, ' @array    (optional)
             allowNativeAudioGuide: true, ' @boolean    (optional)
 
 
@@ -164,11 +155,6 @@ namespace Rotor
             m.i18nService.init(m)
             m.ttsService.init(m, m.config.allowNativeAudioGuide)
 
-            ' Configure Node Pool
-            if Rotor.Utils.isArray(m.config.nodePool)
-                m.presetNodePool({ nodePool: m.config.nodePool })
-            end if
-
             ' Register plugins
             m.registerPlugins(m.config.plugins)
 
@@ -215,11 +201,10 @@ namespace Rotor
         ' erase - Removes widget(s) from the tree
         '
         ' @param {dynamic} payload - Widget ID, HID, or array of IDs to remove
-        ' @param {boolean} shouldSkipNodePool - If true, removed nodes won't be returned to pool
         ' @param {string} HID - Parent HID context for widget lookup
         '
-        public sub erase(payload as dynamic, shouldSkipNodePool = false as boolean, HID = "0" as string)
-            m.builder.erase(payload, shouldSkipNodePool, HID)
+        public sub erase(payload as dynamic, HID = "0" as string)
+            m.builder.erase(payload, HID)
         end sub
 
         ' ---------------------------------------------------------------------
@@ -338,25 +323,6 @@ namespace Rotor
         '
         public function animator(animatorId) as object
             return m.animatorProvider.getFactory(animatorId, m)
-        end function
-
-        ' ---------------------------------------------------------------------
-        ' getNodePoolInfo - Gets node pool statistics
-        '
-        ' @returns {object} Node pool information (available nodes, usage, etc.)
-        '
-        public function getNodePoolInfo() as object
-            return m.builder.nodePool.getNodePoolInfo()
-        end function
-
-        ' ---------------------------------------------------------------------
-        ' presetNodePool - Pre-instantiates nodes for node pool
-        '
-        ' @param {object} config - Node pool configuration
-        ' @returns {object} Node pool instance
-        '
-        public function presetNodePool(config) as object
-            return m.builder.nodePool.presetNodePool(config)
         end function
 
         ' ---------------------------------------------------------------------

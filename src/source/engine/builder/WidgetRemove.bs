@@ -5,7 +5,7 @@ namespace Rotor.ViewBuilder
     '
     ' @param {object} postProcessBuffer - Buffer for deferred plugin/lifecycle operations
     ' @param {object} widget - Widget instance to remove
-    ' @param {object} config - Removal configuration with markedToRemove and shouldSkipNodePool flags
+    ' @param {object} config - Removal configuration with markedToRemove flag
     ' @returns {object} Object with children array and HID for recursive processing
     ' =====================================================================
     function removeWidget(postProcessBuffer as object, widget as object, config as object) as object
@@ -44,9 +44,7 @@ namespace Rotor.ViewBuilder
         if isBranchOfRemove
             postProcessBuffer.add({
                 hookType: Rotor.Const.LifeCycleHookType.REMOVE_CHILD,
-                shouldSkipNodePool: config.shouldSkipNodePool,
                 widget: widget
-
             })
         end if
 

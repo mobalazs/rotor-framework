@@ -1,6 +1,5 @@
 import "Processor.bs"
 import "PostProcessor.bs"
-import "NodePool.bs"
 import "Tree.bs"
 import "../../base/BaseWidget.bs"
 import "WidgetCreate.bs"
@@ -13,7 +12,7 @@ namespace Rotor.ViewBuilder
     ' =====================================================================
     ' Builder - Core ViewBuilder engine that orchestrates widget lifecycle operations
     '
-    ' Manages widget tree, node pool, plugin adapter, and rendering queue.
+    ' Manages widget tree, plugin adapter, and rendering queue.
     ' Handles create, update, and remove operations with post-processing support.
     ' =====================================================================
     class Builder
@@ -25,8 +24,6 @@ namespace Rotor.ViewBuilder
         processor = new Rotor.ViewBuilder.Processor()
         postProcessor = new Rotor.ViewBuilder.PostProcessor()
         postProcessBuffer = new Rotor.ViewBuilder.postProcessBuffer()
-
-        nodePool = new Rotor.ViewBuilder.NodePool()
 
         frameworkInstance as Rotor.Framework
 
@@ -41,7 +38,6 @@ namespace Rotor.ViewBuilder
         '
         sub init(frameworkInstance as object)
             m.frameworkInstance = frameworkInstance
-            m.nodePool.init(frameworkInstance)
             m.widgetTree.init()
             m.pluginAdapter.init(frameworkInstance)
             m.processor.init(frameworkInstance)
@@ -55,14 +51,13 @@ namespace Rotor.ViewBuilder
         sub destroy()
             ' remove all widgets
             rootKeys = m.widgetTree.tree.children.Keys()
-            m.erase(rootKeys, true)
+            m.erase(rootKeys)
             ' destroy builder engine
             m.pluginAdapter.destroy()
             m.processor.destroy()
             m.postProcessor.destroy()
             m.postProcessBuffer.destroy()
             m.widgetTree.destroy()
-            m.nodePool.destroy()
             ' remove references
             m.frameworkInstance = invalid
         end sub
@@ -147,10 +142,9 @@ namespace Rotor.ViewBuilder
         ' erase - Erases widgets from the tree by ID or configuration
         '
         ' @param {dynamic} payload - Widget ID(s) or configuration object(s) to erase
-        ' @param {boolean} shouldSkipNodePool - Whether to skip returning nodes to pool (default: false)
         ' @param {string} HID - Hierarchical ID context for search (default: "0")
         '
-        sub erase (payload as dynamic, shouldSkipNodePool = false as boolean, HID = "0" as string)
+        sub erase (payload as dynamic, HID = "0" as string)
 
             ' normalize shortcuts
 
@@ -195,8 +189,7 @@ namespace Rotor.ViewBuilder
                             HID: widget.HID,
                             parentHID: widget.parentHID,
                             id: widget.id,
-                            markedToRemove: true,
-                            shouldSkipNodePool: shouldSkipNodePool
+                            markedToRemove: true
                         })
                     end if
 

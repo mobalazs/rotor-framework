@@ -29,7 +29,6 @@ namespace tests
             builderStub = {
                 widgetTree: invalid,
                 pluginAdapter: invalid,
-                nodePool: invalid,
                 renderQueueFlush: sub()
                     m.flushed = true
                 end sub
@@ -93,17 +92,8 @@ namespace tests
                 end function
             }
 
-            nodePoolStub = {
-                releasedNodes: [],
-                releaseNodeBranch: function(node)
-                    m.releasedNodes.push(node)
-                    return node
-                end function
-            }
-
             builderStub.widgetTree = widgetTreeStub
             builderStub.pluginAdapter = pluginAdapterStub
-            builderStub.nodePool = nodePoolStub
 
             return {
                 builder: builderStub,
@@ -182,8 +172,7 @@ namespace tests
             removeProcess = {
                 hookType: Rotor.Const.LifeCycleHookType.REMOVE_CHILD,
                 widget: widgetRemove,
-                parent: widgetRemove.parent,
-                shouldSkipNodePool: false
+                parent: widgetRemove.parent
             }
 
             mountedProcess = {
@@ -223,7 +212,6 @@ namespace tests
             m.postBuffer.clearLifeCycleBuffers()
 
             m.assertEqual(widgetAppend.zIndex, 2)
-            m.assertEqual(m.frameworkStub.builder.nodePool.releasedNodes.Count(), 1)
             m.assertTrue(widgetMounted.mountedWidget)
             m.assertTrue(widgetMounted.mountedView)
             m.assertTrue(widgetUpdated.updated)
