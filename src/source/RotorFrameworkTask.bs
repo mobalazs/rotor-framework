@@ -85,6 +85,7 @@ namespace Rotor
         ' helper vars
         taskNode as object
         dispatcherProvider as object
+        renderQueue as object
         port as object
         sourceObjectRegistry = {} ' identity -> { dispatcherId, objectId, eventFilter }
         sourceObjectIdIndex = {} ' objectId -> identity (reverse index for unregistration)
@@ -110,6 +111,7 @@ namespace Rotor
                 frameworkInstance: m
             }
             m.taskNode = globalScope.top
+            m.renderQueue = globalScope.rotor_render_queue
 
             m.dispatcherProvider = new Rotor.DispatcherProvider(m.threadType)
 

@@ -40,6 +40,7 @@ namespace Rotor
         dispatchQueue = []              ' Queue for intents during active dispatch
         reducerInstance as object       ' Reducer instance
         modelInstance as object         ' Model instance holding state
+        renderQueue as object           ' roRenderThreadQueue for non-blocking state delivery
 
         ' =============================================================
         ' CONSTRUCTOR
@@ -59,15 +60,13 @@ namespace Rotor
 
             globalScope = GetGlobalAA()
             m.stateNode = globalScope.top
+            m.renderQueue = globalScope.rotor_framework_helper.frameworkInstance.renderQueue
 
             ' Link reducer to this dispatcher
             m.reducerInstance = reducerInstance
             m.reducerInstance.dispatcher = m
             m.reducerInstance.dispatcherId = dispatcherId
             m.modelInstance = modelInstance
-
-            ' Create field on task node for render thread communication
-            m.stateNode.addField(m.dispatcherId, "node", true)
 
             ' Expose initial state
             m.exposeState()
@@ -94,7 +93,7 @@ namespace Rotor
         sub exposeState()
             newState = CreateObject("roSGNode", "ContentNode")
             newState.addFields(m.modelInstance.state)
-            m.stateNode.setField(m.dispatcherId, newState)
+            m.renderQueue.PostMessage(m.dispatcherId, { dispatcherId: m.dispatcherId, state: newState })
         end sub
 
         ' ---------------------------------------------------------------------

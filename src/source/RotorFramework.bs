@@ -109,6 +109,7 @@ namespace Rotor
         ttsService as object
         dispatcherProvider as object
         animatorProvider as object
+        renderQueue as object
         ' plugin adapter workspace
         plugins = {}
 
@@ -134,12 +135,14 @@ namespace Rotor
             m.ttsService = new Rotor.ViewBuilder.TtsService()
             m.animatorProvider = new Rotor.Animator()
             m.dispatcherProvider = new Rotor.DispatcherProvider(m.threadType)
+            m.renderQueue = CreateObject("roRenderThreadQueue")
 
             globalScope = GetGlobalAA()
             globalScope.rotor_framework_helper = {
                 threadType: m.threadType,
                 frameworkInstance: m
             }
+            globalScope.rotor_render_queue = m.renderQueue
 
             m.builder.init(m)
 

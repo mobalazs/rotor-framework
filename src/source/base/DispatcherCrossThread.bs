@@ -28,6 +28,8 @@ namespace Rotor
 
         threadType as string            ' Current thread type (RENDER or TASK)
         isStateObserved = false         ' Tracks if observer is active
+        handlerRegistration as object   ' roRenderThreadQueue handler handle (for unregistration)
+        lastState as object             ' Latest state received via queue (render thread only)
 
         ' =============================================================
         ' CONSTRUCTOR
@@ -93,8 +95,7 @@ namespace Rotor
         ' @returns {object} Current state
         '
         function getState(mapStateToProps = invalid as Dynamic, callerScope = invalid as object) as object
-            ' Read state from state node field
-            state = m.stateNode.getField(m.dispatcherId)
+            state = m.lastState
 
             ' Apply optional state mapping
             m.runMapStateToProps(state, mapStateToProps, callerScope)
@@ -155,8 +156,8 @@ namespace Rotor
         '
         sub setupObserver()
             if m.threadType = Rotor.Const.ThreadType.RENDER
-                ' Render thread: use native SceneGraph observer
-                m.stateNode.observeFieldScoped(m.dispatcherId, "Rotor_dispatcherStateCallback")
+                renderQueue = GetGlobalAA().rotor_render_queue
+                m.handlerRegistration = renderQueue.AddMessageHandler(m.dispatcherId, "Rotor_dispatcherStateCallback")
             else
                 ' Task thread: use framework observer system
                 fieldId = m.dispatcherId
@@ -174,8 +175,7 @@ namespace Rotor
         '
         sub removeObserver()
             if m.threadType = Rotor.Const.ThreadType.RENDER
-                ' Render thread: unobserve SceneGraph field
-                m.stateNode.unobserveFieldScoped(m.dispatcherId)
+                m.handlerRegistration = invalid
             else
                 ' Task thread: remove framework observer
                 fieldId = m.dispatcherId
@@ -207,7 +207,7 @@ namespace Rotor
             ' Remove observer if active
             if m.isStateObserved = true
                 if m.threadType = Rotor.Const.ThreadType.RENDER
-                    m.stateNode.unobserveFieldScoped(m.dispatcherId)
+                    m.handlerRegistration = invalid
                 else
                     fieldId = m.dispatcherId
                     frameworkInstance.removeObserver(fieldId, m.stateNode)
@@ -243,14 +243,14 @@ namespace Rotor
     '
     ' @param {roSGNodeEvent} msg - SceneGraph observer message
     ' =====================================================================
-    sub dispatcherStateCallback(msg)
-        ' Extract dispatcher ID and state from message
-        dispatcherId = msg.getField()
-        state = msg.getData()
+    sub dispatcherStateCallback(data, msgInfo)
+        dispatcherId = data.dispatcherId
+        state = data.state
 
-        ' Lookup dispatcher instance and notify listeners
         frameworkInstance = GetGlobalAA().rotor_framework_helper.frameworkInstance
         dispatcherInstance = frameworkInstance.dispatcherProvider.get(dispatcherId)
+        if dispatcherInstance = invalid then return
+        dispatcherInstance.lastState = state
         dispatcherInstance.notifyListeners(state)
     end sub
 
