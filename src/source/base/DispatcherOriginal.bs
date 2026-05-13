@@ -40,6 +40,9 @@ namespace Rotor
         dispatchQueue = []              ' Queue for intents during active dispatch
         reducerInstance as object       ' Reducer instance
         modelInstance as object         ' Model instance holding state
+        renderQueue as object           ' roRenderThreadQueue — singleton, accessible from any thread
+        private utils as object
+        private isInitialized = false as boolean
 
         ' =============================================================
         ' CONSTRUCTOR
@@ -59,6 +62,8 @@ namespace Rotor
 
             globalScope = GetGlobalAA()
             m.stateNode = globalScope.top
+            m.renderQueue = CreateObject("roRenderThreadQueue")
+            m.utils = CreateObject("roUtils")
 
             ' Link reducer to this dispatcher
             m.reducerInstance = reducerInstance
@@ -88,14 +93,18 @@ namespace Rotor
         ' ---------------------------------------------------------------------
         ' exposeState - Delivers current state to render thread via task node field
         '
-        ' MoveIntoField sets the task node field — render thread observes it via
-        ' observeFieldScoped (zero rendezvous on render thread, brief rendezvous
-        ' on task thread only).
+        ' First call (startup): MoveIntoField — sets stateNode field for getState() fallback.
+        ' Subsequent calls: PostMessage — zero rendezvous on task thread.
         '
+        ' First call: MoveIntoField seeds the task node field for getState() fallback.
+        ' Subsequent calls: CopyMessage — internal deep copy, state stays intact, zero rendezvous.
         sub exposeState()
-            stateCopy = {}
-            stateCopy.append(m.modelInstance.state)
-            m.stateNode.MoveIntoField(m.dispatcherId, stateCopy)
+            if m.isInitialized
+                m.renderQueue.CopyMessage(m.dispatcherId, m.modelInstance.state)
+            else
+                m.stateNode.MoveIntoField(m.dispatcherId, m.utils.DeepCopy(m.modelInstance.state))
+                m.isInitialized = true
+            end if
         end sub
 
         ' ---------------------------------------------------------------------
@@ -188,6 +197,8 @@ namespace Rotor
             m.stateNode = invalid
             m.modelInstance = invalid
             m.reducerInstance = invalid
+            m.renderQueue = invalid
+            m.utils = invalid
         end sub
 
     end class

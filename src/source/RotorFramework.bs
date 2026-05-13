@@ -368,7 +368,8 @@ namespace Rotor
             m.tasks[taskId] = {
                 node: taskNode,
                 phase: "pending",
-                dispatchers: []
+                dispatchers: [],
+                renderQueue: invalid
             }
 
             Rotor.Utils.setCustomFields(taskNode, {
@@ -470,6 +471,17 @@ namespace Rotor
             ' Register cross-thread dispatchers on render thread
             if sync.dispatcherIds <> invalid
                 m.dispatcherProvider.registerCrossThreadDispatchers(sync.dispatcherIds, taskNode)
+            end if
+
+            ' Register AddMessageHandler for each dispatcher on this task.
+            ' roRenderThreadQueue is a process-level singleton: both threads call
+            ' CreateObject("roRenderThreadQueue") and get the same underlying queue.
+            if sync.dispatcherIds <> invalid and sync.dispatcherIds.Count() > 0
+                renderQueue = CreateObject("roRenderThreadQueue")
+                for each dispatcherId in sync.dispatcherIds
+                    renderQueue.AddMessageHandler(dispatcherId, "Rotor_dispatcherStateCallback")
+                end for
+                m.tasks[taskId].renderQueue = renderQueue ' keep reference alive
             end if
 
             ' Wait for all tasks to be operational
