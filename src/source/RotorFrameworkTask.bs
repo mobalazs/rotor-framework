@@ -125,6 +125,27 @@ namespace Rotor
         ' PUBLIC API
         ' =====================================================================
 
+        ' =====================================================================
+        ' ROUTER — Task → Render
+        ' =====================================================================
+
+        ' ---------------------------------------------------------------------
+        ' sendStateToRender - Routes dispatcher state update to render thread
+        '
+        ' Called by DispatcherOriginal.exposeState(). Sends via the single
+        ' __rotor__ channel on roRenderThreadQueue — zero rendezvous on task thread.
+        '
+        ' @param {string} dispatcherId - Dispatcher identifier
+        ' @param {object} state - Current state AA
+        '
+        public sub sendStateToRender(dispatcherId as string, state as object)
+            m.renderQueue.CopyMessage(Rotor.Const.ROTOR_QUEUE_ID, {
+                type: Rotor.Const.RouterMsgType.STATE,
+                dispatcherId: dispatcherId,
+                state: state
+            })
+        end sub
+
         ' ---------------------------------------------------------------------
         ' connectDispatcher - Creates a new dispatcher facade connection by ID
         '
@@ -401,18 +422,25 @@ namespace Rotor
         sub notifySyncStatus(status as string)
 
             payload = {
-                type: status,
+                type: Rotor.Const.RouterMsgType.SYNC,
+                syncType: status,
                 taskNode: m.taskNode
             }
 
             if status = Rotor.Const.ThreadSyncType.TASK_SYNCING
+                dispatcherIds = m.dispatcherProvider.stack.Keys()
+                initialStates = {}
+                for each id in dispatcherIds
+                    initialStates[id] = m.dispatcherProvider.get(id).getState()
+                end for
                 payload.append({
-                    dispatcherIds: m.dispatcherProvider.stack.Keys(),
+                    dispatcherIds: dispatcherIds,
+                    initialStates: initialStates,
                     tasks: m.config.tasks
                 })
             end if
 
-            m.renderQueue.CopyMessage("__rotorSync__", payload)
+            m.renderQueue.CopyMessage(Rotor.Const.ROTOR_QUEUE_ID, payload)
 
         end sub
 

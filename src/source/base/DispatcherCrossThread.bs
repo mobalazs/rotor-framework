@@ -10,16 +10,16 @@ namespace Rotor
     ' or vice versa).
     '
     ' Responsibilities:
-    '   - Dispatches intents across thread boundaries via rotorSync field
-    '   - Render thread: receives state via roRenderThreadQueue (AddMessageHandler
-    '     registered centrally in RotorFramework); caches last state for getState()
+    '   - Delegates intent dispatch to RotorFramework router (sendIntentToTask)
+    '   - Render thread: receives state via roRenderThreadQueue single __rotor__ channel
+    '     routed through RotorFramework.handleStateMessage → notifyListeners
     '   - Task thread: observes state node field via observeFieldScopedEx
     '   - Lazy observer setup for task thread (only when listeners are added)
     '   - Auto cleanup when last listener is removed
     '
     ' MVI Cross-Thread Flow:
-    '   Render Thread: dispatch(intent) → rotorSync field → Task Thread
-    '   Task Thread: reduce state → roRenderThreadQueue.PostMessage → Render Thread handler
+    '   Render Thread: dispatch(intent) → RotorFramework.sendIntentToTask → rotorSync field → Task Thread
+    '   Task Thread: reduce state → FrameworkTask.sendStateToRender → __rotor__ queue → Render Thread
     ' =====================================================================
     class DispatcherCrossThread extends DispatcherCore
 
@@ -47,18 +47,15 @@ namespace Rotor
         ' DISPATCH
         ' =============================================================
 
+        ' ---------------------------------------------------------------------
+        ' dispatch - Sends intent to task thread via RotorFramework router
+        '
         sub dispatch(intent as Intent)
             if intent?.payload <> invalid and intent.payload.Count() > 1 and intent.payload = invalid
                 throw "[WARNING] Intent payload is invalid."
             end if
-
-            m.stateNode.setField("rotorSync", {
-                type: Rotor.Const.ThreadSyncType.DISPATCH,
-                payload: {
-                    dispatcherId: m.dispatcherId,
-                    intent: intent
-                }
-            })
+            frameworkInstance = GetGlobalAA().rotor_framework_helper.frameworkInstance
+            frameworkInstance.sendIntentToTask(m.stateNode, m.dispatcherId, intent)
         end sub
 
         ' =============================================================
@@ -69,12 +66,12 @@ namespace Rotor
         ' getState - Returns current state (optionally mapped)
         '
         ' Render thread: returns cached state (updated by notifyListeners from
-        ' AddMessageHandler callback), falling back to task node field for
-        ' initial state before first dispatch.
+        ' RotorFramework.handleStateMessage), falling back to task node field for
+        ' initial state (seeded by render thread in handleTaskSyncing).
         ' Task thread: reads directly from state node field.
         '
         function getState(mapStateToProps = invalid as Dynamic, callerScope = invalid as object) as object
-            if m.threadType = Rotor.Const.ThreadType.RENDER and m.currentState <> invalid
+            if m.currentState <> invalid
                 state = m.currentState
             else
                 state = m.stateNode.getField(m.dispatcherId)
@@ -90,8 +87,7 @@ namespace Rotor
         ' ---------------------------------------------------------------------
         ' addListener - Adds state change listener
         '
-        ' Render thread: notifications arrive centrally via RotorFramework's
-        ' AddMessageHandler → notifyListeners. No per-dispatcher observer needed.
+        ' Render thread: state arrives via __rotor__ queue → handleStateMessage → notifyListeners.
         ' Task thread: sets up lazy observer on first listener.
         '
         override sub addListener(listenerConfig as object, listenerId as string, listenerScope as object)
@@ -117,9 +113,7 @@ namespace Rotor
         ' notifyListeners - Caches state on render thread before notifying
         '
         override sub notifyListeners(state as object)
-            if m.threadType = Rotor.Const.ThreadType.RENDER
-                m.currentState = state
-            end if
+            m.currentState = state
             super.notifyListeners(state)
         end sub
 
@@ -160,34 +154,5 @@ namespace Rotor
         end sub
 
     end class
-
-end namespace
-
-namespace Rotor
-
-    ' =====================================================================
-    ' dispatcherStateCallback - roRenderThreadQueue handler for dispatcher state updates
-    '
-    ' Called on the render thread when task thread calls PostMessage. Zero rendezvous
-    ' on render thread — task thread never blocks waiting for this to complete.
-    '
-    ' Registered centrally in RotorFramework.handleTaskSyncing() via AddMessageHandler.
-    '
-    ' @param {object} data - State AA moved by DispatcherOriginal.exposeState()
-    ' @param {object} info - Queue metadata: info.message_id = dispatcherId
-    ' =====================================================================
-    sub dispatcherStateCallback(data as object, info as object)
-        dispatcherId = info.message_id
-
-        helper = GetGlobalAA().rotor_framework_helper
-        if helper = invalid then return
-        frameworkInstance = helper.frameworkInstance
-        if frameworkInstance = invalid then return
-
-        dispatcherInstance = frameworkInstance.dispatcherProvider.get(dispatcherId)
-        if dispatcherInstance = invalid then return
-
-        dispatcherInstance.notifyListeners(data)
-    end sub
 
 end namespace

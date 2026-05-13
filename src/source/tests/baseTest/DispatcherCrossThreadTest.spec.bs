@@ -25,6 +25,12 @@ namespace tests
                 removeObserver: sub(fieldId, node)
                     m.removedObservers.push({ fieldId: fieldId, node: node })
                 end sub,
+                sendIntentToTask: sub(taskNode, dispatcherId, intent)
+                    taskNode.setField("rotorSync", {
+                        type: Rotor.Const.ThreadSyncType.DISPATCH,
+                        payload: { dispatcherId: dispatcherId, intent: intent }
+                    })
+                end sub,
                 dispatcherProvider: {
                     mockDispatchers: {},
                     testSuite: m,
