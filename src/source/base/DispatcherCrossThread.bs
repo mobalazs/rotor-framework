@@ -18,7 +18,7 @@ namespace Rotor
     '
     ' MVI Cross-Thread Flow:
     '   Render Thread: dispatch(intent) → rotorSync field → Task Thread
-    '   Task Thread: reduce state → state node field → Render Thread observer callback
+    '   Task Thread: reduce state → roRenderThreadQueue.PostMessage → Render Thread handler
     ' =====================================================================
     class DispatcherCrossThread extends DispatcherCore
 
@@ -93,12 +93,8 @@ namespace Rotor
         ' @returns {object} Current state
         '
         function getState(mapStateToProps = invalid as Dynamic, callerScope = invalid as object) as object
-            ' Read state from state node field
             state = m.stateNode.getField(m.dispatcherId)
-
-            ' Apply optional state mapping
             m.runMapStateToProps(state, mapStateToProps, callerScope)
-
             return state
         end function
 
@@ -147,40 +143,37 @@ namespace Rotor
         ' =============================================================
 
         ' ---------------------------------------------------------------------
-        ' setupObserver - Sets up observer for state changes on state node field
+        ' setupObserver - Sets up state change listener
         '
-        ' Thread-specific observer setup:
-        '   - RENDER thread: Uses observeFieldScoped with callback name
-        '   - TASK thread: Uses framework's observer system
+        ' Thread-specific setup:
+        '   - RENDER thread: AddMessageHandler on roRenderThreadQueue (no rendezvous)
+        '   - TASK thread: Uses framework's observeFieldScopedEx system
         '
         sub setupObserver()
             if m.threadType = Rotor.Const.ThreadType.RENDER
-                ' Render thread: use native SceneGraph observer
+                ' Render thread: observe task node field — fires async, zero rendezvous on render thread
                 m.stateNode.observeFieldScoped(m.dispatcherId, "Rotor_dispatcherStateCallback")
             else
                 ' Task thread: use framework observer system
-                fieldId = m.dispatcherId
                 frameworkInstance = GetGlobalAA().rotor_framework_helper.frameworkInstance
-                frameworkInstance.addObserver(fieldId, m.stateNode)
+                frameworkInstance.addObserver(m.dispatcherId, m.stateNode)
             end if
 
             m.isStateObserved = true
         end sub
 
         ' ---------------------------------------------------------------------
-        ' removeObserver - Removes observer for state changes
+        ' removeObserver - Removes state change listener
         '
-        ' Thread-specific observer cleanup matching setupObserver.
+        ' Thread-specific cleanup matching setupObserver.
         '
         sub removeObserver()
             if m.threadType = Rotor.Const.ThreadType.RENDER
-                ' Render thread: unobserve SceneGraph field
                 m.stateNode.unobserveFieldScoped(m.dispatcherId)
             else
                 ' Task thread: remove framework observer
-                fieldId = m.dispatcherId
                 frameworkInstance = GetGlobalAA().rotor_framework_helper.frameworkInstance
-                frameworkInstance.removeObserver(fieldId, m.stateNode)
+                frameworkInstance.removeObserver(m.dispatcherId, m.stateNode)
             end if
 
             m.isStateObserved = false
@@ -209,8 +202,7 @@ namespace Rotor
                 if m.threadType = Rotor.Const.ThreadType.RENDER
                     m.stateNode.unobserveFieldScoped(m.dispatcherId)
                 else
-                    fieldId = m.dispatcherId
-                    frameworkInstance.removeObserver(fieldId, m.stateNode)
+                    frameworkInstance.removeObserver(m.dispatcherId, m.stateNode)
                 end if
             end if
 
@@ -229,29 +221,31 @@ end namespace
 namespace Rotor
 
     ' =====================================================================
-    ' dispatcherStateCallback - Global callback function for dispatcher state changes on render thread
+    ' dispatcherStateCallback - observeFieldScoped handler for dispatcher state updates
     '
-    ' This function is called by SceneGraph's observeFieldScoped when a dispatcher's
-    ' state field changes on the state node. It routes the state change to the
-    ' appropriate dispatcher instance for listener notification.
+    ' Called on the render thread when the task thread writes new state via
+    ' MoveIntoField. Zero rendezvous on render thread — observer fires async.
     '
     ' Process flow:
-    '   1. Extract dispatcher ID from message field
-    '   2. Extract new state from message data
-    '   3. Lookup dispatcher instance from provider
-    '   4. Notify all registered listeners with new state
+    '   1. Extract dispatcher ID (= field name) and state from event
+    '   2. Update framework stateCache and per-instance lastState
+    '   3. Notify all registered listeners with new state
     '
-    ' @param {roSGNodeEvent} msg - SceneGraph observer message
+    ' @param {roSGNodeEvent} event - Field event: getField()=dispatcherId, getData()=state
     ' =====================================================================
-    sub dispatcherStateCallback(msg)
-        ' Extract dispatcher ID and state from message
-        dispatcherId = msg.getField()
-        state = msg.getData()
+    sub dispatcherStateCallback(event as object)
+        dispatcherId = event.getField()
+        data = event.getData()
 
-        ' Lookup dispatcher instance and notify listeners
-        frameworkInstance = GetGlobalAA().rotor_framework_helper.frameworkInstance
+        helper = GetGlobalAA().rotor_framework_helper
+        if helper = invalid then return
+        frameworkInstance = helper.frameworkInstance
+        if frameworkInstance = invalid then return
+
         dispatcherInstance = frameworkInstance.dispatcherProvider.get(dispatcherId)
-        dispatcherInstance.notifyListeners(state)
+        if dispatcherInstance = invalid then return
+
+        dispatcherInstance.notifyListeners(data)
     end sub
 
 end namespace

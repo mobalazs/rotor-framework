@@ -115,7 +115,7 @@ namespace Rotor
 
             m.taskNode.addField("rotorSync", "assocarray", true)
             m.port = CreateObject("roMessagePort")
-            m.taskNode.observeFieldScoped("rotorSync", m.port)
+            m.taskNode.observeFieldScopedEx("rotorSync", m.port)
 
         end sub
 
@@ -421,7 +421,7 @@ namespace Rotor
         ' @param {object} node - SceneGraph node to observe
         '
         sub addObserver(fieldId as string, node)
-            node.observeFieldScoped(fieldId, m.port)
+            node.observeFieldScopedEx(fieldId, m.port)
         end sub
 
         ' ---------------------------------------------------------------------

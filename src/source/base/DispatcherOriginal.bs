@@ -66,8 +66,8 @@ namespace Rotor
             m.reducerInstance.dispatcherId = dispatcherId
             m.modelInstance = modelInstance
 
-            ' Create field on task node for render thread communication
-            m.stateNode.addField(m.dispatcherId, "node", true)
+            ' Create assocarray field on task node for initial state (getState() fallback)
+            m.stateNode.addField(m.dispatcherId, "assocarray", true)
 
             ' Expose initial state
             m.exposeState()
@@ -86,15 +86,16 @@ namespace Rotor
         ' =============================================================
 
         ' ---------------------------------------------------------------------
-        ' exposeState - Exposes current state to render thread via task node field
+        ' exposeState - Delivers current state to render thread via task node field
         '
-        ' Creates a ContentNode with state fields and sets it on task node.
-        ' This allows render thread to observe state changes.
+        ' MoveIntoField sets the task node field — render thread observes it via
+        ' observeFieldScoped (zero rendezvous on render thread, brief rendezvous
+        ' on task thread only).
         '
         sub exposeState()
-            newState = CreateObject("roSGNode", "ContentNode")
-            newState.addFields(m.modelInstance.state)
-            m.stateNode.setField(m.dispatcherId, newState)
+            stateCopy = {}
+            stateCopy.append(m.modelInstance.state)
+            m.stateNode.MoveIntoField(m.dispatcherId, stateCopy)
         end sub
 
         ' ---------------------------------------------------------------------
