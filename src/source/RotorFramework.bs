@@ -109,6 +109,7 @@ namespace Rotor
         ttsService as object
         dispatcherProvider as object
         animatorProvider as object
+        syncQueue as object
         ' plugin adapter workspace
         plugins = {}
 
@@ -158,9 +159,9 @@ namespace Rotor
             ' Register plugins
             m.registerPlugins(m.config.plugins)
 
-            ' Prepare render for syncing with tasks
-            rootNode.addField("rotorSync", "assocarray", true)
-            rootNode.observeFieldScoped("rotorSync", "Rotor_syncCallback")
+            ' Prepare render for syncing with tasks via roRenderThreadQueue (zero rendezvous)
+            m.syncQueue = CreateObject("roRenderThreadQueue")
+            m.syncQueue.AddMessageHandler("__rotorSync__", "Rotor_syncCallback")
 
             ' Add Field to notify when all tasks have been synced.
             if m.config.readyFieldId <> invalid
@@ -512,17 +513,10 @@ namespace Rotor
             m.enableRendering = true
             m.builder.renderQueueFlush()
 
-            ' Notify ready state on rotorSync field
-            m.getRootNode().setField("rotorSync", {
-                type: Rotor.Const.ThreadSyncType.SYNC_COMPLETED
-            })
-
-            ' Notify ready state by calling onReady fn if configured
             if Rotor.Utils.isFunction(m.config.onReady)
                 Rotor.Utils.callbackScoped(m.config.onReady, GetGlobalAA())
             end if
 
-            ' Notify ready state on rotorSync field
             if m.config.readyFieldId <> invalid
                 m.getRootNode().setField(m.config.readyFieldId, true)
             end if
@@ -549,8 +543,7 @@ namespace Rotor
             end for
 
             m.tasks.Clear()
-
-            rootNode.unobserveFieldScoped("rotorSync")
+            m.syncQueue = invalid
 
             ' destroy subsystems
             m.builder.destroy()
@@ -580,10 +573,8 @@ namespace Rotor
     '
     ' @param {roSGNodeEvent} msg - SceneGraph observer message containing sync data
     ' =====================================================================
-    sub syncCallback(msg)
-        ' extraInfo = msg.GetInfo()
-        ' fieldId = msg.getField()
-        sync = msg.getData() ' @type:AA
+    sub syncCallback(data as object, info as object)
+        sync = data ' @type:AA
 
         framework = GetGlobalAA().rotor_framework_helper.frameworkInstance
         if framework = invalid then return

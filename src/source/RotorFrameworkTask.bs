@@ -84,6 +84,7 @@ namespace Rotor
 
         ' helper vars
         taskNode as object
+        renderQueue as object
         dispatcherProvider as object
         port as object
         sourceObjectRegistry = {} ' identity -> { dispatcherId, objectId, eventFilter }
@@ -110,6 +111,7 @@ namespace Rotor
                 frameworkInstance: m
             }
             m.taskNode = globalScope.top
+            m.renderQueue = CreateObject("roRenderThreadQueue")
 
             m.dispatcherProvider = new Rotor.DispatcherProvider(m.threadType)
 
@@ -410,7 +412,7 @@ namespace Rotor
                 })
             end if
 
-            m.taskNode.rootNode.setField("rotorSync", payload)
+            m.renderQueue.CopyMessage("__rotorSync__", payload)
 
         end sub
 
@@ -454,6 +456,7 @@ namespace Rotor
                 frameworkInstance: invalid
             }
 
+            m.renderQueue = invalid
             m.taskNode.rootNode = invalid
             m.taskNode = invalid
         end sub
