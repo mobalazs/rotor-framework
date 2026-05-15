@@ -66,7 +66,7 @@ Every widget automatically receives these methods:
 |--------|-----------|-------------|
 | `render` | `sub(payloads as dynamic, params = {} as object)` | Render or update widgets |
 | `refresh` | `sub(keyPaths as object)` | Refresh specific features |
-| `erase` | `sub(payloads as dynamic, skipPool = false as boolean)` | Destroy widgets |
+| `erase` | `sub(payloads as dynamic)` | Destroy widgets |
 
 ### State Management
 
