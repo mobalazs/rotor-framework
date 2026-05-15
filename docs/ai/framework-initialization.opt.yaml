@@ -217,7 +217,7 @@ rules:
   - "Custom plugins not documented - contact author if needed"
 pitfalls:
   - "Creating multiple framework instances causes conflicts"
-  - "Forgetting to send task ready signals causes render queue to wait indefinitely"
+  - "Forgetting to call m.appFw.sync() at the end of the task function causes render queue to wait indefinitely"
   - "Using task features with enableRenderBeforeReady causes errors"
 nextSteps:
   - "Widget Reference: Complete Widget properties, methods, and usage patterns"
