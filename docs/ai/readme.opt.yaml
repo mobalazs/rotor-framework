@@ -65,7 +65,7 @@ quickStart:
     ])
   description: "Minimalist example initializes framework and displays a label. Fully initializes ViewBuilder and demonstrates core rendering capabilities."
 requirements:
-  platform: "Roku SceneGraph (firmware 10.5+ recommended)"
+  platform: "Roku OS 15+ required (RSG 1.3)"
   language: "BrighterScript V1"
 documentation:
   mvi:
@@ -100,7 +100,7 @@ documentation:
       path: "docs/i18n-support.md"
       description: "Locale-aware interface implementation"
 license: "Apache License 2.0. See LICENSE file for details."
-copyright: "© 2025 Rotor Molnar Balazs"
+copyright: "© 2025–2026 Balázs Molnár"
 rules:
   - "Adopt ViewBuilder templates for declarative UI construction."
   - "Leverage plugins (Fields, FontStyle, Observer, Focus) to extend widgets."
