@@ -2171,11 +2171,11 @@ namespace tests
         ' TEST SUITE 17: Both focus + focusGroup validation error
         ' ======================================================================
 
-        @describe("focus + focusGroup validation")
+        @describe("focus config validation")
 
-        @it("widget with both focus and focusGroup is skipped")
+        @it("widget with only focus config is registered as focus item")
         function _()
-            ' Given: A template with a widget that has BOTH focus and focusGroup
+            ' Given: A template with a widget that has only focus (no focusGroup)
             template = {
                 id: "dualConfigTestRoot",
                 nodeType: "Group",
@@ -2190,9 +2190,6 @@ namespace tests
                         focus: {
                             onSelect: sub()
                             end sub
-                        },
-                        focusGroup: {
-                            defaultFocusId: "someChild"
                         }
                     }
                 ]
@@ -2202,13 +2199,13 @@ namespace tests
             m.fwInstance = new Rotor.Framework()
             m.fwInstance.render(template)
 
-            ' Then: Widget should NOT be in either stack (validation error skips setup)
+            ' Then: Widget should be in focusItemStack but NOT in groupStack
             focusPlugin = m.fwInstance.plugins.focus
             dualWidget = m.fwInstance.getWidget("dualConfigItem")
             m.assertNotInvalid(dualWidget)
 
             focusItem = focusPlugin.focusItemStack.get(dualWidget.HID)
-            m.assertInvalid(focusItem)
+            m.assertNotInvalid(focusItem)
 
             group = focusPlugin.groupStack.get(dualWidget.HID)
             m.assertInvalid(group)

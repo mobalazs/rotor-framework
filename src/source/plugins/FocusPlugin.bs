@@ -189,10 +189,7 @@ namespace Rotor
                 isFocusGroup = widget.DoesExist(GROUP_FOCUS_PLUGIN_KEY) and widget.focusGroup <> invalid
 
                 if isFocusItem and isFocusGroup
-                    #if debug
-                        ? "[FOCUS_PLUGIN][ERROR] Widget '" + widget.id + "' (HID: " + widget.HID + ") cannot have both 'focus' and 'focusGroup' configurations!"
-                    #end if
-                    return ' Skip setup for this widget
+                    throw "[FOCUS_PLUGIN][ERROR] Widget '" + widget.id + "' (HID: " + widget.HID + ") cannot have both 'focus' and 'focusGroup' configurations!"
                 end if
 
                 config = widget[isFocusItem ? PRIMARY_FOCUS_PLUGIN_KEY : GROUP_FOCUS_PLUGIN_KEY]
@@ -654,7 +651,7 @@ namespace Rotor
                             print `[PLUGIN][FOCUS][WARNING] Current focus HID: "${m.globalFocusHID}". Ensure target "${ref}" is registered and reachable.`
                         end if
                     else
-                        print `[PLUGIN][FOCUS][WARNING] Could not find focus target ref: "${ref}". Current focus remains on HID: "${m.globalFocusHID}", id"${m.globalFocusId}"".`
+                        print `[PLUGIN][FOCUS][WARNING] Could not find focus target ref: "${ref}". Current focus remains on HID: "${m.globalFocusHID}", id: "${m.globalFocusId}".`
                     end if
                 #end if
                 return false ' Indicate focus change failed

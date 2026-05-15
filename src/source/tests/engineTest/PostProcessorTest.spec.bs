@@ -246,7 +246,7 @@ namespace tests
             node = CreateObject("roSGNode", "Label")
             node.addField("HID", "string", false)
             node.SetField("HID", hid)
-            parentWrapper = { node: m.parentNode }
+            parentWrapper = { node: m.parentNode, children: {} }
             widget = {
                 HID: hid,
                 node: node,
