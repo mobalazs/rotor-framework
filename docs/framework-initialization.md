@@ -127,6 +127,8 @@ Creating custom plugins is possible, but currently not documented. If you need t
 | `getSubtreeClone` | `searchPattern` (string), `keyPathList` (object, optional) | object | Clone widget subtree |
 | `getRootNode` | - | object | Get root SceneGraph node |
 | `connectDispatcher` | `dispatcherId` (string) | object | Connect to dispatcher by ID |
+| `dispatchTo` | `dispatcherId` (string), `dispatchObject` (object) | void | Dispatch an intent to a specific dispatcher by ID |
+| `getStateFrom` | `dispatcherId` (string), `mapStateToProps` (function, optional) | object | Get current state from a specific dispatcher by ID |
 | `animator` | `animatorId` (dynamic) | object | Get animator factory |
 
 ---

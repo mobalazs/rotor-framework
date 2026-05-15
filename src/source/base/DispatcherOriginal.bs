@@ -24,7 +24,7 @@ namespace Rotor
     '   - Manages state updates via Model
     '   - Notifies listeners of state changes
     '   - Handles dispatch queue to prevent reentrancy
-    '   - Exposes state to render thread via task node field
+    '   - Delegates state delivery to FrameworkTask router (sendStateToRender)
     '
     ' MVI Flow:
     '   dispatch(intent) → reducer.reduce() → update state → notify listeners
@@ -45,13 +45,6 @@ namespace Rotor
         ' CONSTRUCTOR
         ' =============================================================
 
-        ' ---------------------------------------------------------------------
-        ' Constructor - Initializes dispatcher and registers with provider
-        '
-        ' @param {string} dispatcherId - Dispatcher identifier (auto-generated if empty)
-        ' @param {object} modelInstance - Model instance
-        ' @param {object} reducerInstance - Reducer instance
-        '
         sub new(dispatcherId = "" as string, modelInstance = invalid as object, reducerInstance = invalid as object)
             super()
             if dispatcherId = "" then dispatcherId = Rotor.Utils.getUUIDHex()
@@ -60,17 +53,10 @@ namespace Rotor
             globalScope = GetGlobalAA()
             m.stateNode = globalScope.top
 
-            ' Link reducer to this dispatcher
             m.reducerInstance = reducerInstance
             m.reducerInstance.dispatcher = m
             m.reducerInstance.dispatcherId = dispatcherId
             m.modelInstance = modelInstance
-
-            ' Create field on task node for render thread communication
-            m.stateNode.addField(m.dispatcherId, "node", true)
-
-            ' Expose initial state
-            m.exposeState()
 
             ' Register with dispatcher provider
             dispatcherProvider = globalScope.rotor_framework_helper.frameworkInstance.dispatcherProvider
@@ -86,15 +72,15 @@ namespace Rotor
         ' =============================================================
 
         ' ---------------------------------------------------------------------
-        ' exposeState - Exposes current state to render thread via task node field
+        ' exposeState - Delivers current state to render thread via FrameworkTask router
         '
-        ' Creates a ContentNode with state fields and sets it on task node.
-        ' This allows render thread to observe state changes.
-        '
+        ' Delegates to FrameworkTask.sendStateToRender() which sends via
+        ' roRenderThreadQueue CopyMessage — zero rendezvous on task thread.
+        ' addField and initial state seeding are done by render thread in
+        ' RotorFramework.handleTaskSyncing() using the TASK_SYNCING payload.
         sub exposeState()
-            newState = CreateObject("roSGNode", "ContentNode")
-            newState.addFields(m.modelInstance.state)
-            m.stateNode.setField(m.dispatcherId, newState)
+            frameworkInstance = GetGlobalAA().rotor_framework_helper.frameworkInstance
+            frameworkInstance.sendStateToRender(m.dispatcherId, m.modelInstance.state)
         end sub
 
         ' ---------------------------------------------------------------------
@@ -114,17 +100,6 @@ namespace Rotor
         ' DISPATCH
         ' =============================================================
 
-        ' ---------------------------------------------------------------------
-        ' dispatch - Dispatches intent to reducer and updates state
-        '
-        ' Process flow:
-        '   1. Validate intent payload
-        '   2. If not dispatching, execute reducer and notify listeners
-        '   3. If dispatching, queue intent for later processing
-        '   4. Process queued intents after completion
-        '
-        ' @param {Intent} intent - Intent object to dispatch
-        '
         sub dispatch(intent as Intent)
             if intent?.payload <> invalid and intent.payload.Count() > 1 and intent.payload = invalid
                 throw "[WARNING] Intent payload is invalid."
@@ -132,24 +107,19 @@ namespace Rotor
 
             if m.isDispatchingInProgress = false
 
-                ' Execute reducer
                 currentState = m.modelInstance.state
                 newState = m.reducerInstance.reduce(currentState, intent)
 
-                ' Middleware cancelled intent
                 if newState = invalid then return
 
-                ' Update state and notify
                 m.exposeState()
                 m.notifyListeners(newState)
 
-                ' Process queued intents
                 if m.dispatchQueue.Count() > 0
                     intent = m.dispatchQueue.shift()
                     m.dispatch(intent)
                 end if
             else
-                ' Queue intent for later processing
                 m.dispatchQueue.push(intent)
             end if
         end sub
@@ -158,11 +128,6 @@ namespace Rotor
         ' ASYNC CALLBACK
         ' =============================================================
 
-        ' ---------------------------------------------------------------------
-        ' onSourceEvent - Routes async callback to reducer
-        '
-        ' @param {object} msg - Message from async operation
-        '
         sub onSourceEvent(msg as object)
             m.reducerInstance.onSourceEvent(msg)
         end sub
@@ -171,11 +136,6 @@ namespace Rotor
         ' CLEANUP
         ' =============================================================
 
-        ' ---------------------------------------------------------------------
-        ' destroy - Cleans up dispatcher resources
-        '
-        ' Deregisters from provider and clears all references.
-        '
         override sub destroy()
             super.destroy()
 

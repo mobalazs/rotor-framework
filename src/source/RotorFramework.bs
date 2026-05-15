@@ -109,6 +109,7 @@ namespace Rotor
         ttsService as object
         dispatcherProvider as object
         animatorProvider as object
+        rotorQueue as object            ' roRenderThreadQueue — single channel for all task→render messages
         ' plugin adapter workspace
         plugins = {}
 
@@ -158,9 +159,9 @@ namespace Rotor
             ' Register plugins
             m.registerPlugins(m.config.plugins)
 
-            ' Prepare render for syncing with tasks
-            rootNode.addField("rotorSync", "assocarray", true)
-            rootNode.observeFieldScoped("rotorSync", "Rotor_syncCallback")
+            ' Single __rotor__ channel for all task→render messages (state + sync protocol)
+            m.rotorQueue = CreateObject("roRenderThreadQueue")
+            m.rotorQueue.AddMessageHandler(Rotor.Const.ROTOR_QUEUE_ID, "Rotor_messageCallback")
 
             ' Add Field to notify when all tasks have been synced.
             if m.config.readyFieldId <> invalid
@@ -326,6 +327,16 @@ namespace Rotor
         end function
 
         ' ---------------------------------------------------------------------
+        ' sendStateToRender - No-op for render-thread dispatchers
+        '
+        ' DispatcherOriginal.exposeState() calls this via frameworkInstance.
+        ' On the render thread, dispatch() → notifyListeners() already notifies
+        ' listeners directly — no cross-thread delivery needed.
+        '
+        public sub sendStateToRender(dispatcherId as string, state as object)
+        end sub
+
+        ' ---------------------------------------------------------------------
         ' registerSourceObject - Not available on render thread
         '
         public function registerSourceObject(typeName as string, dispatcherId as string, eventFilter = invalid as dynamic) as object
@@ -460,22 +471,24 @@ namespace Rotor
             taskNode = sync.taskNode
             taskId = taskNode.taskId
 
-            ' Setup any additional tasks this task declared
             m.setupAdditionalTasks(sync.tasks)
 
-            ' Store dispatcher IDs for this task
             m.tasks[taskId].dispatchers = sync.dispatcherIds ?? []
             m.tasks[taskId].phase = "operational"
 
-            ' Register cross-thread dispatchers on render thread
-            if sync.dispatcherIds <> invalid
+            ' Register cross-thread dispatcher facades + seed fields on render thread
+            ' (render thread owns taskNode → no rendezvous for addField/setField)
+            if sync.dispatcherIds <> invalid and sync.dispatcherIds.Count() > 0
                 m.dispatcherProvider.registerCrossThreadDispatchers(sync.dispatcherIds, taskNode)
+                for each dispatcherId in sync.dispatcherIds
+                    taskNode.addField(dispatcherId, "assocarray", true)
+                    if sync.initialStates <> invalid and sync.initialStates.DoesExist(dispatcherId)
+                        taskNode.setField(dispatcherId, sync.initialStates[dispatcherId])
+                    end if
+                end for
             end if
 
-            ' Wait for all tasks to be operational
             if not m.allTasksInPhase("operational") then return
-
-            ' All tasks ready - broadcast dispatcher map
             m.broadcastDispatchersToTasks()
         end sub
 
@@ -484,6 +497,48 @@ namespace Rotor
         '
         ' @param {string} taskId - ID of the task that has synced
         '
+        ' =====================================================================
+        ' ROUTER — Task → Render (inbound)
+        ' =====================================================================
+
+        ' ---------------------------------------------------------------------
+        ' handleStateMessage - Routes incoming state update from task thread
+        '
+        ' Called by Rotor_messageCallback when a STATE message arrives on __rotor__.
+        ' Updates task node field (for task-thread cross-thread observers) then
+        ' notifies render-thread listeners via currentState cache.
+        '
+        ' @param {object} data - { dispatcherId, state }
+        '
+        sub handleStateMessage(data as object)
+            dispatcherInstance = m.dispatcherProvider.get(data.dispatcherId)
+            if dispatcherInstance = invalid then return
+            dispatcherInstance.stateNode.setField(data.dispatcherId, data.state)
+            dispatcherInstance.notifyListeners(data.state)
+        end sub
+
+        ' =====================================================================
+        ' ROUTER — Render → Task (outbound)
+        ' =====================================================================
+
+        ' ---------------------------------------------------------------------
+        ' sendIntentToTask - Routes intent dispatch to the task thread
+        '
+        ' Called by DispatcherCrossThread.dispatch(). Sends via rotorSync field
+        ' on the task node — task thread observes via observeFieldScopedEx (port,
+        ' no rendezvous).
+        '
+        ' @param {object} taskNode - Task node (stateNode of the cross-thread dispatcher)
+        ' @param {string} dispatcherId - Target dispatcher identifier
+        ' @param {object} intent - Intent to dispatch
+        '
+        public sub sendIntentToTask(taskNode as object, dispatcherId as string, intent as object)
+            taskNode.setField("rotorSync", {
+                type: Rotor.Const.ThreadSyncType.DISPATCH,
+                payload: { dispatcherId: dispatcherId, intent: intent }
+            })
+        end sub
+
         sub handleTaskSynced(taskId as string)
             m.tasks[taskId].phase = "synced"
             if m.allTasksInPhase("synced")
@@ -500,17 +555,10 @@ namespace Rotor
             m.enableRendering = true
             m.builder.renderQueueFlush()
 
-            ' Notify ready state on rotorSync field
-            m.getRootNode().setField("rotorSync", {
-                type: Rotor.Const.ThreadSyncType.SYNC_COMPLETED
-            })
-
-            ' Notify ready state by calling onReady fn if configured
             if Rotor.Utils.isFunction(m.config.onReady)
                 Rotor.Utils.callbackScoped(m.config.onReady, GetGlobalAA())
             end if
 
-            ' Notify ready state on rotorSync field
             if m.config.readyFieldId <> invalid
                 m.getRootNode().setField(m.config.readyFieldId, true)
             end if
@@ -537,8 +585,7 @@ namespace Rotor
             end for
 
             m.tasks.Clear()
-
-            rootNode.unobserveFieldScoped("rotorSync")
+            m.rotorQueue = invalid
 
             ' destroy subsystems
             m.builder.destroy()
@@ -559,39 +606,27 @@ namespace Rotor
     end class
 
     ' =====================================================================
-    ' syncCallback - Global callback for cross-thread synchronization
+    ' messageCallback - Single router callback for all task→render messages
     '
-    ' Global callback function for cross-thread synchronization messages.
+    ' Registered via AddMessageHandler on the __rotor__ channel.
+    ' Routes based on data.type: STATE → handleStateMessage, SYNC → sync protocol.
     '
-    ' This function is called when the rotorSync field changes on the root node.
-    ' It routes sync messages to the appropriate framework handler based on type.
-    '
-    ' @param {roSGNodeEvent} msg - SceneGraph observer message containing sync data
+    ' @param {object} data - Message payload
+    ' @param {object} info - Queue metadata (info.message_id = ROTOR_QUEUE_ID)
     ' =====================================================================
-    sub syncCallback(msg)
-        ' extraInfo = msg.GetInfo()
-        ' fieldId = msg.getField()
-        sync = msg.getData() ' @type:AA
-
+    sub messageCallback(data as object, info as object)
         framework = GetGlobalAA().rotor_framework_helper.frameworkInstance
         if framework = invalid then return
 
-        taskNode = sync.taskNode
-
-        if sync.type = Rotor.Const.ThreadSyncType.DISPATCH
-            ' Cross-thread dispatch from task thread to render thread
-            dispatcherId = sync.payload.dispatcherId
-            intent = sync.payload.intent
-            dispatcherInstance = framework.dispatcherProvider.stack.LookupCI(dispatcherId)
-            if dispatcherInstance <> invalid
-                dispatcherInstance.dispatch(intent)
+        if data.type = Rotor.Const.RouterMsgType.STATE
+            framework.handleStateMessage(data)
+        else if data.type = Rotor.Const.RouterMsgType.SYNC
+            taskNode = data.taskNode
+            if data.syncType = Rotor.Const.ThreadSyncType.TASK_SYNCING
+                framework.handleTaskSyncing(data)
+            else if data.syncType = Rotor.Const.ThreadSyncType.TASK_SYNCED
+                framework.handleTaskSynced(taskNode.taskId)
             end if
-        else if sync.type = Rotor.Const.ThreadSyncType.TASK_SYNCING
-            framework.handleTaskSyncing(sync)
-        else if sync.type = Rotor.Const.ThreadSyncType.TASK_SYNCED
-            framework.handleTaskSynced(taskNode.taskId)
-        else if sync.type = Rotor.Const.ThreadSyncType.SYNC_COMPLETED
-            ' Do nothing
         end if
 
     end sub

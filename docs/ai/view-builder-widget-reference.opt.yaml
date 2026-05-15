@@ -108,8 +108,8 @@ injectedMethods:
       return: "void"
       description: "Refresh specific features (fields, focus, etc.)"
     erase:
-      syntax: "erase(payloads, [skipPool])"
-      parameters: ["payloads", "skipPool (optional)"]
+      syntax: "erase(payloads)"
+      parameters: ["payloads"]
       return: "void"
       description: "Destroy widgets"
   stateManagement:

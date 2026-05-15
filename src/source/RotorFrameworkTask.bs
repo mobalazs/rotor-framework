@@ -84,6 +84,7 @@ namespace Rotor
 
         ' helper vars
         taskNode as object
+        renderQueue as object
         dispatcherProvider as object
         port as object
         sourceObjectRegistry = {} ' identity -> { dispatcherId, objectId, eventFilter }
@@ -110,18 +111,40 @@ namespace Rotor
                 frameworkInstance: m
             }
             m.taskNode = globalScope.top
+            m.renderQueue = CreateObject("roRenderThreadQueue")
 
             m.dispatcherProvider = new Rotor.DispatcherProvider(m.threadType)
 
             m.taskNode.addField("rotorSync", "assocarray", true)
             m.port = CreateObject("roMessagePort")
-            m.taskNode.observeFieldScoped("rotorSync", m.port)
+            m.taskNode.observeFieldScopedEx("rotorSync", m.port)
 
         end sub
 
         ' =====================================================================
         ' PUBLIC API
         ' =====================================================================
+
+        ' =====================================================================
+        ' ROUTER — Task → Render
+        ' =====================================================================
+
+        ' ---------------------------------------------------------------------
+        ' sendStateToRender - Routes dispatcher state update to render thread
+        '
+        ' Called by DispatcherOriginal.exposeState(). Sends via the single
+        ' __rotor__ channel on roRenderThreadQueue — zero rendezvous on task thread.
+        '
+        ' @param {string} dispatcherId - Dispatcher identifier
+        ' @param {object} state - Current state AA
+        '
+        public sub sendStateToRender(dispatcherId as string, state as object)
+            m.renderQueue.CopyMessage(Rotor.Const.ROTOR_QUEUE_ID, {
+                type: Rotor.Const.RouterMsgType.STATE,
+                dispatcherId: dispatcherId,
+                state: state
+            })
+        end sub
 
         ' ---------------------------------------------------------------------
         ' connectDispatcher - Creates a new dispatcher facade connection by ID
@@ -399,18 +422,25 @@ namespace Rotor
         sub notifySyncStatus(status as string)
 
             payload = {
-                type: status,
+                type: Rotor.Const.RouterMsgType.SYNC,
+                syncType: status,
                 taskNode: m.taskNode
             }
 
             if status = Rotor.Const.ThreadSyncType.TASK_SYNCING
+                dispatcherIds = m.dispatcherProvider.stack.Keys()
+                initialStates = {}
+                for each id in dispatcherIds
+                    initialStates[id] = m.dispatcherProvider.get(id).getState()
+                end for
                 payload.append({
-                    dispatcherIds: m.dispatcherProvider.stack.Keys(),
+                    dispatcherIds: dispatcherIds,
+                    initialStates: initialStates,
                     tasks: m.config.tasks
                 })
             end if
 
-            m.taskNode.rootNode.setField("rotorSync", payload)
+            m.renderQueue.CopyMessage(Rotor.Const.ROTOR_QUEUE_ID, payload)
 
         end sub
 
@@ -421,7 +451,7 @@ namespace Rotor
         ' @param {object} node - SceneGraph node to observe
         '
         sub addObserver(fieldId as string, node)
-            node.observeFieldScoped(fieldId, m.port)
+            node.observeFieldScopedEx(fieldId, m.port)
         end sub
 
         ' ---------------------------------------------------------------------
@@ -454,6 +484,7 @@ namespace Rotor
                 frameworkInstance: invalid
             }
 
+            m.renderQueue = invalid
             m.taskNode.rootNode = invalid
             m.taskNode = invalid
         end sub

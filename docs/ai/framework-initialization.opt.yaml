@@ -96,16 +96,17 @@ taskSynchronization:
         viewModel: ViewModels.DataWidget
     })
   taskExample: |
-    ' In DataTask
+    ' In DataTask.task.bs
     sub init()
-        ' Initialize task resources
-        m.database = initDatabase()
+        m.top.functionName = "task"
+        m.appFw = new Rotor.FrameworkTask()
+    end sub
 
-        ' Signal ready
-        m.top.rotorSync = {
-            type: "TASK_READY",
-            taskName: "DataTask"
-        }
+    sub task()
+        ' Initialize dispatchers
+        Rotor.createDispatcher("data", new Models.DataModel(), new Reducers.DataReducer())
+        ' sync() MUST be last — starts the message loop
+        m.appFw.sync()
     end sub
 plugins:
   default:
@@ -152,6 +153,14 @@ publicMethods:
     parameters: "dispatcherId (string)"
     return: "object"
     description: "Connect to dispatcher by ID"
+  dispatchTo:
+    parameters: "dispatcherId (string), dispatchObject (object)"
+    return: "void"
+    description: "Dispatch an intent to a specific dispatcher by ID"
+  getStateFrom:
+    parameters: "dispatcherId (string), mapStateToProps (function, optional)"
+    return: "object"
+    description: "Get current state from a specific dispatcher by ID; optional mapStateToProps callback"
   animator:
     parameters: "animatorId (dynamic)"
     return: "object"
@@ -183,8 +192,8 @@ troubleshooting:
     alternative: "If you don't need task sync, omit tasks configuration"
   onReadyNotFiring:
     problem: "onReady callback never executes"
-    cause: "One or more tasks not signaling ready state"
-    solution: "Verify all tasks send sync signal: m.top.rotorSync = { type: 'TASK_READY', taskName: 'YourTaskName' }"
+    cause: "One or more tasks not completing sync"
+    solution: "Ensure m.appFw.sync() is called at the end of every task function listed in the tasks config. sync() must be the last statement."
 frameworkProperties:
   subsystems:
     - "builder: ViewBuilder instance"
@@ -194,7 +203,6 @@ frameworkProperties:
     - "info: Framework and device info"
   metadata:
     - "name: 'Rotor Framework'"
-    - "version: '0.2.7'"
   other:
     - "config: Current configuration"
     - "threadType: Rotor.Const.ThreadType.RENDER"
@@ -209,7 +217,7 @@ rules:
   - "Custom plugins not documented - contact author if needed"
 pitfalls:
   - "Creating multiple framework instances causes conflicts"
-  - "Forgetting to send task ready signals causes render queue to wait indefinitely"
+  - "Forgetting to call m.appFw.sync() at the end of the task function causes render queue to wait indefinitely"
   - "Using task features with enableRenderBeforeReady causes errors"
 nextSteps:
   - "Widget Reference: Complete Widget properties, methods, and usage patterns"

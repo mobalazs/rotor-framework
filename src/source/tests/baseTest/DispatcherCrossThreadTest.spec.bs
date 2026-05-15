@@ -25,6 +25,12 @@ namespace tests
                 removeObserver: sub(fieldId, node)
                     m.removedObservers.push({ fieldId: fieldId, node: node })
                 end sub,
+                sendIntentToTask: sub(taskNode, dispatcherId, intent)
+                    taskNode.setField("rotorSync", {
+                        type: Rotor.Const.ThreadSyncType.DISPATCH,
+                        payload: { dispatcherId: dispatcherId, intent: intent }
+                    })
+                end sub,
                 dispatcherProvider: {
                     mockDispatchers: {},
                     testSuite: m,
@@ -57,17 +63,18 @@ namespace tests
             m.assertEqual(payload.payload.dispatcherId, "renderDispatch")
         end function
 
-        @it("addListener and removeAllListeners manage observers on render thread")
-        function render_thread_add_remove_listener_updates_observer_state()
+        @it("addListener on render thread stores listener without setting up observer")
+        function render_thread_add_remove_listener_no_observer()
             node = CreateObject("roSGNode", "ContentNode")
             node.addField("rotorSync", "assocarray", true)
             dispatcher = new Rotor.DispatcherCrossThread("renderListener", node, Rotor.Const.ThreadType.RENDER)
 
             dispatcher.addListener({}, "listener-1", { props: {} })
-            m.assertTrue(dispatcher.isStateObserved)
+            m.assertFalse(dispatcher.isStateObserved) ' notifications come via RotorFramework AddMessageHandler
+            m.assertEqual(dispatcher.listeners.Count(), 1)
 
             dispatcher.removeAllListenersByListenerId("listener-1")
-            m.assertFalse(dispatcher.isStateObserved)
+            m.assertEqual(dispatcher.listeners.Count(), 0)
         end function
 
         @it("task thread listeners delegate to framework observer hooks")
