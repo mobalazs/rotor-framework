@@ -69,7 +69,7 @@ namespace Rotor
     '**   framework = new Rotor.Framework({
     '**       tasks: ["DataTask", "NetworkTask"],
     '**       rootNode: m.top,
-    '**       readyFieldId: "appReady",
+    '**       readyFieldId: "isReady",
     '**       onReady: sub()
     '**           print "Framework ready!"
     '**       end sub
@@ -177,7 +177,7 @@ namespace Rotor
                     m.setupTaskForSyncing(taskName)
                 end for
             else
-                m.isReady()
+                m.onReady()
             end if
 
 
@@ -455,7 +455,7 @@ namespace Rotor
 
             ' If no tasks needed dispatchers, we're done
             if m.allTasksInPhase("synced")
-                m.isReady()
+                m.onReady()
             end if
         end sub
 
@@ -542,16 +542,16 @@ namespace Rotor
         sub handleTaskSynced(taskId as string)
             m.tasks[taskId].phase = "synced"
             if m.allTasksInPhase("synced")
-                m.isReady()
+                m.onReady()
             end if
         end sub
 
         ' ---------------------------------------------------------------------
-        ' isReady - Notifies framework ready state via multiple channels
+        ' onReady - Notifies framework ready state via multiple channels
         '
         ' Flushes render queue, triggers onReady callback, and sets ready field.
         '
-        sub isReady()
+        sub onReady()
             m.enableRendering = true
             m.builder.renderQueueFlush()
 

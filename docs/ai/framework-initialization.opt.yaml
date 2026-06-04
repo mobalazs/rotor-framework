@@ -48,7 +48,7 @@ basicInitialization: |
   framework = new Rotor.Framework({
       tasks: ["DataTask", "NetworkTask"],
       rootNode: m.top,
-      readyFieldId: "appReady",
+      readyFieldId: "isReady",
       onReady: sub()
           print "Framework ready!"
       end sub

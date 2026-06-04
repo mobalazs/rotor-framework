@@ -16,7 +16,7 @@ framework = new Rotor.Framework()
 framework = new Rotor.Framework({
     tasks: ["DataTask", "NetworkTask"],
     rootNode: m.top,
-    readyFieldId: "appReady",
+    readyFieldId: "isReady",
     onReady: sub()
         print "Framework ready!"
     end sub
@@ -91,7 +91,7 @@ sub init()
     m.framework = new Rotor.Framework({
         tasks: ["DataTask", "NetworkTask"],
         rootNode: m.top,
-        readyFieldId: "appReady",
+        readyFieldId: "isReady",
         onReady: sub()
             ' Framework and all tasks are ready
             print "All systems ready!"
