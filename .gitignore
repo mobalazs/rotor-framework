@@ -19,7 +19,7 @@ package
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/sample.settings.json
-.claude/*
+.claude/settings.local.json
 
 # OS specific paths
 __MACOSX
