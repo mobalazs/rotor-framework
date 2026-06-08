@@ -30,7 +30,7 @@ documents:
   view_builder:
     - file: "view-builder-overview.opt.yaml"
       title: "ViewBuilder Overview"
-      topics: ["declarative-ui", "view-builder", "kotlin-dsl"]
+      topics: ["declarative-ui", "view-builder"]
       description: "Introduction to declarative UI building with ViewBuilder"
 
     - file: "view-builder-widget-reference.opt.yaml"
