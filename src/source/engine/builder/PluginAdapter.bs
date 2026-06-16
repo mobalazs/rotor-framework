@@ -140,8 +140,9 @@ namespace Rotor.ViewBuilder
         ' destroyPlugins - Destroys all registered plugins
         '
         ' Iterates the registered plugin instances (stored on the framework,
-        ' keyed by primary plugin key), invokes each plugin's destroy() so it can
-        ' release its own resources, then clears its framework reference.
+        ' keyed by primary plugin key) and invokes each plugin's destroy() so it
+        ' can release its own resources. Does NOT null plugin.frameworkInstance --
+        ' later teardown steps still need it; plugins are discarded with the framework.
         ' ---------------------------------------------------------------------
         sub destroyPlugins()
             if m.frameworkInstance = invalid then return

@@ -35,7 +35,9 @@ namespace Rotor
         '
         ' Called by pluginAdapter.destroyPlugins() when the framework is destroyed.
         ' Subclasses holding resources (observers, timers, stacks) override this
-        ' to release them. The adapter nulls frameworkInstance after this runs.
+        ' to release them. Note: the adapter does NOT null frameworkInstance after
+        ' this runs (later teardown steps still need it); the plugin is discarded
+        ' together with the framework.
         '
         sub destroy()
             m.scope = invalid
