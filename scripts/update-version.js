@@ -55,15 +55,15 @@ task = task.replace(/(version = ")\d+\.\d+\.\d+(")/, `$1${version}$2`);
 fs.writeFileSync(taskPath, task);
 console.log('✓ Updated RotorFrameworkTask.bs');
 
-// 5. Update README.md (Documents TAG badge)
+// 5. Update README.md (Documents badge)
 const readmePath = path.join(__dirname, '../README.md');
 let readme = fs.readFileSync(readmePath, 'utf8');
-// Update version badge: ![Version](https://img.shields.io/badge/version-v0.2.7-blue?label=Documents%20TAG)
+// Update version badge: ![Version](https://img.shields.io/badge/version-v0.9.0-blue?label=Documents)
 readme = readme.replace(
-  /(!\[Version\]\(https:\/\/img\.shields\.io\/badge\/version-v)\d+\.\d+\.\d+(-blue\?label=Documents%20TAG\))/,
+  /(!\[Version\]\(https:\/\/img\.shields\.io\/badge\/version-v)\d+\.\d+\.\d+(-blue\?label=Documents\))/,
   `$1${version}$2`
 );
 fs.writeFileSync(readmePath, readme);
-console.log('✓ Updated README.md (Documents TAG badge)');
+console.log('✓ Updated README.md (Documents badge)');
 
 console.log(`\n✅ Successfully updated all version references to ${version}`);
