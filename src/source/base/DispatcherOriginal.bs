@@ -105,22 +105,34 @@ namespace Rotor
                 throw "[WARNING] Intent payload is invalid."
             end if
 
-            if m.isDispatchingInProgress = false
+            ' Re-entrant dispatch (e.g. a listener or a combined-reducer coordinator
+            ' dispatching during reduce/notify) is queued and drained after the
+            ' current cycle completes, so each cycle emits exactly one state update.
+            if m.isDispatchingInProgress
+                m.dispatchQueue.push(intent)
+                return
+            end if
 
-                currentState = m.modelInstance.state
-                newState = m.reducerInstance.reduce(currentState, intent)
+            m.isDispatchingInProgress = true
 
-                if newState = invalid then return
+            currentState = m.modelInstance.state
+            newState = m.reducerInstance.reduce(currentState, intent)
 
+            if newState <> invalid
+                ' Commit result to the model. In-place mutating reducers return the
+                ' same reference (no-op); immutable reducers (e.g. CombinedReducer)
+                ' return a new object that must be written back so getState() sees it.
+                m.modelInstance.state = newState
                 m.exposeState()
                 m.notifyListeners(newState)
+            end if
 
-                if m.dispatchQueue.Count() > 0
-                    intent = m.dispatchQueue.shift()
-                    m.dispatch(intent)
-                end if
-            else
-                m.dispatchQueue.push(intent)
+            m.isDispatchingInProgress = false
+
+            ' Drain intents enqueued during this cycle
+            if m.dispatchQueue.Count() > 0
+                nextIntent = m.dispatchQueue.shift()
+                m.dispatch(nextIntent)
             end if
         end sub
 
@@ -143,6 +155,12 @@ namespace Rotor
 
             frameworkInstance = GetGlobalAA().rotor_framework_helper.frameworkInstance
             frameworkInstance.dispatcherProvider.deregisterDispatcher(m.dispatcherId)
+
+            ' Let the reducer release its own references (e.g. CombinedReducer
+            ' tears down its child slice reducers + coordinator).
+            if m.reducerInstance <> invalid
+                m.reducerInstance.destroy()
+            end if
 
             m.stateNode = invalid
             m.modelInstance = invalid
