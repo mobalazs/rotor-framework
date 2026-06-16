@@ -114,7 +114,8 @@ namespace Rotor.ViewBuilder
             m.audioGuide = CreateObject("roAudioGuide")
             m.debounceTimer = CreateObject("roTimespan")
 
-            #if not unittest
+            #if unittest
+            #else
                 if m.audioGuide = invalid
                     #if debug
                         ' ? "[TTS_SERVICE][ERROR] Failed to create roAudioGuide instance"
