@@ -45,6 +45,89 @@ namespace tests
             m.assertEqual(found.HID, widget.HID)
         end sub
 
+        @it("auto-generates an id for a widget config without an id")
+        sub _()
+            m.fwInstance.render({ nodeType: "Group" })
+
+            tops = m.fwInstance.getTopWidgets()
+            m.assertTrue(tops.count() > 0)
+            generated = tops[0]
+            m.assertNotInvalid(generated)
+            ' Processor.checkIdAutoId generates "ID-<uuid>" when id is missing
+            m.assertEqual(Left(generated.id, 3), "ID-")
+        end sub
+
+        @it("removes orphaned children when allowRemove is set on render")
+        sub _()
+            m.fwInstance.render({
+                id: "parentGroup",
+                nodeType: "Group",
+                children: [
+                    { id: "childA", nodeType: "Group" },
+                    { id: "childB", nodeType: "Group" }
+                ]
+            })
+            m.assertNotInvalid(m.fwInstance.getWidget("childB"))
+
+            ' Re-render the parent with childB omitted + allowRemove -> diff removal
+            m.fwInstance.render({
+                id: "parentGroup",
+                nodeType: "Group",
+                children: [
+                    { id: "childA", nodeType: "Group" }
+                ]
+            }, { allowRemove: true })
+
+            m.assertNotInvalid(m.fwInstance.getWidget("childA"))
+            m.assertInvalid(m.fwInstance.getWidget("childB"))
+        end sub
+
+        @it("getTreeItem returns root for empty HID and the widget for a valid HID")
+        sub _()
+            m.fwInstance.render(getHelloTemplate())
+
+            tree = m.fwInstance.builder.widgetTree
+            root = tree.getTreeItem("")
+            m.assertNotInvalid(root)
+
+            widget = m.fwInstance.getWidget("helloRect")
+            item = tree.getTreeItem(widget.HID)
+            m.assertEqual(item.HID, widget.HID)
+        end sub
+
+        @it("render invokes a params.callback after processing")
+        sub _()
+            GetGlobalAA().__rotorCbRan = false
+            ' callback runs scoped to the framework instance; signal via the global AA
+            m.fwInstance.render(getHelloTemplate(), {
+                callback: sub()
+                    GetGlobalAA().__rotorCbRan = true
+                end sub
+            })
+            m.assertTrue(GetGlobalAA().__rotorCbRan = true)
+        end sub
+
+        @it("erase accepts an array of config objects")
+        sub _()
+            m.fwInstance.render(getHelloTemplate())
+            m.assertNotInvalid(m.fwInstance.getWidget("helloLabel"))
+
+            m.fwInstance.erase([{ id: "helloLabel" }])
+
+            m.assertInvalid(m.fwInstance.getWidget("helloLabel"))
+        end sub
+
+        @it("erase accepts an associative-array config object")
+        sub _()
+            m.fwInstance.render(getHelloTemplate())
+            m.assertNotInvalid(m.fwInstance.getWidget("helloRect"))
+
+            ' AA payload exercises both the 'id' key branch and the value branch
+            m.fwInstance.erase({ id: "ignored", target: "helloRect" })
+
+            m.assertInvalid(m.fwInstance.getWidget("helloRect"))
+        end sub
+
     end class
 
 end namespace

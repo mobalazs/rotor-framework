@@ -191,5 +191,28 @@ namespace tests
             m.assertTrue(true)
         end function
 
+        @it("merges new dispatcher ids on update (beforeUpdate hook)")
+        function _()
+            ' Initial mount with one dispatcher
+            m.fwInstance.render({
+                id: "testWidget",
+                type: "Group",
+                dispatcher: "dispatcher1"
+            })
+            widget = m.fwInstance.getWidget("testWidget")
+            m.assertNotInvalid(widget.viewModelState.dispatcher.dispatcher1)
+
+            ' Update the same widget with a different dispatcher -> beforeUpdate merges
+            m.fwInstance.render({
+                id: "testWidget",
+                dispatcher: "dispatcher2"
+            })
+            widget = m.fwInstance.getWidget("testWidget")
+
+            ' Both the old and the newly added dispatcher facades must be present
+            m.assertNotInvalid(widget.viewModelState.dispatcher.dispatcher1)
+            m.assertNotInvalid(widget.viewModelState.dispatcher.dispatcher2)
+        end function
+
     end class
 end namespace

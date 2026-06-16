@@ -1216,17 +1216,18 @@ namespace Rotor
             return segments
         end function
 
-        sub destroy()
-            ' Remove all groups
-            for each HID in m.groupStack.getAll()
-                m.groupStack.remove(HID)
-            end for
-            ' Remove all focus items
-            for each HID in m.focusItemStack.getAll()
-                m.focusItemStack.remove(HID)
-            end for
-            m.longPressTimer.unobserveFieldScoped("fire")
-            m.longPressTimer = invalid
+        override sub destroy()
+            ' Per-widget focus configs are already torn down via the beforeDestroy
+            ' hook (removeFocusConfig) during widget removal. Here we only drop any
+            ' remaining stack references and release plugin-level resources -- we do
+            ' NOT re-run remove()/entry.destroy(), which would touch already-freed
+            ' widget nodes and crash.
+            m.groupStack.clear()
+            m.focusItemStack.clear()
+            if m.longPressTimer <> invalid
+                m.longPressTimer.unobserveFieldScoped("fire")
+                m.longPressTimer = invalid
+            end if
             m.widgetTree = invalid
         end sub
 

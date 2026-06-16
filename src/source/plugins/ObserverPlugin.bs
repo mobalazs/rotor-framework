@@ -227,7 +227,7 @@ namespace Rotor
         ' Called when the framework instance is destroyed.
         ' Unobserves all fields and removes all observer instances.
         '
-        sub destroy()
+        override sub destroy()
             if m.observerStack = invalid then return
 
             ' Collect observer IDs to avoid mutation during iteration

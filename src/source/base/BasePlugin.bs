@@ -26,6 +26,21 @@ namespace Rotor
         optional hooks as object ' Widget lifecycle hooks (beforeMount, beforeUpdate, etc.)
         optional widgetMethods as object ' Methods to inject into widgets
 
+        ' =============================================================
+        ' CLEANUP
+        ' =============================================================
+
+        ' ---------------------------------------------------------------------
+        ' destroy - Default plugin cleanup
+        '
+        ' Called by pluginAdapter.destroyPlugins() when the framework is destroyed.
+        ' Subclasses holding resources (observers, timers, stacks) override this
+        ' to release them. The adapter nulls frameworkInstance after this runs.
+        '
+        sub destroy()
+            m.scope = invalid
+        end sub
+
     end class
 
 end namespace

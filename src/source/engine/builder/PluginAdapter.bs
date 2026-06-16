@@ -138,17 +138,33 @@ namespace Rotor.ViewBuilder
 
         ' ---------------------------------------------------------------------
         ' destroyPlugins - Destroys all registered plugins
+        '
+        ' Iterates the registered plugin instances (stored on the framework,
+        ' keyed by primary plugin key), invokes each plugin's destroy() so it can
+        ' release its own resources, then clears its framework reference.
         ' ---------------------------------------------------------------------
         sub destroyPlugins()
-            if m.plugins.Count() > 0
-                for each plugin in m.plugins
-                    plugin.frameworkInstance = invalid
-                    destroy = plugin.destroy
-                    if Rotor.Utils.isFunction(plugin.destroy)
-                        destroy()
-                    end if
-                end for
-            end if
+            if m.frameworkInstance = invalid then return
+
+            registeredPlugins = m.frameworkInstance.plugins
+            for each pluginKey in registeredPlugins.Keys()
+                plugin = registeredPlugins[pluginKey]
+                ' Only act on actual plugin instances (the map may contain stray
+                ' non-plugin values written by callers); accessing .destroy on a
+                ' primitive would crash.
+                if Rotor.Utils.isAssociativeArray(plugin) and Rotor.Utils.isFunction(plugin.destroy)
+                    ' Call directly on the instance so `m` is the plugin. Guard each
+                    ' plugin so one failing teardown can't abort the rest.
+                    ' NOTE: we do NOT null plugin.frameworkInstance here -- later
+                    ' teardown steps (e.g. widgetTree.destroy firing beforeDestroy
+                    ' hooks) still need it; the plugin is discarded with the framework.
+                    try
+                        plugin.destroy()
+                    catch e
+                        print "[ROTOR][PLUGIN_ADAPTER][WARNING] plugin '" ; pluginKey ; "' destroy failed: " ; e.message
+                    end try
+                end if
+            end for
         end sub
 
         ' ---------------------------------------------------------------------
@@ -163,10 +179,11 @@ namespace Rotor.ViewBuilder
         end sub
 
         ' ---------------------------------------------------------------------
-        ' destroy - Cleans up framework instance reference
+        ' destroy - Destroys all plugins, then cleans up framework reference
         '
         ' ---------------------------------------------------------------------
         sub destroy()
+            m.destroyPlugins()
             m.frameworkInstance = invalid
         end sub
 
