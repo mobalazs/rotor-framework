@@ -128,6 +128,23 @@ namespace tests
             m.assertInvalid(m.fwInstance.getWidget("helloRect"))
         end sub
 
+        @it("root widget render and erase operate relative to the root")
+        sub _()
+            rootWidget = m.fwInstance.getRootWidget()
+            m.assertNotInvalid(rootWidget)
+
+            ' render a child via the root widget (TreeRoot.render), with a callback
+            rootWidget.render({ id: "viaRoot", nodeType: "Group" }, {
+                callback: sub()
+                end sub
+            })
+            m.assertNotInvalid(m.fwInstance.getWidget("viaRoot"))
+
+            ' erase via the root widget (TreeRoot.erase searches from root HID "0")
+            rootWidget.erase("viaRoot")
+            m.assertInvalid(m.fwInstance.getWidget("viaRoot"))
+        end sub
+
     end class
 
 end namespace

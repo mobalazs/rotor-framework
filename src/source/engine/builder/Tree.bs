@@ -38,7 +38,9 @@ namespace Rotor.ViewBuilder
         end sub
 
         sub erase(payloads as dynamic)
-            m.getFrameworkInstance().builder.erase(payloads, m.parentHID)
+            ' Search from the root's own HID ("0"); parentHID is invalid on the root
+            ' and would crash downstream lookups (LookupCI on invalid).
+            m.getFrameworkInstance().builder.erase(payloads, m.HID)
         end sub
 
         sub destroy()
