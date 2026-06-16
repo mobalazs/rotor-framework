@@ -96,7 +96,7 @@ You can find [🌱](./docs/ai/readme.opt.yaml) symbols in all documentation page
 
 ## 📚 Learn More
 
-![Version](https://img.shields.io/badge/version-v0.9.0-blue?label=Documents%20TAG)
+![Version](https://img.shields.io/badge/version-v0.9.0-blue?label=Documents%20)
 
 ### Framework Core
 
@@ -128,7 +128,7 @@ You can find [🌱](./docs/ai/readme.opt.yaml) symbols in all documentation page
 
 ## 🔧 Requirements
 
--   Roku SceneGraph (firmware 10.5+ recommended)
+-   Roku OS 15.0+ (required — the cross-thread engine uses the `roRenderThreadQueue` data-transfer API introduced in OS 15)
 -   BrighterScript V1
 
 ---
