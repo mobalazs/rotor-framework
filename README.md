@@ -118,6 +118,7 @@ You can find [🌱](./docs/ai/readme.opt.yaml) symbols in all documentation page
 ### MVI Documentation
 
 -   [Cross-Thread MVI design pattern](./docs/cross-thread-mvi.md) - State management across threads
+-   [Combined Reducers](./docs/combine-reducers.md) - Compose slice reducers into one dispatcher with cross-slice coordination
 
 ### i18N Documentation
 

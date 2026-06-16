@@ -27,6 +27,11 @@ documents:
       topics: ["architecture", "threading", "state-management", "reactive"]
       description: "How Rotor implements reactive MVI across threads"
 
+    - file: "combine-reducers.opt.yaml"
+      title: "Combined Reducers (combineReducers)"
+      topics: ["state-management", "combine-reducers", "slices", "root-store", "coordinator", "cross-slice"]
+      description: "Compose N slice reducers into one dispatcher with a combined state tree, single dispatch surface, and cross-slice coordination"
+
   view_builder:
     - file: "view-builder-overview.opt.yaml"
       title: "ViewBuilder Overview"
@@ -79,6 +84,7 @@ all_files:
   - "readme.opt.yaml"
   - "framework-initialization.opt.yaml"
   - "cross-thread-mvi.opt.yaml"
+  - "combine-reducers.opt.yaml"
   - "view-builder-overview.opt.yaml"
   - "view-builder-widget-reference.opt.yaml"
   - "view-builder-viewmodel-reference.opt.yaml"
