@@ -11,23 +11,25 @@ namespace Rotor
     ' (per-domain slices), ONE dispatch surface, and ONE getState/addListener
     ' surface, while routing each intent to every child slice reducer.
     '
-    ' Unlike plain Redux combineReducers, an optional Coordinator runs AFTER the
-    ' slices reduce, enabling cross-slice orchestration (one slice's change
-    ' triggering work in another) without breaking slice write-isolation.
+    ' Each slice writes ONLY its own slice, but may READ the other slices via
+    ' m.rootState (the read-only combined state set during reduceSlice), so a
+    ' slice can derive its state from another. Cross-slice WRITES that depend on
+    ' a freshly-committed slice are sequenced by dispatching a follow-up intent
+    ' (the dispatcher queues re-entrant dispatches and drains them after the
+    ' current cycle, so each cycle still emits exactly one state update).
     '
-    ' @param {object} config - { slices: { name: Reducer, ... }, coordinator?: Coordinator }
+    ' @param {object} config - { slices: { name: Reducer, ... } }
     ' @returns {Rotor.CombinedReducer} The combined reducer instance
     '
     ' @example
     '   Rotor.createDispatcher("account", new Rotor.Model({
     '       auth: { status: "anon" }, entitlement: { access: [] }
     '   }), Rotor.combineReducers({
-    '       slices: { auth: new AuthReducer(), entitlement: new EntitlementReducer() },
-    '       coordinator: new AccountCoordinator()
+    '       slices: { auth: new AuthReducer(), entitlement: new EntitlementReducer() }
     '   }))
     ' =====================================================================
     function combineReducers(config as object) as object
-        return new Rotor.CombinedReducer(config.slices, config?.coordinator)
+        return new Rotor.CombinedReducer(config.slices)
     end function
 
     ' =====================================================================
@@ -38,10 +40,11 @@ namespace Rotor
     ' state. Slices that don't change keep their previous reference, so listeners
     ' can detect per-slice changes by reference comparison.
     '
-    ' After the slices reduce, the optional coordinator runs with (prev, next,
-    ' intent) and may dispatch follow-up intents. Those follow-ups are queued by
-    ' the dispatcher (re-entrancy guard) and drained after the current cycle, so
-    ' each cycle still emits exactly one state update.
+    ' Each slice sees the PREVIOUS committed combined state as its read-only root
+    ' (Redux single-pass semantics). To act on a freshly-committed slice, dispatch
+    ' a follow-up intent: it is queued by the dispatcher (re-entrancy guard) and
+    ' drained after the current cycle, so by the time it runs the slice it reads is
+    ' already committed.
     '
     ' Child wiring (done in onCreateDispatcher):
     '   - child.dispatcher / child.dispatcherId point at the COMBINED dispatcher,
@@ -56,25 +59,22 @@ namespace Rotor
 
         slices as object                ' { sliceName: childReducer }
         sliceNames as object            ' [ sliceName, ... ]
-        coordinator as object           ' Optional Rotor.Coordinator
 
         ' ---------------------------------------------------------------------
         ' Constructor
         '
         ' @param {object} slices - AA of sliceName -> Rotor.Reducer
-        ' @param {object} coordinator - Optional Rotor.Coordinator
         '
-        sub new(slices as object, coordinator = invalid as object)
+        sub new(slices as object)
             super()
             ' Initialize in body (after super) to avoid the coverage-plugin
             ' field-initializer reordering issue.
             m.slices = slices
             m.sliceNames = slices.Keys()
-            m.coordinator = coordinator
         end sub
 
         ' ---------------------------------------------------------------------
-        ' onCreateDispatcher - Wires children + coordinator to the combined dispatcher
+        ' onCreateDispatcher - Wires child slice reducers to the combined dispatcher
         '
         override sub onCreateDispatcher()
             for each sliceName in m.sliceNames
@@ -83,24 +83,15 @@ namespace Rotor
                 child.dispatcherId = m.dispatcherId
                 child.onCreateDispatcher()
             end for
-
-            if m.coordinator <> invalid
-                m.coordinator.dispatcher = m.dispatcher
-                m.coordinator.dispatcherId = m.dispatcherId
-                m.coordinator.connectDispatcher = m.connectDispatcher
-                m.coordinator.dispatch = m.dispatch
-                m.coordinator.dispatchTo = m.dispatchTo
-                m.coordinator.getStateFrom = m.getStateFrom
-            end if
         end sub
 
         ' ---------------------------------------------------------------------
-        ' reducer - Fans the intent out to every slice, then runs the coordinator
+        ' reducer - Fans the intent out to every slice
         '
         ' Each slice reducer sees the PREVIOUS committed combined state as its
         ' read-only root (Redux single-pass semantics). Cross-slice WRITES are
-        ' sequenced through coordinator-dispatched follow-up intents, so by the
-        ' time a follow-up runs, the slice it reads is already committed.
+        ' sequenced through follow-up intents, so by the time a follow-up runs,
+        ' the slice it reads is already committed.
         '
         override function reducer(state as object, intent as Intent) as object
             nextState = {}
@@ -108,11 +99,6 @@ namespace Rotor
                 child = m.slices[sliceName]
                 nextState[sliceName] = child.reduceSlice(state[sliceName], intent, state)
             end for
-
-            if m.coordinator <> invalid
-                m.coordinator.coordinate(state, nextState, intent)
-            end if
-
             return nextState
         end function
 
@@ -126,56 +112,14 @@ namespace Rotor
         end sub
 
         ' ---------------------------------------------------------------------
-        ' destroy - Cleans up children, coordinator, and own references
+        ' destroy - Cleans up children and own references
         '
         override sub destroy()
             for each sliceName in m.sliceNames
                 m.slices[sliceName].destroy()
             end for
-            if m.coordinator <> invalid
-                m.coordinator.dispatcher = invalid
-            end if
             m.slices = invalid
-            m.coordinator = invalid
             super.destroy()
-        end sub
-
-    end class
-
-    ' =====================================================================
-    ' Coordinator - Cross-slice orchestration hook for a combined dispatcher
-    '
-    ' Runs AFTER all slices have reduced. Receives the previous and next combined
-    ' states plus the intent, and reacts to slice TRANSITIONS by dispatching
-    ' follow-up intents (e.g. "auth slice became authed -> fetch entitlement").
-    '
-    ' Rules:
-    '   - Never mutate state here. Only read prev/next and dispatch follow-ups.
-    '   - Be EDGE-TRIGGERED: act only on genuine transitions (prev != next),
-    '     otherwise follow-up dispatches can loop.
-    '   - Follow-ups via m.dispatch() are queued and drained after the current
-    '     cycle (one state update per cycle).
-    '
-    ' dispatcher/dispatch/dispatchTo/getStateFrom/connectDispatcher are injected
-    ' by the CombinedReducer in onCreateDispatcher().
-    ' =====================================================================
-    class Coordinator
-
-        dispatcher as object
-        dispatcherId as string
-        connectDispatcher as function
-        dispatch as function
-        dispatchTo as function
-        getStateFrom as function
-
-        ' ---------------------------------------------------------------------
-        ' coordinate - Override to implement cross-slice effects
-        '
-        ' @param {object} prev - Previous combined state
-        ' @param {object} nextState - Next combined state (after slices reduced)
-        ' @param {Intent} intent - The intent that produced the transition
-        '
-        sub coordinate(prev as object, nextState as object, intent as Intent)
         end sub
 
     end class

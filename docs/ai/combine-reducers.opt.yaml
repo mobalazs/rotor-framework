@@ -2,27 +2,23 @@
 ctx: Combined Reducers (combineReducers)
 type: state-management / multi-slice composition
 scope:
-  usage: Compose N slice reducers into ONE dispatcher with a combined state tree, single dispatch/getState/addListener surface, plus cross-slice coordination.
+  usage: Compose N slice reducers into ONE dispatcher with a combined state tree, single dispatch/getState/addListener surface. Slices read each other via m.rootState; cross-slice writes are sequenced via follow-up intents.
   relation: Rotor-idiomatic Redux-style root store, adapted to cross-thread MVI. Opt-in, backward compatible (existing single dispatchers unchanged). Builds on createDispatcher/Reducer/Model.
 core:
-  combineReducers: "Rotor.combineReducers({ slices: { name: Reducer }, coordinator? }) -> Rotor.CombinedReducer (extends Reducer). Register via Rotor.createDispatcher(id, model, combined)."
-  CombinedReducer: "Fan-out reducer. reducer(state,intent) runs each child.reduceSlice(state[name], intent, state); assembles new tree; runs coordinator; returns tree. Unchanged slices keep their reference. onSourceEvent fans out to all children."
+  combineReducers: "Rotor.combineReducers({ slices: { name: Reducer } }) -> Rotor.CombinedReducer (extends Reducer). Register via Rotor.createDispatcher(id, model, combined)."
+  CombinedReducer: "Fan-out reducer. reducer(state,intent) runs each child.reduceSlice(state[name], intent, state); assembles new tree; returns tree. Unchanged slices keep their reference. onSourceEvent fans out to all children."
   SliceReducer: "An ordinary Rotor.Reducer. Its reducer(slice,intent) gets ITS OWN slice, returns new slice (immutable). Reads other slices via m.rootState (read-only full tree during reduce). Writes ONLY its own slice. Keeps own middleware + onSourceEvent."
-  Coordinator: "Rotor.Coordinator. coordinate(prev, nextState, intent) runs AFTER slices. Edge-triggered, dispatch-only (no state writes). Reacts to slice transitions by m.dispatch(followUp). Injected: dispatch/dispatchTo/getStateFrom/connectDispatcher."
   Model: "Initial state must mirror slice names: one key per slice. e.g. new Rotor.Model({ auth:{...}, purchase:{...}, entitlement:{...} })."
 api:
   combineReducers:
-    syntax: "Rotor.combineReducers({ slices: { name: new XReducer() }, coordinator: new YCoordinator() })"
-    description: "Returns CombinedReducer. coordinator optional. slices keys == state slice keys."
+    syntax: "Rotor.combineReducers({ slices: { name: new XReducer() } })"
+    description: "Returns CombinedReducer. slices keys == state slice keys."
   reduceSlice:
     syntax: "function reduceSlice(sliceState, intent, rootState) as object  (on BaseReducer)"
     description: "Called by CombinedReducer per slice. Runs this reducer's middleware then reducer() against the slice; exposes rootState via m.rootState for the duration. Middleware cancel -> slice unchanged. Default impl on BaseReducer; you normally just override reducer()."
   rootState:
     syntax: "m.rootState  (inside a slice reducer's reducer())"
-    description: "Read-only view of the full combined state during reduce. Use for cross-slice DERIVE/READ. invalid outside reduceSlice."
-  coordinate:
-    syntax: "override sub coordinate(prev as object, nextState as object, intent as Intent)"
-    description: "Cross-slice effects. Compare prev vs nextState (edge-triggered); m.dispatch follow-up intents. Never mutate state."
+    description: "Read-only view of the full (PREVIOUS committed) combined state during reduce. Use for cross-slice DERIVE/READ. invalid outside reduceSlice."
   consume:
     syntax: "fw.dispatchTo(id, intent) / fw.getStateFrom(id) / fw.connectDispatcher(id).addListener({...})"
     description: "Same as any dispatcher. getState returns whole combined tree. dispatch is single surface."
@@ -30,14 +26,13 @@ behavior:
   dispatchFlow:
     - "dispatch(intent) -> combined reducer(state,intent)"
     - "for each slice: next[name] = child.reduceSlice(state[name], intent, state)  (child sees PREVIOUS committed root via m.rootState)"
-    - "coordinator.coordinate(prev, next, intent) if present -> may m.dispatch follow-ups"
     - "new tree committed -> one CopyMessage to render -> listeners fire"
     - "enqueued follow-ups drain after current cycle (each a full cycle)"
   crossSlice:
-    read: "via m.rootState (any slice can read any slice)"
-    write: "only own slice; cross-slice writes sequenced via coordinator-dispatched follow-up intents (read committed prior state)"
+    read: "via m.rootState (any slice can read any slice; sees PREVIOUS committed tree)"
+    write: "only own slice; cross-slice writes that need a freshly-committed slice are sequenced via a follow-up intent (dispatched by consumer, slice, or middleware)"
   changeDetection: "Unchanged slices keep their reference -> per-slice listener uses reference compare."
-  reentrancy: "Re-entrant dispatch (coordinator/listener) is queued and drained after the cycle -> exactly one state update per cycle (one CopyMessage). Requires the dispatcher re-entrancy guard (isDispatchingInProgress)."
+  reentrancy: "Re-entrant dispatch (slice/middleware/listener dispatching a follow-up) is queued and drained after the cycle -> exactly one state update per cycle (one CopyMessage). Requires the dispatcher re-entrancy guard (isDispatchingInProgress)."
   asyncEvents: "Combined dispatcher has ONE reducer; source events fan out to every child onSourceEvent(msg). Children MUST filter their own events (by source identity) and ignore foreign."
   writeBack: "Dispatcher commits reducer return to model.state. In-place mutating reducers return same ref (no-op); combined reducers return a fresh tree (written back so getState() reflects it)."
 listeners:
@@ -73,25 +68,18 @@ examples:
         return slice
       end function
     end class
-  coordinator: |
-    class AccountCoordinator extends Rotor.Coordinator
-      override sub coordinate(prev as object, nextState as object, intent as Intent)
-        if prev.auth.status <> "authed" and nextState.auth.status = "authed"
-          m.dispatch({ type: "ENTITLEMENT_FETCH" })
-        end if
-        if prev.purchase.subscription <> nextState.purchase.subscription
-          m.dispatch({ type: "ENTITLEMENT_FETCH" })
-        end if
-      end sub
-    end class
+  crossSliceFollowUp: |
+    ' Each slice sees the PREVIOUS committed tree. To derive from a freshly
+    ' committed slice, dispatch a follow-up intent:
+    fw.dispatchTo("account", { type: "AUTH_LOGIN_SUCCEEDED", payload: { token: "t1" } })
+    fw.dispatchTo("account", { type: "ENTITLEMENT_FETCH" })  ' reads committed auth via m.rootState
   setup: |
     Rotor.createDispatcher("account", new Rotor.Model({
       auth: { token: invalid, status: "anon" },
       purchase: { receipt: invalid, subscription: invalid },
       entitlement: { access: [], subscription: invalid }
     }), Rotor.combineReducers({
-      slices: { auth: new AuthSliceReducer(), purchase: new PurchaseSliceReducer(), entitlement: new EntitlementSliceReducer() },
-      coordinator: new AccountCoordinator()
+      slices: { auth: new AuthSliceReducer(), purchase: new PurchaseSliceReducer(), entitlement: new EntitlementSliceReducer() }
     }))
 threading:
   - "Put combiner + all slice reducers on ONE task thread -> intra-module coordination is synchronous, no rendezvous."
@@ -100,21 +88,20 @@ threading:
 rules:
   - "Model initial state keys must match slice names."
   - "Slice reducer writes only its own slice; reads others via m.rootState."
-  - "Coordinator is edge-triggered and dispatch-only; never mutate state in coordinate()."
   - "Children must filter their own source events (onSourceEvent fans out to all)."
   - "Keep combined dispatchers module-scoped, not a global root store."
 pitfalls:
-  - "Non-edge-triggered coordinator -> follow-up dispatch loop."
-  - "Mutating another slice directly -> breaks isolation; route cross-slice writes through coordinator follow-ups."
+  - "Expecting a slice to read another slice's BRAND-NEW value in the same dispatch -> m.rootState is the PREVIOUS committed tree; sequence a follow-up intent."
+  - "Mutating another slice directly -> breaks isolation; sequence cross-slice writes via follow-up intents."
+  - "Slice/middleware dispatching a non-edge-triggered follow-up -> dispatch loop."
   - "Expecting selectSlice() helper — it does not exist (BrightScript closure limitation); subscribe inline with a literal slice key."
   - "Global app-wide root store -> large CopyMessage payload on every change."
 bestPractices:
   - "One combined dispatcher per business module (e.g. account, catalog)."
-  - "Use the coordinator for orchestration (login success -> fetch X), not the view."
   - "Return a fresh slice object on change, same reference when unchanged (enables per-slice listener reference checks)."
-  - "Read shared/derived state via m.rootState; sequence cross-slice writes via coordinator-dispatched intents."
+  - "Read shared/derived state via m.rootState; sequence cross-slice writes via follow-up intents (keep triggers edge-based)."
 reference:
-  source: "src/source/base/CombinedReducer.bs (combineReducers, CombinedReducer, Coordinator)"
-  test: "src/source/tests/baseTest/CombinedReducerTest.spec.bs (runnable account composite + coordinator + cross-slice read)"
+  source: "src/source/base/CombinedReducer.bs (combineReducers, CombinedReducer)"
+  test: "src/source/tests/baseTest/CombinedReducerTest.spec.bs (runnable account composite + cross-slice read via follow-up)"
   related: "cross-thread-mvi.opt.yaml (Model/Reducer/Dispatcher basics, dispatchTo/getStateFrom, source objects)"
 ```

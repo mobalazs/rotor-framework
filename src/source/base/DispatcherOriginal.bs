@@ -105,8 +105,8 @@ namespace Rotor
                 throw "[WARNING] Intent payload is invalid."
             end if
 
-            ' Re-entrant dispatch (e.g. a listener or a combined-reducer coordinator
-            ' dispatching during reduce/notify) is queued and drained after the
+            ' Re-entrant dispatch (e.g. a listener or a slice reducer dispatching a
+            ' follow-up during reduce/notify) is queued and drained after the
             ' current cycle completes, so each cycle emits exactly one state update.
             if m.isDispatchingInProgress
                 m.dispatchQueue.push(intent)
@@ -157,7 +157,7 @@ namespace Rotor
             frameworkInstance.dispatcherProvider.deregisterDispatcher(m.dispatcherId)
 
             ' Let the reducer release its own references (e.g. CombinedReducer
-            ' tears down its child slice reducers + coordinator).
+            ' tears down its child slice reducers).
             if m.reducerInstance <> invalid
                 m.reducerInstance.destroy()
             end if

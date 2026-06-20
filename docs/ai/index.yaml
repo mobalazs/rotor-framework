@@ -29,8 +29,8 @@ documents:
 
     - file: "combine-reducers.opt.yaml"
       title: "Combined Reducers (combineReducers)"
-      topics: ["state-management", "combine-reducers", "slices", "root-store", "coordinator", "cross-slice"]
-      description: "Compose N slice reducers into one dispatcher with a combined state tree, single dispatch surface, and cross-slice coordination"
+      topics: ["state-management", "combine-reducers", "slices", "root-store", "cross-slice"]
+      description: "Compose N slice reducers into one dispatcher with a combined state tree, single dispatch surface, and cross-slice reads via rootState"
 
   view_builder:
     - file: "view-builder-overview.opt.yaml"

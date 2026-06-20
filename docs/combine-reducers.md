@@ -9,12 +9,14 @@ that exposes **one combined state tree** (per-domain slices), **one dispatch sur
 and **one `getState`/`addListener` surface. It is the Rotor-idiomatic answer to a
 Redux-style root store, adapted to the cross-thread MVI model.
 
-Unlike plain Redux `combineReducers` (where slices are isolated), Rotor adds an optional
-**Coordinator** that runs *after* the slices reduce, enabling cross-slice orchestration
-(one slice's change triggering work in another) without breaking slice write-isolation.
+A slice only ever **writes** its own slice, but it may **read** the other slices via
+`m.rootState` (a read-only view of the full combined tree during the slice reduce), so a
+slice can derive its state from another. Cross-slice writes that depend on a freshly
+committed slice are sequenced by dispatching a **follow-up intent** (queued and drained
+after the current cycle).
 
-Use it when a business module is a composite of several sub-domains that share state and
-need coordinated effects, but you still want one surface for the consumer.
+Use it when a business module is a composite of several sub-domains that share state, but
+you still want one surface for the consumer.
 
 > Opt-in and backward compatible: existing single dispatchers keep working unchanged. A
 > combined dispatcher is just an ordinary dispatcher whose reducer happens to fan out.
@@ -22,10 +24,9 @@ need coordinated effects, but you still want one surface for the consumer.
 ## When to use it
 
 - A module has multiple sub-domains (e.g. `auth`, `purchase`, `entitlement`) that must
-  share a slice and react to each other.
+  share a slice and derive from each other.
 - You want a single dispatch/getState/listener surface for the whole module.
-- You want cross-slice effects ("login success → fetch entitlement") in the reducer tier,
-  not scattered in the view.
+- You want per-domain reducers (clear ownership) instead of one monolithic reducer.
 
 Keep combined dispatchers **module-scoped** (one per business module). Do **not** build a
 single app-global root store — see [Threading & performance](#threading--performance).
@@ -40,8 +41,7 @@ combined = Rotor.combineReducers({
         auth:        new AuthSliceReducer(),
         purchase:    new PurchaseSliceReducer(),
         entitlement: new EntitlementSliceReducer()
-    },
-    coordinator: new AccountCoordinator()   ' optional
+    }
 })
 ```
 
@@ -65,7 +65,7 @@ changes, the same reference when it does not).
 
 To **read** other slices (derived/shared state), use `m.rootState` — a read-only view of
 the full combined tree, available for the duration of the slice reduce. A slice only ever
-**writes** its own slice; cross-slice writes go through the Coordinator.
+**writes** its own slice.
 
 ```brightscript
 class EntitlementSliceReducer extends Rotor.Reducer
@@ -87,38 +87,27 @@ end class
 
 Slice reducers keep their own `applyMiddlewares()` and `onSourceEvent()` for async work.
 A slice's `m.dispatch(intent)` re-enters the **combined** pipeline (so the intent goes
-through all slices + coordinator).
+through all slices).
 
-### Coordinator (cross-slice effects)
+### Cross-slice effects (follow-up dispatch)
 
-A `Rotor.Coordinator` runs after all slices have reduced. It receives the previous and
-next combined states plus the intent, and reacts to **slice transitions** by dispatching
-follow-up intents.
+Each slice sees the **previous committed** combined tree as its read-only `m.rootState`.
+So within a single dispatch a slice cannot read another slice's *brand-new* value — it sees
+the previous one. To act on a freshly committed slice, dispatch a **follow-up intent**:
 
 ```brightscript
-class AccountCoordinator extends Rotor.Coordinator
-    override sub coordinate(prev as object, nextState as object, intent as Intent)
-        ' auth login success -> fetch entitlement
-        if prev.auth.status <> "authed" and nextState.auth.status = "authed"
-            m.dispatch({ type: "ENTITLEMENT_FETCH" })
-        end if
-        ' purchase changed subscription -> refresh entitlement
-        if prev.purchase.subscription <> nextState.purchase.subscription
-            m.dispatch({ type: "ENTITLEMENT_FETCH" })
-        end if
-    end sub
-end class
+' 1) commit auth
+fw.dispatchTo("account", { type: "AUTH_LOGIN_SUCCEEDED", payload: { token: "t1" } })
+' 2) derive entitlement from the now-committed auth slice
+fw.dispatchTo("account", { type: "ENTITLEMENT_FETCH" })
 ```
 
-Coordinator rules:
-
-- **Never mutate state here.** Only read `prev`/`nextState` and dispatch follow-ups.
-- **Be edge-triggered:** act only on genuine transitions (`prev <> nextState`), otherwise
-  follow-up dispatches can loop.
-- Follow-ups via `m.dispatch()` are **queued and drained after the current cycle**, so
-  each cycle still emits exactly one state update (one `CopyMessage` to render).
-- `m.dispatch` / `m.dispatchTo` / `m.getStateFrom` / `m.connectDispatcher` are injected by
-  the combined reducer.
+The follow-up can come from the consumer (as above) or from a slice/middleware that calls
+`m.dispatch({ type: "ENTITLEMENT_FETCH" })`. Re-entrant dispatches (a slice or listener
+dispatching during reduce/notify) are **queued and drained after the current cycle**, so
+each cycle still emits exactly one state update (one `CopyMessage` to render). If a slice
+dispatches its own follow-up, make sure the triggering condition is edge-based so the
+follow-up does not loop.
 
 ## Consuming a combined dispatcher
 
@@ -126,9 +115,10 @@ It behaves like any dispatcher. The whole combined tree is the state.
 
 ```brightscript
 fw.dispatchTo("account", { type: "AUTH_LOGIN_SUCCEEDED", payload: { token: "t1" } })
+fw.dispatchTo("account", { type: "ENTITLEMENT_FETCH" })
 
 state = fw.getStateFrom("account")   ' { auth: {...}, purchase: {...}, entitlement: {...} }
-?state.entitlement.access            ' ["base"] — coordinator follow-up already ran
+?state.entitlement.access            ' ["base"] — derived from the committed auth slice
 ```
 
 ### Listeners (whole tree)
@@ -176,15 +166,13 @@ facade.addListener({
 2. For each slice: `next[name] = slice.reduceSlice(state[name], intent, state)` — each
    child reduces its own slice and sees the **previous committed** combined tree as its
    read-only `m.rootState`.
-3. If a coordinator exists: `coordinator.coordinate(prev, next, intent)` — it inspects
-   transitions and may enqueue follow-up intents.
-4. The new combined tree is committed, delivered to render once, and listeners fire.
-5. Any enqueued follow-ups drain (each as its own full cycle).
+3. The new combined tree is committed, delivered to render once, and listeners fire.
+4. Any follow-up intents enqueued during the cycle drain afterwards (each as its own full
+   cycle).
 
 Unchanged slices keep their reference, so listeners can detect per-slice change by
-reference comparison. Cross-slice **writes** are sequenced through coordinator-dispatched
-follow-up intents, so by the time a follow-up runs, the slice it reads is already
-committed.
+reference comparison. Cross-slice **writes** are sequenced through follow-up intents, so by
+the time a follow-up runs, the slice it reads is already committed.
 
 ### Async source events
 
@@ -209,7 +197,10 @@ its own (e.g. by source identity) and ignore foreign events.
   classic Rotor style) return the same reference, so nothing changes for them; combined
   reducers return a fresh tree, which is now written back to the model (so `getState()`
   reflects it).
-- The coordinator must be edge-triggered, or follow-up dispatches can loop.
+- A slice sees the **previous** committed tree via `m.rootState`; to read a freshly
+  committed slice, sequence a follow-up intent.
+- If a slice/middleware dispatches its own follow-up, keep the trigger edge-based, or the
+  follow-up can loop.
 - Slices read across via `m.rootState`; they must only write their own slice.
 
 ## Example: account composite (full)
@@ -254,17 +245,6 @@ class EntitlementSliceReducer extends Rotor.Reducer
     end function
 end class
 
-class AccountCoordinator extends Rotor.Coordinator
-    override sub coordinate(prev as object, nextState as object, intent as Intent)
-        if prev.auth.status <> "authed" and nextState.auth.status = "authed"
-            m.dispatch({ type: "ENTITLEMENT_FETCH" })
-        end if
-        if prev.purchase.subscription <> nextState.purchase.subscription
-            m.dispatch({ type: "ENTITLEMENT_FETCH" })
-        end if
-    end sub
-end class
-
 ' Task thread setup
 sub taskFunction()
     Rotor.createDispatcher("account", new Rotor.Model({
@@ -276,12 +256,12 @@ sub taskFunction()
             auth:        new AuthSliceReducer(),
             purchase:    new PurchaseSliceReducer(),
             entitlement: new EntitlementSliceReducer()
-        },
-        coordinator: new AccountCoordinator()
+        }
     }))
     m.appFw.sync()
 end sub
 ```
 
-See `src/source/tests/baseTest/CombinedReducerTest.spec.bs` for the runnable, tested
-version of this example.
+To derive entitlement after login, dispatch the follow-up explicitly (`AUTH_LOGIN_SUCCEEDED`
+then `ENTITLEMENT_FETCH`). See `src/source/tests/baseTest/CombinedReducerTest.spec.bs` for
+the runnable, tested version of this example.
