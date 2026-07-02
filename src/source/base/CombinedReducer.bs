@@ -1,0 +1,154 @@
+import "BaseReducer.bs"
+
+namespace Rotor
+
+    ' =====================================================================
+    ' combineReducers - Composes named slice reducers into one reducer
+    '
+    ' Redux-style state composition adapted for Rotor. Produces a single
+    ' Rotor.CombinedReducer that you register like any other reducer via
+    ' createDispatcher(). The dispatcher then exposes ONE combined state tree
+    ' (per-domain slices), ONE dispatch surface, and ONE getState/addListener
+    ' surface, while routing each intent to every child slice reducer.
+    '
+    ' Each slice writes ONLY its own slice, but may READ the other slices via
+    ' m.rootState (the read-only combined state set during reduceSlice), so a
+    ' slice can derive its state from another. Cross-slice WRITES that depend on
+    ' a freshly-committed slice are sequenced by dispatching a follow-up intent
+    ' (the dispatcher queues re-entrant dispatches and drains them after the
+    ' current cycle, so each cycle still emits exactly one state update).
+    '
+    ' @param {object} config - { slices: { name: Reducer, ... } }
+    ' @returns {Rotor.CombinedReducer} The combined reducer instance
+    '
+    ' @example
+    '   Rotor.createDispatcher("account", new Rotor.Model({
+    '       auth: { status: "anon" }, entitlement: { access: [] }
+    '   }), Rotor.combineReducers({
+    '       slices: { auth: new AuthReducer(), entitlement: new EntitlementReducer() }
+    '   }))
+    ' =====================================================================
+    function combineReducers(config as object) as object
+        return new Rotor.CombinedReducer(config.slices)
+    end function
+
+    ' =====================================================================
+    ' CombinedReducer - Fan-out reducer for a combined (multi-slice) dispatcher
+    '
+    ' Holds N child slice reducers keyed by slice name. On each intent it runs
+    ' every child's reduceSlice() against its own slice, assembling a new combined
+    ' state. Slices that don't change keep their previous reference, so listeners
+    ' can detect per-slice changes by reference comparison.
+    '
+    ' Each slice sees the PREVIOUS committed combined state as its read-only root
+    ' (Redux single-pass semantics). To act on a freshly-committed slice, dispatch
+    ' a follow-up intent: it is queued by the dispatcher (re-entrancy guard) and
+    ' drained after the current cycle, so by the time it runs the slice it reads is
+    ' already committed.
+    '
+    ' Child wiring (done in onCreateDispatcher):
+    '   - child.dispatcher / child.dispatcherId point at the COMBINED dispatcher,
+    '     so child.dispatch() re-enters the combined pipeline.
+    '   - child.onCreateDispatcher() is forwarded (source-object registration etc).
+    '
+    ' Async: a combined dispatcher has one reducer, so source events arrive here.
+    ' onSourceEvent() fans them out to every child; each child must verify the
+    ' event is its own (e.g. by source identity) and ignore foreign events.
+    ' =====================================================================
+    class CombinedReducer extends Reducer
+
+        slices as object                ' { sliceName: childReducer }
+        sliceNames as object            ' [ sliceName, ... ]
+
+        ' ---------------------------------------------------------------------
+        ' Constructor
+        '
+        ' @param {object} slices - AA of sliceName -> Rotor.Reducer
+        '
+        sub new(slices as object)
+            super()
+            ' Initialize in body (after super) to avoid the coverage-plugin
+            ' field-initializer reordering issue.
+            m.slices = slices
+            m.sliceNames = slices.Keys()
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' onCreateDispatcher - Wires child slice reducers to the combined dispatcher
+        '
+        override sub onCreateDispatcher()
+            for each sliceName in m.sliceNames
+                child = m.slices[sliceName]
+                child.dispatcher = m.dispatcher
+                child.dispatcherId = m.dispatcherId
+                child.onCreateDispatcher()
+            end for
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' reducer - Fans the intent out to every slice
+        '
+        ' Each slice reducer sees the PREVIOUS committed combined state as its
+        ' read-only root (Redux single-pass semantics). Cross-slice WRITES are
+        ' sequenced through follow-up intents, so by the time a follow-up runs,
+        ' the slice it reads is already committed.
+        '
+        override function reducer(state as object, intent as Intent) as object
+            nextState = {}
+            for each sliceName in m.sliceNames
+                child = m.slices[sliceName]
+                nextState[sliceName] = child.reduceSlice(state[sliceName], intent, state)
+            end for
+            return nextState
+        end function
+
+        ' ---------------------------------------------------------------------
+        ' onSourceEvent - Fans async source events out to every child
+        '
+        override sub onSourceEvent(msg as object)
+            for each sliceName in m.sliceNames
+                m.slices[sliceName].onSourceEvent(msg)
+            end for
+        end sub
+
+        ' ---------------------------------------------------------------------
+        ' destroy - Cleans up children and own references
+        '
+        override sub destroy()
+            for each sliceName in m.sliceNames
+                m.slices[sliceName].destroy()
+            end for
+            m.slices = invalid
+            super.destroy()
+        end sub
+
+    end class
+
+    ' ---------------------------------------------------------------------
+    ' Per-slice subscription
+    '
+    ' There is no selectSlice() helper: BrightScript anonymous functions cannot
+    ' capture local variables, so a closure-based factory can't carry the slice
+    ' name into the callback. Subscribe to a single slice inline instead, with the
+    ' slice key as a literal (works because the literal lives inside the callback):
+    '
+    '   facade.addListener({
+    '       callbackWithState: sub(state)
+    '           m.getViewModel().onEntitlement(state.entitlement)
+    '       end sub
+    '   })
+    '
+    ' To fire only when the slice actually changed, compare the slice reference in
+    ' shouldUpdate/allowUpdate (unchanged slices keep their previous reference):
+    '
+    '   facade.addListener({
+    '       allowUpdate: function(state) as boolean
+    '           changed = not (m.__lastAuth = state.auth)
+    '           m.__lastAuth = state.auth
+    '           return changed
+    '       end function,
+    '       callbackWithState: sub(state) m.onAuth(state.auth) end sub
+    '   })
+    ' ---------------------------------------------------------------------
+
+end namespace

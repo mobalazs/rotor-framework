@@ -6,7 +6,7 @@
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg?style=flat-square&logo=apache&logoColor=white)](LICENSE)
 [![Slack](https://img.shields.io/badge/Slack-RokuDevelopers-4A154B?logo=slack)](https://rokudevelopers.slack.com)
 
-**Rotor** is a modular, ViewModel-first UI framework for Roku applications built with BrighterScript and SceneGraph. It is lightweight and designed to intuitively speed up development time while simplifying both the implementation and long-term maintenance process. It features a rich ViewBuilder system and a Roku-friendly implementation of the MVI (Model-View-Intent) design pattern. It helps developers structure large-scale apps with reusable components, state-driven logic, and optimized rendering.
+**Rotor** is a UI framework that brings structure to large Roku apps, built natively in BrighterScript and SceneGraph. It pairs a declarative ViewBuilder (full lifecycle, focus handling, virtual node tree) with a Roku-friendly, cross-thread MVI pattern. The result is predictable state, reusable components, and rendering you can reason about, keeping apps maintainable and scalable.
 
 [🌱](#token-efficient-documentation-for-ai)
 
@@ -96,7 +96,7 @@ You can find [🌱](./docs/ai/readme.opt.yaml) symbols in all documentation page
 
 ## 📚 Learn More
 
-![Version](https://img.shields.io/badge/version-v0.9.0-blue?label=Documents%20TAG)
+![Version](https://img.shields.io/badge/version-v0.9.0-blue?label=Documents)
 
 ### Framework Core
 
@@ -118,6 +118,7 @@ You can find [🌱](./docs/ai/readme.opt.yaml) symbols in all documentation page
 ### MVI Documentation
 
 -   [Cross-Thread MVI design pattern](./docs/cross-thread-mvi.md) - State management across threads
+-   [Combined Reducers](./docs/combine-reducers.md) - Compose slice reducers into one dispatcher with cross-slice coordination
 
 ### i18N Documentation
 
@@ -127,7 +128,7 @@ You can find [🌱](./docs/ai/readme.opt.yaml) symbols in all documentation page
 
 ## 🔧 Requirements
 
--   Roku SceneGraph (firmware 10.5+ recommended)
+-   Roku OS 15.0+ (required — the cross-thread engine uses the `roRenderThreadQueue` data-transfer API introduced in OS 15)
 -   BrighterScript V1
 
 ---

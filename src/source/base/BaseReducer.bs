@@ -37,6 +37,7 @@ namespace Rotor
 
         ' Internal
         middlewareFnScoped as dynamic   ' Currently executing middleware
+        rootState as object             ' Read-only combined state during reduceSlice (combined dispatcher only)
         
         ' =============================================================
         ' CONSTRUCTOR
@@ -166,16 +167,7 @@ namespace Rotor
             end if
 
             ' Execute middleware pipeline
-            middlewares = m.applyMiddlewares()
-            mwIndex = 0
-            mwCount = middlewares.Count()
-            while intent <> invalid and mwIndex < mwCount
-                middlewareFnScoped = middlewares[mwIndex]
-                m.middlewareFnScoped = middlewareFnScoped
-                intent = m.middlewareFnScoped(intent, state)
-                mwIndex++
-            end while
-            m.middlewareFnScoped = invalid
+            intent = m.runMiddlewares(intent, state)
 
             ' Middleware cancelled intent
             if intent = invalid then return invalid
@@ -184,6 +176,55 @@ namespace Rotor
             newState = m.reducer(state, intent)
 
             return newState
+        end function
+
+        ' ---------------------------------------------------------------------
+        ' runMiddlewares - Executes the middleware pipeline for a given intent
+        '
+        ' Shared by reduce() and reduceSlice(). Returns the (possibly transformed)
+        ' intent, or invalid if a middleware cancelled it.
+        '
+        ' @param {Intent} intent - Intent to process
+        ' @param {object} state - State passed to each middleware
+        ' @return {dynamic} Processed intent, or invalid if cancelled
+        '
+        protected function runMiddlewares(intent as Intent, state as object) as dynamic
+            middlewares = m.applyMiddlewares()
+            mwIndex = 0
+            mwCount = middlewares.Count()
+            while intent <> invalid and mwIndex < mwCount
+                m.middlewareFnScoped = middlewares[mwIndex]
+                intent = m.middlewareFnScoped(intent, state)
+                mwIndex++
+            end while
+            m.middlewareFnScoped = invalid
+            return intent
+        end function
+
+        ' ---------------------------------------------------------------------
+        ' reduceSlice - Reduces a single slice within a combined dispatcher
+        '
+        ' Called by Rotor.CombinedReducer for each named slice. Runs this reducer's
+        ' own middleware + reducer against the slice state. The full combined state
+        ' is exposed read-only via m.rootState for the duration, so a slice can
+        ' DERIVE from other slices (read), while only ever WRITING its own slice.
+        ' A middleware cancel leaves the slice unchanged.
+        '
+        ' @param {object} sliceState - This slice's current state
+        ' @param {Intent} intent - Intent to process
+        ' @param {object} rootState - Full combined state (read-only)
+        ' @return {object} New slice state (same reference if unchanged)
+        '
+        function reduceSlice(sliceState as object, intent as Intent, rootState as object) as object
+            m.rootState = rootState
+            processedIntent = m.runMiddlewares(intent, sliceState)
+            if processedIntent = invalid
+                m.rootState = invalid
+                return sliceState
+            end if
+            newSlice = m.reducer(sliceState, processedIntent)
+            m.rootState = invalid
+            return newSlice
         end function
 
         ' =============================================================

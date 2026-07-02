@@ -1,0 +1,194 @@
+import "pkg:/source/RotorFramework.bs"
+import "pkg:/source/base/CombinedReducer.bs"
+import "pkg:/source/utils/GeneralUtils.bs"
+
+namespace tests
+
+    ' =====================================================================
+    ' Slice reducers — each writes ONLY its own slice, may READ others via
+    ' m.rootState (the read-only combined state set during reduceSlice).
+    ' =====================================================================
+
+    class AuthSliceReducer extends Rotor.Reducer
+        override function reducer(slice as object, intent as Intent) as object
+            if intent.type = "AUTH_LOGIN_SUCCEEDED"
+                newSlice = Rotor.Utils.deepCopy(slice)
+                newSlice.token = intent.payload.token
+                newSlice.status = "authed"
+                return newSlice
+            end if
+            return slice
+        end function
+    end class
+
+    class PurchaseSliceReducer extends Rotor.Reducer
+        override function reducer(slice as object, intent as Intent) as object
+            if intent.type = "PURCHASE_CONFIRMED"
+                newSlice = Rotor.Utils.deepCopy(slice)
+                newSlice.receipt = intent.payload.receipt
+                newSlice.subscription = intent.payload.subscription
+                return newSlice
+            end if
+            return slice
+        end function
+    end class
+
+    class EntitlementSliceReducer extends Rotor.Reducer
+        ' Reads auth + purchase slices via m.rootState (cross-slice derive).
+        override function reducer(slice as object, intent as Intent) as object
+            if intent.type = "ENTITLEMENT_FETCH"
+                newSlice = Rotor.Utils.deepCopy(slice)
+                access = []
+                if m.rootState.auth.status = "authed" then access.push("base")
+                if m.rootState.purchase.subscription = "premium" then access.push("premium")
+                newSlice.access = access
+                newSlice.subscription = m.rootState.purchase.subscription
+                return newSlice
+            end if
+            return slice
+        end function
+    end class
+
+    ' Records how many source events it received (for fan-out verification).
+    class RecordingSliceReducer extends Rotor.Reducer
+        sourceEvents = 0
+        override sub onSourceEvent(msg as object)
+            m.sourceEvents++
+        end sub
+    end class
+
+    sub createAccountDispatcher()
+        Rotor.createDispatcher("account", new Rotor.Model({
+            auth: { token: invalid, status: "anon" },
+            purchase: { receipt: invalid, subscription: invalid },
+            entitlement: { access: [], subscription: invalid }
+        }), Rotor.combineReducers({
+            slices: {
+                auth: new tests.AuthSliceReducer(),
+                purchase: new tests.PurchaseSliceReducer(),
+                entitlement: new tests.EntitlementSliceReducer()
+            }
+        }))
+    end sub
+
+    @suite("CombinedReducerTestSuite")
+    class CombinedReducerTestSuite extends rooibos.BaseTestSuite
+
+        fwInstance
+
+        protected override function beforeEach()
+            m.fwInstance = new Rotor.Framework()
+        end function
+
+        protected override function afterEach()
+            if m.fwInstance <> invalid
+                m.fwInstance.destroy()
+                m.fwInstance = invalid
+            end if
+        end function
+
+        @describe("combineReducers composition")
+
+        @it("composes slices into one combined state tree")
+        function _()
+            tests.createAccountDispatcher()
+
+            state = m.fwInstance.getStateFrom("account")
+
+            m.assertNotEqual(state.auth, invalid)
+            m.assertNotEqual(state.purchase, invalid)
+            m.assertNotEqual(state.entitlement, invalid)
+            m.assertEqual(state.auth.status, "anon")
+        end function
+
+        @it("routes an intent to the matching slice only, leaving others unchanged by reference")
+        function _()
+            tests.createAccountDispatcher()
+            before = m.fwInstance.getStateFrom("account")
+            ' Tag the auth slice so we can detect whether its reference is preserved
+            ' (BrightScript throws on '=' comparison of AAs, so we use a marker).
+            before.auth.__refMarker = "authRef"
+
+            m.fwInstance.dispatchTo("account", { type: "PURCHASE_CONFIRMED", payload: { receipt: "r1", subscription: "basic" } })
+
+            after = m.fwInstance.getStateFrom("account")
+            m.assertEqual(after.purchase.receipt, "r1")
+            ' auth slice untouched -> same reference preserved (marker carried over)
+            m.assertEqual(after.auth.__refMarker, "authRef")
+        end function
+
+        @describe("cross-slice derive (read other slices via rootState)")
+
+        @it("entitlement slice derives access by reading the committed auth slice")
+        function _()
+            tests.createAccountDispatcher()
+
+            ' Commit auth first, then dispatch the follow-up that derives entitlement.
+            ' By the second dispatch, auth.status is already committed, so the
+            ' entitlement slice reads "authed" from m.rootState.auth.
+            m.fwInstance.dispatchTo("account", { type: "AUTH_LOGIN_SUCCEEDED", payload: { token: "t1" } })
+            m.fwInstance.dispatchTo("account", { type: "ENTITLEMENT_FETCH" })
+
+            state = m.fwInstance.getStateFrom("account")
+            m.assertEqual(state.auth.status, "authed")
+            m.assertEqual(state.auth.token, "t1")
+            m.assertEqual(state.entitlement.access.count(), 1)
+            m.assertEqual(state.entitlement.access[0], "base")
+        end function
+
+        @it("entitlement slice derives from the shared purchase subscription slice")
+        function _()
+            tests.createAccountDispatcher()
+            m.fwInstance.dispatchTo("account", { type: "AUTH_LOGIN_SUCCEEDED", payload: { token: "t1" } })
+            m.fwInstance.dispatchTo("account", { type: "PURCHASE_CONFIRMED", payload: { receipt: "r9", subscription: "premium" } })
+
+            m.fwInstance.dispatchTo("account", { type: "ENTITLEMENT_FETCH" })
+
+            state = m.fwInstance.getStateFrom("account")
+            m.assertEqual(state.purchase.subscription, "premium")
+            ' entitlement (a different slice) READ purchase.subscription via m.rootState
+            m.assertEqual(state.entitlement.subscription, "premium")
+            m.assertEqual(state.entitlement.access.count(), 2)
+            m.assertEqual(state.entitlement.access[1], "premium")
+        end function
+
+        @describe("reference preservation")
+
+        @it("an intent matching no slice preserves every slice reference")
+        function _()
+            tests.createAccountDispatcher()
+            m.fwInstance.dispatchTo("account", { type: "AUTH_LOGIN_SUCCEEDED", payload: { token: "t1" } })
+
+            ' Tag slices, then dispatch a no-op intent (matches no slice).
+            before = m.fwInstance.getStateFrom("account")
+            before.auth.__refMarker = "a"
+            before.entitlement.__refMarker = "e"
+
+            m.fwInstance.dispatchTo("account", { type: "UNKNOWN_INTENT" })
+
+            ' Nothing changed -> every slice keeps its previous reference.
+            after = m.fwInstance.getStateFrom("account")
+            m.assertEqual(after.auth.__refMarker, "a")
+            m.assertEqual(after.entitlement.__refMarker, "e")
+        end function
+
+        @describe("async source event fan-out")
+
+        @it("onSourceEvent is delivered to every child slice reducer")
+        function _()
+            childA = new tests.RecordingSliceReducer()
+            childB = new tests.RecordingSliceReducer()
+            Rotor.createDispatcher("srcAccount", new Rotor.Model({ a: {}, b: {} }), Rotor.combineReducers({
+                slices: { a: childA, b: childB }
+            }))
+
+            dispatcherInstance = m.fwInstance.dispatcherProvider.get("srcAccount")
+            dispatcherInstance.onSourceEvent({ mock: true })
+
+            m.assertEqual(childA.sourceEvents, 1)
+            m.assertEqual(childB.sourceEvents, 1)
+        end function
+
+    end class
+
+end namespace

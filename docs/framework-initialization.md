@@ -16,7 +16,7 @@ framework = new Rotor.Framework()
 framework = new Rotor.Framework({
     tasks: ["DataTask", "NetworkTask"],
     rootNode: m.top,
-    readyFieldId: "appReady",
+    readyFieldId: "isReady",
     onReady: sub()
         print "Framework ready!"
     end sub
@@ -31,8 +31,8 @@ framework = new Rotor.Framework({
 |----------|------|----------|-------------|
 | `rootNode` | roSGNode | No | Root SceneGraph node for the framework. Defaults to `top` node if not specified. |
 | `tasks` | array | No | List of task node names to synchronize with the render thread. When specified, the render queue waits for all tasks to signal ready before flushing. |
-| `onReady` | function | No | Callback function invoked after tasks are synced and the render queue is flushed. Called in global scope. |
-| `readyFieldId` | string | No | Field name to add to the root node that will be set to `true` after tasks are synced and render queue is flushed. Useful for triggering observers. |
+| `onReady` | function | No | Callback function invoked after tasks are synced and the render queue is flushed. Called in **global scope** (`GetGlobalAA()`) — i.e. inside `onReady` the `m` scope is the same `m` you have where you instantiate the framework (typically the component's `init()`), so `m.framework`, `m.top`, etc. are reachable. **Only needed when `tasks` are configured** — without tasks the framework instantiates synchronously and is ready immediately. |
+| `readyFieldId` | string | No | Field name to add to the root node that will be set to `true` after tasks are synced and render queue is flushed. Useful for triggering observers. **Only relevant when `tasks` are configured.** |
 | `plugins` | array | No | List of plugin instances to register. Default plugins are automatically included. Custom plugins are not documented yet. |
 | `allowNativeAudioGuide` | boolean | No | Whether to allow native AudioGuide when TTS service is enabled. If `true`, rootNode.muteAudioGuide is **not** set. If `false` (default), native AudioGuide is muted when TTS is enabled. |
 | `debug` | object | No | Debug configuration options. |
@@ -46,6 +46,8 @@ framework = new Rotor.Framework({
 ## Task Synchronization
 
 When building applications with background tasks, you often need to wait for those tasks to initialize before rendering the UI. The framework provides built-in task synchronization.
+
+> **Note:** Task synchronization — and the `onReady` callback / `readyFieldId` (`isReady`) field — is **only relevant when you configure `tasks`**. Without tasks, the framework instantiates **synchronously** and is ready immediately, so you don't need `onReady` or `readyFieldId` at all.
 
 ### Why Task Synchronization?
 
@@ -91,7 +93,7 @@ sub init()
     m.framework = new Rotor.Framework({
         tasks: ["DataTask", "NetworkTask"],
         rootNode: m.top,
-        readyFieldId: "appReady",
+        readyFieldId: "isReady",
         onReady: sub()
             ' Framework and all tasks are ready
             print "All systems ready!"

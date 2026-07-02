@@ -18,11 +18,11 @@ configurationOptions:
     onReady:
       type: "function"
       required: false
-      description: "Callback invoked after tasks synced and render queue flushed. Called in global scope."
+      description: "Callback invoked after tasks synced and render queue flushed. Called in global scope (GetGlobalAA()) — inside onReady the m scope is the SAME m as where you instantiate the framework (typically component init()), so m.framework / m.top are reachable. ONLY needed when tasks configured — without tasks the framework instantiates synchronously and is ready immediately."
     readyFieldId:
       type: "string"
       required: false
-      description: "Field name added to root node, set to true after tasks synced and render queue flushed. Useful for triggering observers."
+      description: "Field name (e.g. isReady) added to root node, set to true after tasks synced and render queue flushed. Useful for triggering observers. ONLY relevant when tasks configured."
     plugins:
       type: "array"
       required: false
@@ -48,12 +48,13 @@ basicInitialization: |
   framework = new Rotor.Framework({
       tasks: ["DataTask", "NetworkTask"],
       rootNode: m.top,
-      readyFieldId: "appReady",
+      readyFieldId: "isReady",
       onReady: sub()
           print "Framework ready!"
       end sub
   })
 taskSynchronization:
+  note: "Task synchronization — and the onReady callback / readyFieldId (isReady) field — is ONLY relevant when tasks are configured. Without tasks, the framework instantiates synchronously and is ready immediately; onReady and readyFieldId are not needed."
   why:
     - "Cross-thread initialization: Ensure task threads ready before render thread proceeds"
     - "State management: Wait for initial state loaded from tasks before rendering"

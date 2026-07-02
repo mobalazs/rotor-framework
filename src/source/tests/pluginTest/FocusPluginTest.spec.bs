@@ -17,7 +17,7 @@ namespace tests
             template = getFocusTestTemplate()
             m.fwInstance.render(template)
             ' Disable longPress feature
-            m.fwInstance.plugins.focusenableLongPressFeature = false
+            m.fwInstance.plugins.focus.enableLongPressFeature = false
             ' Set initial focus to L1 (by using the topWidget group and its capturing feature)
             topWidget = m.fwInstance.getWidget("topWidget")
             topWidget.setFocus()

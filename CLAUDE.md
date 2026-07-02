@@ -208,33 +208,189 @@ dispatcher.dispatch({ type: "INCREMENT" })
 ```
 
 ### Using Plugins
+
+**Observer Plugin — critical scope rules:**
+- `callback: sub(payload)` fires WITH payload; `handler: sub()` fires WITHOUT. Mutually exclusive, one required.
+- In both cases `m` = **the widget**, NOT the ViewModel.
+- **Never** pass a ViewModel method directly: `callback: m.myMethod` → crash at runtime.
+- **Always** bridge via inline sub: `callback: sub(payload) m.getViewModel().myMethod(payload) end sub`
+- Methods called via `getViewModel()` must not be `private` (generic object call, no class typing).
+- `once: true` → auto-remove after first fire. `until: fn` → remove when fn returns true.
+- `alwaysNotify: true` (default) → fires even when value is unchanged.
+
+**Focus Plugin — key event routing:**
+- Callback is `onSelect` (NOT `onSelected`).
+- Key routing order inside `executeNavigationAction`:
+  1. Direction keys (up/down/left/right/back) → navigation logic (direction overrides, spatial, bubbling)
+  2. OK → `onSelect` callback
+  3. All other keys (play, ff, rew, replay…) → `keyPressHandler` (FocusItem first, then bubbles to groups)
+- Direction keys and OK **never reach** `keyPressHandler`.
+- `keyPressHandler` is on `BaseFocusConfig` — works on both FocusItems and FocusGroups.
+
 ```brightscript
 {
     id: "button",
     nodeType: "Rectangle",
     fields: { color: "0xFF0000FF" },
-    observers: [{                    ' Observer Plugin
+    observers: [{
         field: "buttonSelected",
-        callback: function(value)
-            ' Handle selection
-        end function
+        ' m = widget here, not ViewModel — bridge to ViewModel explicitly:
+        callback: sub(value) m.getViewModel().onButtonSelected(value) end sub
     }],
-    focus: {                         ' Focus Plugin
-        onFocusChanged: function(isFocused)
-            ' Handle focus change
-        end function,
-        onFocus: function()
-            ' Handle focus gained
-        end function,
-        onBlur: function()
-            ' Handle focus lost
-        end function,
-        onSelect: function()
-            ' Handle OK button press
-        end function
+    focus: {
+        onFocusChanged: sub(isFocused) m.getViewModel().onFocusChanged(isFocused) end sub,
+        onSelect: sub() m.getViewModel().onSelect() end sub,
+        keyPressHandler: sub(key as string) m.getViewModel().onKeyPress(key) end sub
     }
 }
 ```
+
+### Root Widget Scope
+On the **root widget** of a `template()`, `m` IS the ViewModel — call methods directly without `getViewModel()`.
+On any child widget, use `m.getViewModel()` (own ViewModel) or `m.getParentViewModel()` (parent ViewModel).
+
+### ViewModel Lifecycle
+```
+onCreateView()      → before template() — l10n NOT available yet
+template()          → widget tree definition (called once on create)
+onTemplateCreated() → after render — l10n IS available
+onUpdateView()      → calls m.render() by default → re-runs template()
+onDestroyView()     → cleanup
+```
+- `m.render()` without args → full re-render via `template()`
+- `m.render(partial)` → partial update of specific widgets
+
+---
+
+## BrightScript & BrighterScript Reference
+
+This section is self-contained for developers without prior Roku experience.
+
+### Threading Model
+
+Roku has two threads; violating boundaries causes crashes or silent data corruption.
+
+| Thread | Owns | Can do |
+|--------|------|--------|
+| Render thread | All SceneGraph nodes | UI reads/writes, field observers, focus |
+| Task thread | Business logic | API calls, state mutation, reducers |
+
+- Cross-thread node writes cause **rendezvous** (blocking synchronization). Prefer `CopyMessage` (async) for state delivery.
+- Use `observeFieldScoped` instead of `observeField` — auto-removed on component destroy, prevents leaks.
+
+### `m.` Scope
+
+```brightscript
+' .brs anonymous function: m = the function's OWN scope, NOT the component
+sub init()
+    self = m  ' capture component reference
+    callback = function()
+        self.doSomething()  ' correct
+        m.doSomething()     ' wrong: m is the anonymous function's scope
+    end function
+end sub
+
+' BrighterScript lambda (.bs): correctly closes over outer m
+sub init()
+    callback = () => m.doSomething()  ' correct: m = component
+end sub
+
+' BrighterScript class method: m = class instance
+class MyClass
+    sub doWork()
+        m.value = 1  ' m = MyClass instance
+    end sub
+end class
+```
+
+### Null, Types & Common Pitfalls
+
+```brightscript
+' Null is "invalid"
+if x = invalid then ...
+if x <> invalid then ...
+
+' roSGNode comparison: = operator causes Type Mismatch runtime error
+if node1 = node2 then ...           ' CRASH
+if node1.isSameNode(node2) then ... ' correct (guard against invalid first)
+
+' Str() on large integers → scientific notation
+timestamp = 1770000000
+print Str(timestamp)               ' "1.77e+09" — WRONG for URLs/tokens
+print "%d".Format(timestamp)       ' "1770000000" — correct
+
+' Arrays and AAs are pass-by-reference
+a = [1, 2, 3]
+b = a
+b.push(4)  ' also modifies a
+b = a.clone()  ' shallow copy if needed
+```
+
+### BrighterScript-Specific
+
+- Classes compile to BrightScript AA factories — no runtime type reflection.
+- `namespace Rotor` groups all framework classes; avoid namespace collisions.
+- `typecast x as Rotor.Widget` → compile-time type hint only, zero runtime cost. Use in plugin callbacks for IDE support.
+- `import` resolves at compile time; circular imports cause build errors.
+- Lambdas (`() =>`) close over `m` correctly. Anonymous `function()`/`sub()` blocks do NOT.
+
+### Roku Device API Pitfalls
+
+```brightscript
+' roDeviceInfoEvent does NOT implement ifSourceIdentity
+' Calling GetSourceIdentity() on it causes a crash.
+' Route by event type, not identity — check type-based registry first in message loop.
+
+' Caption mode event
+if msg.isCaptionModeChanged() then
+    info = msg.GetInfo()  ' returns AA: { Mode: "Off"/"On"/"Instant replay", Mute: boolean }
+    mode = info.Mode      ' string
+    ' NOT: msg.GetInfo() returns string — only the sync roDeviceInfo.GetCaptionsMode() does
+end if
+' Caption events fire multiple times on app startup — this is normal device behavior.
+
+' roUrlTransfer — always use port-based async, never synchronous GetToString() on task thread
+' with active message port, or events will be lost.
+```
+
+---
+
+## Framework Internals
+
+For contributors working on the framework itself.
+
+### Known Critical Fixes
+
+**`DispatcherCore.notifyListeners()` — listener removal mid-iteration**
+Original code cached `listenerCount` before the loop. If a listener removed itself during notification, the cached count was wrong → crash. Fix: use `m.listeners.Count()` (live count) directly in the loop condition.
+
+**`NodePool.resetNode()` — stale node.id**
+`resetNode()` must set `node.id = ""` as its first operation. The Animator sets `node.id = "${target.id}-${target.HID}"` for interpolator references. When nodes are reused from the pool with stale ids, the animator fails to find the correct interpolator → "Failed to update interpolator field" error and visual scrambling after navigation.
+
+### Port Object Registry
+
+Two routing modes in `BaseReducer` for async Roku port events:
+
+| Mode | Registry | Use for |
+|------|----------|---------|
+| Identity-based (default) | `portObjectRegistry` | Events with `ifSourceIdentity` (roUrlEvent, roChannelStoreEvent) |
+| Type-based | `portObjectTypeRegistry` | Events WITHOUT `ifSourceIdentity` (roDeviceInfoEvent, roInputEvent) |
+
+Pass `eventType` string (e.g. `"roDeviceInfoEvent"`) to `registerPortObject()` to use type-based routing.
+The message loop checks type-based registry first to avoid calling `GetSourceIdentity()` on unsupported events.
+
+```brightscript
+' In a Reducer:
+m.registerPortObject(portObject, context, persistent)          ' identity-based
+m.registerPortObject(portObject, context, persistent, "roDeviceInfoEvent")  ' type-based
+m.unregisterPortObject(portObject)
+```
+
+### `onDispatcherCreated` Lifecycle Hook
+
+Virtual method on `BaseReducer`, called by `DispatcherOriginal.new()` after the dispatcher is fully registered. Use this for any initialization that requires the dispatcher to exist (e.g. port object registration, cross-dispatcher subscriptions). The reducer constructor runs **before** `DispatcherOriginal` links it — the dispatcher is not yet available in the constructor.
+
+---
 
 ## Project-Specific Considerations
 
